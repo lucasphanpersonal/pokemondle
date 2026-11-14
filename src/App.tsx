@@ -101,25 +101,28 @@ export default function App() {
       <Header mode={mode} onModeChange={setMode} onHelp={() => setShowHelp(true)} />
       <main className="mx-auto flex w-full max-w-5xl big:max-w-[80rem] flex-col gap-4 px-3 py-4 sm:px-5 sm:py-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          {mode === 'endless' ? (
-            // The title names the Gens this game was drawn from, in its own box (the guess box's look); the gear,
-            // a smaller box inside it like the Guess button in the guess box, opens the Gens picker (view-only
-            // mid-game, since the game keeps its Gens).
-            <div className="ds-box flex max-w-full items-center gap-2 p-2 pl-4">
-              <p className="tx-10 leading-4 sm:text-xs">Endless · {gensLabel(game.gameGens)}</p>
+          {/*
+            The title sits in its own box (the guess box's look) in both modes. In Endless it names the Gens the game
+            was drawn from, and a plain pixel gear (no box of its own) opens the Gens picker, view-only mid-game since
+            the game keeps its Gens. The gear's tap area is the full 44px but its negative margins keep the box as
+            short as the Daily one, so both titles match.
+          */}
+          <div className="ds-box flex max-w-full items-center gap-2 px-4 py-2">
+            <p className="tx-10 leading-5 sm:text-xs sm:leading-5">
+              {mode === 'endless' ? `Endless · ${gensLabel(game.gameGens)}` : `Daily #${game.puzzleNumber}`}
+            </p>
+            {mode === 'endless' && (
               <button
                 type="button"
                 onClick={() => setShowGens(true)}
                 aria-label="Endless Gens settings"
                 title={game.inProgress ? 'Gens for this game' : 'Choose which Gens Endless picks from'}
-                className="ds-button bevel-paper flex h-11 w-11 shrink-0 items-center justify-center text-ds-ink"
+                className="ds-focus-inset -my-3 -mr-3 flex h-11 w-11 shrink-0 items-center justify-center text-ds-ink transition-transform hover:text-ds-frame active:translate-y-px"
               >
                 <PixelGear />
               </button>
-            </div>
-          ) : (
-            <p className="tx-10 sm:text-xs">Daily #{game.puzzleNumber}</p>
-          )}
+            )}
+          </div>
           <p className="tx-9 text-ds-frame">
             {game.guesses.length} {game.guesses.length === 1 ? 'guess' : 'guesses'}
           </p>

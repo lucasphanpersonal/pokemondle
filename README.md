@@ -47,7 +47,7 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   its suggestions; already guessed Pokémon are hidden from them. Matching ignores case, accents and punctuation ("flabebe" finds Flabébé).
   Typing the full name of a Pokémon you already guessed and pressing Enter says "You already guessed …" instead of guessing
   the next suggestion (so "pikachu" twice never guesses Pikachu Rock Star); picking a suggestion with ↑/↓ first still works.
-- **Give up (Daily and Endless)**: a white **Give up** button sits last in the menu row under the puzzle title,
+- **Give up (Daily and Endless)**: a white **Give up** button sits last in the menu row under the title box,
   beside the Gen hint; the row wraps on narrow phones. It disappears once the game is over. It
   is kept away from the search box on purpose, so the most-tapped control never sits next to one that ends the game,
   and it is shown all game, so nothing moves when it becomes available: before the first guess it is locked (same
@@ -58,7 +58,9 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   the streak that ends: a given-up Daily is listed in History as "Gave up", resets the streak straight away and stays
   out of the solved count, average, fewest and no-hint share. An Endless give up counts as given up in the Endless stats.
 - **Endless Gens**: in Endless the title names the Gens the game was drawn from ("Endless · All Gens", "Endless ·
-  Gens 1-3, 5") inside its own box (the guess box's look), and a small white square button inside that box with a pixel-art gear (`PixelGear.tsx`, labelled
+  Gens 1-3, 5") inside its own box (the guess box's look; the Daily shows "Daily #N" in the same box, the same
+  height), and a plain pixel-art gear inside that box, with no box of its own (`PixelGear.tsx`, a 44px tap area kept
+  inside the box by negative margins, labelled
   "Endless Gens settings" for screen readers) opens a picker
   (`src/components/GensModal.tsx`, titled **Select Gens**, or **This game's Gens** while it is view-only): nine **Gen 1** to **Gen 9** toggles in a 3 by 3 grid (green and pressed in when on,
   white and raised when off), **All** and **None** buttons, a line with the selection and how many Pokémon it holds, and
@@ -212,7 +214,8 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    sides. Pick the face colour with `.bevel-paper` (white), `.bevel-red`, `.bevel-green`, or `data-result` on tiles.
    Never hand-roll a `box-shadow` or `border` bevel on a single control. A dialog's close button is a 44px
    `.ds-button bevel-paper` square holding the pixel-art cross (`ResultMark` drawn at 2px per art pixel), like the
-   header's ? button. The only exception is the small on/off switch graphics in Help, which are not menu buttons.
+   header's ? button. The exceptions are the small on/off switch graphics in Help, which are not menu buttons, and the Endless
+   Gens gear, a bare pixel icon inside the title box (Lucas's choice, so the box stays small).
 2. **Pressed means the inverse bevel.** A selected or "on" control (the chosen Daily/Endless side, a chosen Gen in the Endless Gens picker, the taken Gen hint) adds
    `.bevel-pressed`: same edges, dark on top and light at the bottom. The edges stay the same size, so labels sit at
    the same height whether a control is up or down.
@@ -232,7 +235,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    Press Start 2P, self-hosted from `@fontsource/press-start-2p` (no Google Fonts request); images use `image-rendering: pixelated`.
 6. **One action colour.** Each spot has one red main action: Guess while playing, then See results in the guess box
    once a Daily is over, or New Pokémon in Endless (where See results beside it turns white). Secondary actions
-   (History, the Gens gear, Give up) are white.
+   (History, Give up) are white.
 7. **Dialog headers.** A dialog's title is vertically centred on its close button, which sits the same distance from
    the box's top and right edges.
 8. **Readable colours, never colour alone.** White text needs at least 4.5:1 against its face, so the tile green is
