@@ -210,6 +210,7 @@ test('giving up the Daily asks first, ends the game and is listed in History', a
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await guess(page, await nonAnswer(page, 'daily', ['Oddish', 'Paras']))
   await expect(giveUp).not.toHaveAttribute('aria-disabled')
+  await expect(page.getByRole('status').filter({ hasText: 'Stuck? Give up to see the answer.' })).toBeVisible()
 
   await giveUp.click()
   const ask = page.getByRole('dialog')

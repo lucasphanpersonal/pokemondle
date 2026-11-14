@@ -189,7 +189,7 @@ export default function App() {
       </main>
 
       {/*
-        Give up sits in a footer at the bottom of the page (Lucas's pick): the same spot at every guess count, far from
+        Give up sits in a footer at the bottom of the page: the same spot at every guess count, far from
         the guess box so the most-tapped control never sits next to the one that ends the game, and never over the
         board. It is shown all game (locked before the first guess, its line saying why) and kept while the last guess's
         tiles flip, then gone once the game is over.
