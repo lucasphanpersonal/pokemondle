@@ -47,12 +47,13 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   its suggestions; already guessed Pokémon are hidden from them. Matching ignores case, accents and punctuation ("flabebe" finds Flabébé).
   Typing the full name of a Pokémon you already guessed and pressing Enter says "You already guessed …" instead of guessing
   the next suggestion (so "pikachu" twice never guesses Pikachu Rock Star); picking a suggestion with ↑/↓ first still works.
-- **Give up (Daily and Endless)**: a white **Give up** button sits last in the menu row under the title box,
-  beside the Gen hint; the row wraps on narrow phones. It disappears once the game is over. It
-  is kept away from the search box on purpose, so the most-tapped control never sits next to one that ends the game,
-  and it is shown all game, so nothing moves when it becomes available: before the first guess it is locked (same
-  colours, grey label, `aria-disabled`, and a tap shows "Give up unlocks
-  after your first guess." under the guess count). It asks first (`src/components/GiveUpModal.tsx`: **Keep going** or
+- **Give up (Daily and Endless)**: a white **Give up** button sits at the right of a footer at the bottom of the
+  page (a thin line above it, `mt-auto` so it stays at the screen bottom when the board is short), with a short line
+  beside it: "Stuck? Give up to see the answer." The footer disappears once the game is over. It is kept away from
+  the search box on purpose, so the most-tapped control never sits next to one that ends the game, never covers the
+  board, and is shown all game, so nothing moves when it becomes available: before the first guess it is locked (same
+  colours, grey label, `aria-disabled`) and the line beside it reads "Give up unlocks after your first guess." (a live
+  region, so the change is announced). It asks first (`src/components/GiveUpModal.tsx`: **Keep going** or
   **Give up**), then ends the game as `lost`: the Poké Ball escape plays (see **Catch and escape** below), then the result screen, titled "It got away!", reveals the answer with its
   Pokédex entry (plus **New Pokémon** in Endless). For the Daily the dialog warns that it can't be replayed and names
   the streak that ends: a given-up Daily is listed in History as "Gave up", resets the streak straight away and stays
@@ -92,7 +93,7 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   stray Enter never spends the hint) and **Show Gen**. Show Gen types out "This Pokémon is from Gen N!" with a stepping
   ▼; advancing closes it. Esc or a tap on the dimmed background means Not now. The pop-up appears once per game
   (`localStorage['pokemondle:hint-offered']`, the last game offered in each mode); after Not now a white **Gen hint**
-  button (with a pixel bulb, `PixelBulb.tsx`) sits in the menu row, before Give up, until the game ends. Once taken, that button stays in
+  button (with a pixel bulb, `PixelBulb.tsx`) sits in the menu row under the title box until the game ends. Once taken, that button stays in
   place pressed in (the inverse bevel, a non-interactive status) and reads **Hint · Gen N**, the save gets `hinted: true`, the result screen shows **Used the Gen hint**
   and History marks the Daily with a bulb. A hinted win still counts as a win and keeps the streak; History shows
   "N% of wins without a hint" for the Daily and for Endless. Analytics events carry `config.hint_used` (false until the hint is
