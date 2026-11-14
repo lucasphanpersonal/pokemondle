@@ -49,11 +49,10 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   the next suggestion (so "pikachu" twice never guesses Pikachu Rock Star); picking a suggestion with ↑/↓ first still works.
 - **Give up (Daily and Endless)**: a white **Give up** button sits at the right of a footer at the bottom of the
   page (a thin line above it, `mt-auto` so it stays at the screen bottom when the board is short), with a short line
-  beside it: "Stuck? Give up to see the answer." The footer disappears once the game is over. It is kept away from
-  the search box on purpose, so the most-tapped control never sits next to one that ends the game, never covers the
-  board, and is shown all game, so nothing moves when it becomes available: before the first guess it is locked (same
-  colours, grey label, `aria-disabled`) and the line beside it reads "Give up unlocks after your first guess." (a live
-  region, so the change is announced). It asks first (`src/components/GiveUpModal.tsx`: **Keep going** or
+  beside it: "Stuck? Give up to see the answer." The footer appears with the first guess (there is nothing to give up
+  before then) and disappears once the game is over (it stays, inert, while the last guess's tiles flip). It is kept
+  away from the search box on purpose, so the most-tapped control never sits next to one that ends the game, and it
+  never covers the board. It asks first (`src/components/GiveUpModal.tsx`: **Keep going** or
   **Give up**), then ends the game as `lost`: the Poké Ball escape plays (see **Catch and escape** below), then the result screen, titled "It got away!", reveals the answer with its
   Pokédex entry (plus **New Pokémon** in Endless). For the Daily the dialog warns that it can't be replayed and names
   the streak that ends: a given-up Daily is listed in History as "Gave up", resets the streak straight away and stays

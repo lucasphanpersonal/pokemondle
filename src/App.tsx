@@ -188,27 +188,22 @@ export default function App() {
       {/*
         Give up sits in a footer at the bottom of the page: the same spot at every guess count, far from
         the guess box so the most-tapped control never sits next to the one that ends the game, and never over the
-        board. It is shown all game (locked before the first guess, its line saying why) and kept while the last guess's
-        tiles flip, then gone once the game is over.
+        board. It appears with the first guess (there is nothing to give up before then) and is kept, inert, while the
+        last guess's tiles flip (unless that was the first guess, when it was never shown), then gone once the game is over.
       */}
-      {(game.gameStatus === 'playing' || revealing) && (
+      {(game.canGiveUp || (revealing && game.guesses.length > 1)) && (
         <footer className="mt-auto border-t-2 border-ds-frame/40">
           <div className="mx-auto flex w-full max-w-5xl big:max-w-[80rem] items-center justify-between gap-3 px-3 py-3 sm:px-5">
-            {/* A live region, so screen readers hear the line change when Give up unlocks. */}
-            <p role="status" className="tx-8 leading-4 text-ds-frame">
-              {game.canGiveUp ? 'Stuck? Give up to see the answer.' : 'Give up unlocks after your first guess.'}
-            </p>
+            <p className="tx-8 leading-4 text-ds-frame">Stuck? Give up to see the answer.</p>
             <button
               type="button"
-              // Locked (same look, focusable) rather than faded, so it keeps its contrast; the line beside it says why.
+              // Inert during the final reveal (the game is already over), without fading, so the footer doesn't flicker.
               onClick={() => {
                 if (game.canGiveUp) setGiveUpAsk(gameId)
               }}
               aria-disabled={!game.canGiveUp || undefined}
-              title={game.canGiveUp ? 'Reveal the answer and end this game' : 'Give up unlocks after your first guess'}
-              className={`ds-button bevel-paper h-11 shrink-0 whitespace-nowrap px-3 text-[9px] sm:px-4 sm:text-[10px] ${
-                game.canGiveUp ? '' : 'cursor-not-allowed text-ds-frame'
-              }`}
+              title="Reveal the answer and end this game"
+              className="ds-button bevel-paper h-11 shrink-0 whitespace-nowrap px-3 text-[9px] sm:px-4 sm:text-[10px]"
             >
               Give up
             </button>
