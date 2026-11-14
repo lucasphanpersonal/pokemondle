@@ -55,8 +55,6 @@ export default function App() {
 
   // "Give up" (Daily and Endless) asks first. Keyed by game, so switching modes or starting a new game drops a pending ask.
   const [giveUpAsk, setGiveUpAsk] = useState<string | null>(null)
-  // The game whose locked Give up button was tapped: shows its "locked" note for that game only.
-  const [lockNote, setLockNote] = useState<string | null>(null)
   const showGiveUp = giveUpAsk === gameId && game.canGiveUp
   const confirmGiveUp = () => {
     setGiveUpAsk(null)
@@ -126,20 +124,12 @@ export default function App() {
           <p className="tx-9 text-ds-frame">
             {game.guesses.length} {game.guesses.length === 1 ? 'guess' : 'guesses'}
           </p>
-          {/* Only shown once the player taps the locked Give up button, so it doesn't cost a line every game. */}
-          {/* Always mounted so screen readers announce the text when it appears. */}
-          <div role="status" className="contents">
-            {!game.canGiveUp && game.gameStatus === 'playing' && lockNote === gameId && (
-              <p className="max-w-md tx-8 leading-4 text-ds-frame">Give up unlocks after your first guess.</p>
-            )}
-          </div>
           {/*
-            Game menu: the Gen hint and Give up (Endless's Gens settings are the gear in the title box). Give up sits beside the hint, away from the guess box,
-            so the thing you tap most is never next to the one that ends the game. It is shown all game (locked, with a
-            note on tap, until the first guess) and gone once the game is over and its tiles have flipped. History and the streak are not here:
-            they belong to the end of a game, so they live on the result screen. The row wraps on narrow phones.
+            Game menu: the Gen hint (Endless's Gens settings are the gear in the title box). Give up lives in the page
+            footer, as far from the guess box as it can be. History and the streak are not here: they belong to the end
+            of a game, so they live on the result screen.
           */}
-          {(canHint || showHint || game.gameStatus === 'playing' || revealing) && (
+          {(canHint || showHint) && (
             <div className="flex flex-wrap items-center justify-center gap-2">
               {canHint && (
                 <button
@@ -158,24 +148,6 @@ export default function App() {
                   <span aria-hidden="true">Hint · Gen {game.targetPokemon.generation}</span>
                   <span className="sr-only">Hint: the answer is from Gen {game.targetPokemon.generation}</span>
                 </p>
-              )}
-              {/* Kept (locked) while the last guess's tiles flip, so the row doesn't vanish mid-reveal. */}
-              {(game.gameStatus === 'playing' || revealing) && (
-                <button
-                  type="button"
-                  // Locked (same look, focusable, explains itself on tap) rather than faded, so it keeps its contrast.
-                  onClick={() => {
-                    if (game.canGiveUp) setGiveUpAsk(gameId)
-                    else setLockNote(gameId)
-                  }}
-                  aria-disabled={!game.canGiveUp || undefined}
-                  title={game.canGiveUp ? 'Reveal the answer and end this game' : 'Give up unlocks after your first guess'}
-                  className={`ds-button bevel-paper h-11 whitespace-nowrap px-3 text-[9px] sm:px-4 sm:text-[10px] ${
-                    game.canGiveUp ? '' : 'cursor-not-allowed text-ds-frame'
-                  }`}
-                >
-                  Give up
-                </button>
               )}
             </div>
           )}
@@ -215,6 +187,37 @@ export default function App() {
         {/* Remount per game so only guesses made now animate. */}
         <GuessGrid key={gameId} guesses={game.guesses} feedback={game.feedback} />
       </main>
+
+      {/*
+        Give up sits in a footer at the bottom of the page: the same spot at every guess count, far from
+        the guess box so the most-tapped control never sits next to the one that ends the game, and never over the
+        board. It is shown all game (locked before the first guess, its line saying why) and kept while the last guess's
+        tiles flip, then gone once the game is over.
+      */}
+      {(game.gameStatus === 'playing' || revealing) && (
+        <footer className="mt-auto border-t-2 border-ds-frame/40">
+          <div className="mx-auto flex w-full max-w-5xl big:max-w-[80rem] items-center justify-between gap-3 px-3 py-3 sm:px-5">
+            {/* A live region, so screen readers hear the line change when Give up unlocks. */}
+            <p role="status" className="tx-8 leading-4 text-ds-frame">
+              {game.canGiveUp ? 'Stuck? Give up to see the answer.' : 'Give up unlocks after your first guess.'}
+            </p>
+            <button
+              type="button"
+              // Locked (same look, focusable) rather than faded, so it keeps its contrast; the line beside it says why.
+              onClick={() => {
+                if (game.canGiveUp) setGiveUpAsk(gameId)
+              }}
+              aria-disabled={!game.canGiveUp || undefined}
+              title={game.canGiveUp ? 'Reveal the answer and end this game' : 'Give up unlocks after your first guess'}
+              className={`ds-button bevel-paper h-11 shrink-0 whitespace-nowrap px-3 text-[9px] sm:px-4 sm:text-[10px] ${
+                game.canGiveUp ? '' : 'cursor-not-allowed text-ds-frame'
+              }`}
+            >
+              Give up
+            </button>
+          </div>
+        </footer>
+      )}
 
       {/* History opens from the result screen and hides it meanwhile; closing History brings the result back. */}
       {showResult && !showHistory && (

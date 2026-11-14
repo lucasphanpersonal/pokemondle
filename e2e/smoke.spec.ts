@@ -203,13 +203,14 @@ test('giving up the Daily asks first, ends the game and is listed in History', a
   // History and the streak live on the result screen, not the play page.
   await expect(page.getByRole('button', { name: /History|Streak/ })).toHaveCount(0)
   const giveUp = page.getByRole('button', { name: 'Give up' })
-  // Shown but locked before the first guess: a tap explains why instead of asking.
+  // Shown (in the page footer) but locked before the first guess; the line beside it says why, and a tap doesn't ask.
   await expect(giveUp).toHaveAttribute('aria-disabled', 'true')
   await giveUp.click({ force: true }) // Playwright treats aria-disabled as not clickable; a real tap still lands
   await expect(page.getByText('Give up unlocks after your first guess.')).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await guess(page, await nonAnswer(page, 'daily', ['Oddish', 'Paras']))
   await expect(giveUp).not.toHaveAttribute('aria-disabled')
+  await expect(page.getByRole('status').filter({ hasText: 'Stuck? Give up to see the answer.' })).toBeVisible()
 
   await giveUp.click()
   const ask = page.getByRole('dialog')
