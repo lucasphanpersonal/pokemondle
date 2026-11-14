@@ -212,6 +212,7 @@ test('giving up the Daily asks first, ends the game and is listed in History', a
   await expect(giveUp).not.toHaveAttribute('aria-disabled')
   // The guess count heads the board: "Your guesses" and a Poké Ball ×1.
   await expect(page.getByRole('heading', { name: 'Your guesses' }).locator('..')).toContainText('×1')
+  await expect(page.getByText('1 guess', { exact: true })).toBeAttached()
   await expect(page.getByRole('status').filter({ hasText: 'Stuck? Give up to see the answer.' })).toBeVisible()
 
   await giveUp.click()
