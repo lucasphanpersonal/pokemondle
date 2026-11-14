@@ -189,9 +189,9 @@ export default function App() {
         Give up sits in a footer at the bottom of the page: the same spot at every guess count, far from
         the guess box so the most-tapped control never sits next to the one that ends the game, and never over the
         board. It appears with the first guess (there is nothing to give up before then) and is kept, inert, while the
-        last guess's tiles flip, then gone once the game is over.
+        last guess's tiles flip (unless that was the first guess, when it was never shown), then gone once the game is over.
       */}
-      {(game.canGiveUp || revealing) && (
+      {(game.canGiveUp || (revealing && game.guesses.length > 1)) && (
         <footer className="mt-auto border-t-2 border-ds-frame/40">
           <div className="mx-auto flex w-full max-w-5xl big:max-w-[80rem] items-center justify-between gap-3 px-3 py-3 sm:px-5">
             <p className="tx-8 leading-4 text-ds-frame">Stuck? Give up to see the answer.</p>
