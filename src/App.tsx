@@ -121,9 +121,6 @@ export default function App() {
               </button>
             )}
           </div>
-          <p className="tx-9 text-ds-frame">
-            {game.guesses.length} {game.guesses.length === 1 ? 'guess' : 'guesses'}
-          </p>
           {/*
             Game menu: the Gen hint (Endless's Gens settings are the gear in the title box). Give up lives in the page
             footer, as far from the guess box as it can be. History and the streak are not here: they belong to the end

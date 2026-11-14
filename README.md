@@ -77,6 +77,10 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   applies from the next **New Pokémon**. Each game records the Gens it was
   drawn from, which is what the title shows.
   The Daily always uses every Gen. An Endless game drawn from a single Gen never offers the Gen hint (the player already knows it).
+- **Guess count**: the board opens with a **Your guesses** heading and the count on its right as the tab icon's
+  pixel Poké Ball and "×N" (`PixelBall.tsx`; screen readers hear "N guesses"), above a dashed line like the ones
+  between cards. There is no separate count line under the title. Before the first guess the board shows "Make your
+  first guess to start!" instead.
 - **Columns**: Pokémon, Type 1, Type 2, Height, Weight, Color, Evolution (stage 1–3), Form, Egg Group, Shared Ability.
   There is no Gen column: a guess never shows its generation, so the Gen is only revealed by the optional Gen hint.
   Green ✓ = match, yellow ~ = type in the other slot (or one shared egg group), red ✕ = no match, ▲/▼ = the answer is higher/lower.
