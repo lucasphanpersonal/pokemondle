@@ -23,10 +23,10 @@ npm run icons      # rebuild the site icons in public/ from scripts/icons/pokeba
 e2e/smoke.spec.ts             Playwright browser smoke test (load, guess, win, mode switch, Endless Gens at 390px and 1280px)
 scripts/fetchPokemonData.ts   builds the local Pokémon dataset from PokéAPI
 scripts/makeIcons.ts          builds the tab icon, home-screen icons and manifest icons from the pixel Poké Ball
-scripts/icons/pokeball.txt    the hand-drawn Poké Ball (16x16 and 32x32 grids, one letter per colour); its 16x16 grid is also drawn in-game, at 1x, by CaptureScene
-src/lib/pokeballArt.ts        its palette and parser, shared by makeIcons.ts and the catch/escape scene (plus the pixel star)
+scripts/icons/pokeball.txt    the hand-drawn Poké Ball (16x16 and 32x32 grids, one letter per colour); its 16x16 grid is also drawn in-game, at 1x, by CaptureScene and PixelBall (the board's guess count)
+src/lib/pokeballArt.ts        its palette and parser, shared by makeIcons.ts, the catch/escape scene and PixelBall (plus the pixel star)
 public/                       favicon.ico, apple-touch-icon.png, manifest.json and its icons (generated, committed)
-src/components/               Header, SearchBar, GuessGrid, FeedbackRow, ResultModal, HistoryModal, HelpModal, GiveUpModal, GensModal, Modal
+src/components/               Header, SearchBar, GuessGrid, FeedbackRow, ResultModal, HistoryModal, HelpModal, GiveUpModal, GensModal, Modal, and pixel icons (PixelBall, PixelBulb, PixelGear)
 src/hooks/usePokemondle.ts    game state (target, guesses, status), saved to localStorage (answer id scrambled, see below)
 src/lib/history.ts            Daily history (solved and given up), streak maths, Endless stats and recent Endless games (pure, tested)
 src/hooks/useAnalytics.ts     wraps guesses with anonymous analytics
@@ -77,6 +77,10 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   applies from the next **New Pokémon**. Each game records the Gens it was
   drawn from, which is what the title shows.
   The Daily always uses every Gen. An Endless game drawn from a single Gen never offers the Gen hint (the player already knows it).
+- **Guess count**: the board opens with a **Your guesses** heading and the count on its right as the tab icon's
+  pixel Poké Ball and "×N" (`PixelBall.tsx`; screen readers hear "N guesses"), above a dashed line like the ones
+  between cards. There is no separate count line under the title. Before the first guess the board shows "Make your
+  first guess to start!" instead.
 - **Columns**: Pokémon, Type 1, Type 2, Height, Weight, Color, Evolution (stage 1–3), Form, Egg Group, Shared Ability.
   There is no Gen column: a guess never shows its generation, so the Gen is only revealed by the optional Gen hint.
   Green ✓ = match, yellow ~ = type in the other slot (or one shared egg group), red ✕ = no match, ▲/▼ = the answer is higher/lower.

@@ -7,6 +7,7 @@ import { cardTileSpan, TWO_UP } from '../lib/cardLayout'
 import { isBigText, subscribeBigText } from '../lib/display'
 import { abilityColumnFit } from '../lib/tileText'
 import { FeedbackRow, GuessCard } from './FeedbackRow'
+import { PixelBall } from './PixelBall'
 
 /** Tailwind's lg breakpoint (1024 px): the table from here up, cards below. */
 const TABLE_QUERY = '(min-width: 64rem)'
@@ -68,6 +69,18 @@ export function GuessGrid({ guesses, feedback }: GuessGridProps) {
 
   return (
     <div className="ds-box p-2 sm:p-3">
+      {/*
+        The guess count heads the board it counts: "Your guesses" and a Poké Ball ×N, above a dashed line like the
+        ones between cards. Lined up with the tiles' outer edge (the table's border spacing, the cards' padding).
+      */}
+      <div className="mx-1 mb-2 flex items-center justify-between gap-2 border-b-2 border-dashed border-ds-frame/30 pb-2 tx-10 leading-5">
+        <h2 className="font-normal">Your guesses</h2>
+        <p className="inline-flex items-center gap-1.5">
+          <PixelBall />
+          <span aria-hidden="true">×{guesses.length}</span>
+          <span className="sr-only">{guesses.length === 1 ? '1 guess' : `${guesses.length} guesses`}</span>
+        </p>
+      </div>
       {showTable ? (
         <div>
           <table className="w-full table-fixed border-separate border-spacing-1">
