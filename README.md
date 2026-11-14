@@ -215,7 +215,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    Never hand-roll a `box-shadow` or `border` bevel on a single control. A dialog's close button is a 44px
    `.ds-button bevel-paper` square holding the pixel-art cross (`ResultMark` drawn at 2px per art pixel), like the
    header's ? button. The exceptions are the small on/off switch graphics in Help, which are not menu buttons, and the Endless
-   Gens gear, a bare pixel icon inside the title box (Lucas's choice, so the box stays small).
+   Gens gear, a bare pixel icon inside the title box (a deliberate exception so the box stays small).
 2. **Pressed means the inverse bevel.** A selected or "on" control (the chosen Daily/Endless side, a chosen Gen in the Endless Gens picker, the taken Gen hint) adds
    `.bevel-pressed`: same edges, dark on top and light at the bottom. The edges stay the same size, so labels sit at
    the same height whether a control is up or down.
