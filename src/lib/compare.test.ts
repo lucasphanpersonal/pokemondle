@@ -127,7 +127,7 @@ describe('formCellText', () => {
   it('shows a readable label for each category', () => {
     expect(formCellText(mon({ formCategory: 'base' }))).toBe('Base')
     expect(formCellText(mon({ formCategory: 'regional' }))).toBe('Regional')
-    expect(formCellText(mon({ formCategory: 'gmax' }))).toBe('Gigantamax')
+    expect(formCellText(mon({ formCategory: 'gmax' }))).toBe('G-Max')
   })
 })
 

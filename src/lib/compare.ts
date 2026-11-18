@@ -111,7 +111,7 @@ const FORM_LABEL: Record<FormCategory, string> = {
   base: 'Base',
   regional: 'Regional',
   mega: 'Mega',
-  gmax: 'Gigantamax',
+  gmax: 'G-Max',
   cosmetic: 'Cosmetic',
   other: 'Other',
 }
