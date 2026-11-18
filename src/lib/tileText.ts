@@ -41,8 +41,8 @@ export function longestWord(...parts: (string | number)[]): number {
 
 /**
  * Length of the longest piece that can't be split: words cut at soft hyphens and real
- * hyphens, counting the "-" drawn at the end of the line. With this the CSS can choose a
- * wrapped 8px word ("Undis- / covered") over squeezing it onto one line at 7px.
+ * hyphens, counting the "-" drawn at the end of the line. With this the CSS can size a
+ * wrapped word ("Undis- / covered") when the whole word cannot fit on one line even at 7px.
  */
 export function longestPiece(...parts: (string | number)[]): number {
   let max = 1

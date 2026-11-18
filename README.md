@@ -84,7 +84,7 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   There is no Gen column: a guess never shows its generation, so the Gen is only revealed by the optional Gen hint.
   Green ✓ = match, yellow ~ = type in the other slot (or one shared egg group), red ✕ = no match, ▲/▼ = the answer is higher/lower.
   Every tile carries its ✓, ~ or ✕ as a small pixel mark in the top-right corner (`src/components/ResultMark.tsx`), and number tiles carry their arrow, so no match, partial or miss depends on telling red from green.
-  Form is green when the guess and the answer share a form category (Base, Mega, Regional, Gigantamax, Cosmetic, Other), red otherwise; the tile shows the guess's own category.
+  Form is green when the guess and the answer share a form category (Base, Mega, Regional, G-Max for Gigantamax, Cosmetic, Other), red otherwise; the tile shows the guess's own category.
   Egg Group (from PokéAPI's species data; forms share their species' groups, legendaries are mostly "Undiscovered") is green when the guess and the answer have exactly the same groups, yellow when they share at least one, red when none; the tile lists the guess's own groups.
   Shared Ability lists every ability the two share (hidden abilities count). With no match it is red and lists all of
   the guess's own abilities instead.
@@ -157,6 +157,13 @@ Older plain saves are still read.
   `src/index.css`: light top edge, dark bottom edge, shaded sides; see [Design rules](#design-rules)), the sky is drawn in flat
   bands, and every image is scaled with `image-rendering: pixelated`. The results screen shows the Pokémon's
   in-game pixel sprite, scaled up crisply (falling back to the official artwork if a form has no sprite).
+- **Rare shiny**: about one catch in 20 (`SHINY_ODDS` in `src/lib/shiny.ts`) is shiny. The result screen then shows the
+  shiny sprite (shiny artwork, then the normal sprite, as fallbacks) with four pixel sparkles blinking around it (still for
+  "reduce motion"), a **Shiny! A 1 in 20 catch** badge and "You caught a shiny …". Wins only, never a give-up. It is a hash of
+  the game's key, the answer and a random per-device seed (`localStorage['pokemondle:shiny-seed']`), so it never changes on
+  reload, nothing is added to the save, and on the same Daily each player rolls separately. In dev builds,
+  `localStorage['pokemondle:force-shiny'] = true` forces it (the visual audit's `won-shiny` scene). The Help screen
+  doesn't mention it, so it stays a surprise.
 - **CRT screen effect**: scanlines, a faint RGB phosphor mask, a vignette and a slow flicker drawn over the page
   (`html.crt body::after` in `src/index.css`). On by default; players can turn it off under **Help → Display**
   (saved per device in `localStorage['pokemondle:crt']`). The flicker stops for "reduce motion".
@@ -227,8 +234,10 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    in one row, with one gap size per row (6px on phones, 8px from 640px up). Nothing may spill past the screen edge
    at any width from 320px.
 4. **Text stays inside the padding.** Guess-tile and button text keeps at least 10px from the edge (the 6px bevel plus
-   4px of air). Guess tiles shrink long words to fit (`.tile-fit`, down to 7px, or 9px with Larger text) or wrap them at a soft hyphen
-   (`src/lib/tileText.ts`), e.g. "Undis- / covered", rather than run edge to edge. Multi-line tiles are also sized by
+   4px of air). Guess tiles shrink long words to fit (`.tile-fit`, down to 7px, or 9px with Larger text); only a word that
+   can't fit on one line even at 7px wraps at a soft hyphen (`src/lib/tileText.ts`), rather than run edge to edge. The
+   table's columns leave room for every common word on one line ("Regional", "Undiscovered"), and the Form tile says
+   "G-Max" for Gigantamax, so a hyphen split is now rare (on phones narrower than about 385px, "Regional" and "Cosmetic" still split). Multi-line tiles are also sized by
    line count so nothing is cut off: the table's Pokémon name gets up to 3 lines under its sprite and Pokédex number
    (the sprite shrinks, from 40px, to the room the name leaves, so it never crosses the bevel), and Shared Ability up to
    4 lines at 9px or 5 at 8px (`lineChars` in `tileText.ts`). The table's Shared Ability column uses one size for every

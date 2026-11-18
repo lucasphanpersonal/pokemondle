@@ -18,6 +18,7 @@ import { usePokemondle, type GameMode, type GuessResult } from './hooks/usePokem
 import { ALL_GENS, gensLabel } from './lib/gens'
 import { computeStats } from './lib/history'
 import { POKEDEX } from './lib/pokedex'
+import { gameIsShiny } from './lib/shiny'
 import { loadJson, saveJson } from './lib/storage'
 import type { Pokemon } from './types/pokemon'
 
@@ -222,6 +223,7 @@ export default function App() {
           bestStreak={stats.bestStreak}
           hinted={game.hinted}
           gaveUp={game.gameStatus === 'lost'}
+          shiny={game.gameStatus === 'won' && gameIsShiny(game.gameKey, game.targetPokemon.id)}
           onClose={() => setDismissedResult(gameId)}
           onHistory={() => setShowHistory(true)}
           onNewGame={mode === 'endless' ? game.startNewEndlessGame : undefined}

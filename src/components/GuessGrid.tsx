@@ -23,8 +23,9 @@ const BIG_TABLE_QUERY = '(min-width: 80rem)'
  * Each leaves room for the common words at full size; anything longer shrinks to fit inside the tile padding (.tile-fit in index.css) or wraps at a soft hyphen (lib/tileText.ts).
  * Pokémon is widest so almost every name (all but "Paldean Tauros (Combat Breed)") fits on three lines at 7px or more;
  * Shared Ability is sized by line count (abilityFit in FeedbackRow.tsx), so three long abilities still stay inside the tile.
+ * Egg Group is wide enough for "Undiscovered" on one line at 7px, so it never splits as "Undis- / covered".
  */
-const COLUMN_WIDTHS = [13.298, 11.037, 11.037, 7.447, 7.447, 9.574, 8.511, 9.043, 10.106, 12.5]
+const COLUMN_WIDTHS = [13.298, 10.437, 10.437, 7.447, 7.447, 9.374, 8.511, 9.043, 11.706, 12.3]
 
 /** Phone key: the labels of the card's two tile rows, in column order. */
 const KEY_TOP = ['Type 1', 'Type 2', 'Height']

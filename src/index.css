@@ -235,15 +235,23 @@ html.big-text {
    * plus 4px of air). The tile sets --fs (its normal font size) and --chars (its longest
    * word) and --piece (its longest piece between hyphens; see lib/tileText.ts). The pixel
    * font is monospaced, so a word fits when font-size <= content width / chars: use that,
-   * capped at --fs. Every size here is multiplied by --ts (Larger text). If that would be under 8px, wrap at the hyphen instead and size for the
-   * longest piece (up to 8px). Never below 7px; any break is the last resort.
+   * capped at --fs. Every size here is multiplied by --ts (Larger text). A whole word on one line at 7px or more beats a
+   * hyphen ("Region- / al" read badly): only when the word can't fit at 7px does it wrap at its soft hyphen, sized for
+   * the longest piece (up to 8px). Never below 7px; any break is the last resort.
    */
   .tile-fit {
     container-type: inline-size;
   }
   .tile-fit .fit {
-    /* Whole word on one line, or (if that would drop below 8px) wrapped at its hyphen at up to 8px. */
-    --fit: max(100cqi / var(--chars), min(8px * var(--ts), 100cqi / var(--piece, var(--chars))));
+    /*
+     * Whole word on one line if it fits at 7px or more; otherwise wrapped at its hyphen at up to 8px. The last term
+     * of the min() is a switch: hugely positive when the whole word is under 7px (so the wrapped size counts), negative
+     * once it reaches 7px (so the whole-word size wins the max()).
+     */
+    --fit: max(
+      100cqi / var(--chars),
+      min(8px * var(--ts), 100cqi / var(--piece, var(--chars)), (7px * var(--ts) - 100cqi / var(--chars)) * 10000)
+    );
     font-size: max(7px * var(--ts), min(var(--fs) * var(--ts), var(--fit)));
     font-size: round(nearest, max(7px * var(--ts), min(round(down, var(--fs) * var(--ts), 1px), round(down, var(--fit), 1px))), 1px);
     hyphens: manual;
@@ -345,11 +353,27 @@ html.crt body {
   animation: text-advance 0.8s steps(1) infinite;
 }
 
+/* Shiny result: pixel sparkles around the sprite blink on and off in turn, like the in-game shiny flash. */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.twinkle {
+  animation: twinkle 1.2s steps(2) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tile-flip,
   .pop-in,
   .fade-in,
   .text-advance,
+  .twinkle,
   html.crt body::after {
     animation: none;
   }
