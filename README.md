@@ -162,7 +162,7 @@ Older plain saves are still read.
   "reduce motion"), a **Shiny! A 1 in 20 catch** badge and "You caught a shiny …". Wins only, never a give-up. It is a hash of
   the game's key, the answer and a random per-device seed (`localStorage['pokemondle:shiny-seed']`), so it never changes on
   reload, nothing is added to the save, and on the same Daily each player rolls separately. In dev builds,
-  `localStorage['pokemondle:force-shiny'] = true` forces it (the visual audit's `won-shiny` scene). The Help screen
+  `localStorage['pokemondle:force-shiny'] = true` forces it, for screenshots. The Help screen
   doesn't mention it, so it stays a surprise.
 - **CRT screen effect**: scanlines, a faint RGB phosphor mask, a vignette and a slow flicker drawn over the page
   (`html.crt body::after` in `src/index.css`). On by default; players can turn it off under **Help → Display**

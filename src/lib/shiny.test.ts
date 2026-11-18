@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'vitest'
-import { isShiny, SHINY_ODDS, shinyIconUrl, shinySpriteUrl } from './shiny'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  deviceShinySeed,
+  FALLBACK_SHINY_SEED,
+  isShiny,
+  resetShinySeedCache,
+  SHINY_ODDS,
+  shinyIconUrl,
+  shinySpriteUrl,
+} from './shiny'
 
 describe('isShiny', () => {
   it('is stable for the same device, game and answer', () => {
@@ -26,5 +34,43 @@ describe('shiny sprite urls', () => {
   it('point at the shiny sprite and artwork', () => {
     expect(shinyIconUrl(6)).toMatch(/\/pokemon\/shiny\/6\.png$/)
     expect(shinySpriteUrl(6)).toMatch(/official-artwork\/shiny\/6\.png$/)
+  })
+})
+
+describe('deviceShinySeed', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    resetShinySeedCache()
+  })
+
+  it('makes one seed and keeps it', () => {
+    const store = new Map<string, string>()
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => void store.set(k, v),
+        removeItem: (k: string) => void store.delete(k),
+      },
+    })
+    const first = deviceShinySeed()
+    resetShinySeedCache()
+    expect(deviceShinySeed()).toBe(first)
+    expect(first).not.toBe(FALLBACK_SHINY_SEED)
+  })
+
+  it('uses the fixed fallback, every time, when storage throws', () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: () => {
+          throw new Error('blocked')
+        },
+        setItem: () => {
+          throw new Error('blocked')
+        },
+      },
+    })
+    expect(deviceShinySeed()).toBe(FALLBACK_SHINY_SEED)
+    resetShinySeedCache()
+    expect(deviceShinySeed()).toBe(FALLBACK_SHINY_SEED)
   })
 })

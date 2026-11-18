@@ -22,7 +22,6 @@ const BREAKS: Record<string, string> = {
   Psychic: `Psy${SHY}chic`,
   Undiscovered: `Undis${SHY}covered`,
   Amorphous: `Amor${SHY}phous`,
-  Gigantamax: `Gigan${SHY}tamax`,
   Regional: `Region${SHY}al`,
   Cosmetic: `Cos${SHY}metic`,
 }

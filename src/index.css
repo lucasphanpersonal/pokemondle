@@ -246,11 +246,12 @@ html.big-text {
     /*
      * Whole word on one line if it fits at 7px or more; otherwise wrapped at its hyphen at up to 8px. The last term
      * of the min() is a switch: hugely positive when the whole word is under 7px (so the wrapped size counts), negative
-     * once it reaches 7px (so the whole-word size wins the max()).
+     * once it reaches 7px (so the whole-word size wins the max()). The 7px is rounded up to a whole pixel, as the font
+     * size is, so with Larger text (7 × 1.25 = 8.75px) a word isn't kept whole at a size that rounds up past its room.
      */
     --fit: max(
       100cqi / var(--chars),
-      min(8px * var(--ts), 100cqi / var(--piece, var(--chars)), (7px * var(--ts) - 100cqi / var(--chars)) * 10000)
+      min(8px * var(--ts), 100cqi / var(--piece, var(--chars)), (round(up, 7px * var(--ts), 1px) - 100cqi / var(--chars)) * 10000)
     );
     font-size: max(7px * var(--ts), min(var(--fs) * var(--ts), var(--fit)));
     font-size: round(nearest, max(7px * var(--ts), min(round(down, var(--fs) * var(--ts), 1px), round(down, var(--fit), 1px))), 1px);

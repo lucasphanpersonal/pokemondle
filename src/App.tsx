@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { CaptureScene } from './components/CaptureScene'
 import { Confetti } from './components/Confetti'
 import { GensModal } from './components/GensModal'
@@ -53,6 +53,9 @@ export default function App() {
   const [dismissedResult, setDismissedResult] = useState<string | null>(null)
   const finished = game.gameStatus !== 'playing'
   const showResult = finished && !revealing && dismissedResult !== gameId
+  // The rare shiny catch (1 in 20 wins), worked out once per game rather than on every render.
+  const won = game.gameStatus === 'won'
+  const shiny = useMemo(() => won && gameIsShiny(game.gameKey, game.targetPokemon.id), [won, game.gameKey, game.targetPokemon.id])
 
   // "Give up" (Daily and Endless) asks first. Keyed by game, so switching modes or starting a new game drops a pending ask.
   const [giveUpAsk, setGiveUpAsk] = useState<string | null>(null)
@@ -223,7 +226,7 @@ export default function App() {
           bestStreak={stats.bestStreak}
           hinted={game.hinted}
           gaveUp={game.gameStatus === 'lost'}
-          shiny={game.gameStatus === 'won' && gameIsShiny(game.gameKey, game.targetPokemon.id)}
+          shiny={shiny}
           onClose={() => setDismissedResult(gameId)}
           onHistory={() => setShowHistory(true)}
           onNewGame={mode === 'endless' ? game.startNewEndlessGame : undefined}
