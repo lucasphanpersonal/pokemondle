@@ -71,6 +71,8 @@ def main():
     fb.setupNameTable({"familyName": "Pokemondle Pixel Symbols", "styleName": "Regular"})
     fb.setupOS2(sTypoAscender=1000, sTypoDescender=0, sTypoLineGap=0, usWinAscent=1000, usWinDescent=374)
     fb.setupPost()
+    # Fixed timestamps, so rerunning the script gives the same bytes and no git diff.
+    fb.font["head"].created = fb.font["head"].modified = 0
     fb.font.flavor = "woff2"
     out = Path(__file__).resolve().parent.parent / "src/assets/fonts/pixel-symbols.woff2"
     fb.save(str(out))

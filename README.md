@@ -247,7 +247,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    and `.ds-button` labels keep fixed `text-[Npx]` sizes, so those rows still fit at 320px.
 5. **Stepped corners and pixel font.** Boxes and buttons use stepped pixel corners (`.ds-button`, `.px-notch`) and
    Press Start 2P, self-hosted from `@fontsource/press-start-2p` (no Google Fonts request); images use `image-rendering: pixelated`.
-   Press Start 2P has no ♀ or ♂, so a tiny extra font (`src/assets/fonts/pixel-symbols.woff2`, 428 bytes, drawn on the
+   Press Start 2P has no ♀ or ♂, so a tiny extra font (`src/assets/fonts/pixel-symbols.woff2`, under 1 KB, drawn on the
    same 8 x 8 grid by `scripts/makeSymbolFont.py`, `npm run font`) sits next in the font stack with a `unicode-range` of just
    those two signs, so "Nidoran♀" and "Nidoran♂" show them in the pixel style everywhere.
 6. **One action colour.** Each spot has one red main action: Guess while playing, then See results in the guess box
