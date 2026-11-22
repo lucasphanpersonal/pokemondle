@@ -44,7 +44,7 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
 - **Daily**: everyone gets the same Pokémon on the same calendar day (local time), picked by hashing the date
   with each Pokémon's id. **Endless**: a new random Pokémon on demand. Each mode keeps its own saved game.
 - **No guess limit**: a game ends when you guess the answer. The search box only accepts Pokémon picked from
-  its suggestions; already guessed Pokémon are hidden from them. Matching ignores case, accents and punctuation ("flabebe" finds Flabébé).
+  its suggestions; already guessed Pokémon are hidden from them. Matching ignores case, accents, punctuation and spaces ("flabebe" finds Flabébé, "farfetchd" finds Farfetch'd, "hooh" finds Ho-Oh, "typenull" finds Type: Null), and ♀/♂ can be typed as f/m ("nidoran f").
   Typing the full name of a Pokémon you already guessed and pressing Enter says "You already guessed …" instead of guessing
   the next suggestion (so "pikachu" twice never guesses Pikachu Rock Star); picking a suggestion with ↑/↓ first still works.
 - **Give up (Daily and Endless)**: a white **Give up** button sits at the right of a footer at the bottom of the
@@ -96,7 +96,7 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   stray Enter never spends the hint) and **Show Gen**. Show Gen types out "This Pokémon is from Gen N!" with a stepping
   ▼; advancing closes it. Esc or a tap on the dimmed background means Not now. The pop-up appears once per game
   (`localStorage['pokemondle:hint-offered']`, the last game offered in each mode); after Not now a white **Gen hint**
-  button (with a pixel bulb, `PixelBulb.tsx`) sits in the menu row under the title box until the game ends. Once taken, that button stays in
+  button (with a pixel bulb, `PixelBulb.tsx`) sits under the title box, stretched to the same width, until the game ends. Once taken, that button stays in
   place pressed in (the inverse bevel, a non-interactive status) and reads **Hint · Gen N**, the save gets `hinted: true`, the result screen shows **Used the Gen hint**
   and History marks the Daily with a bulb. A hinted win still counts as a win and keeps the streak; History shows
   "N% of wins without a hint" for the Daily and for Endless. Analytics events carry `config.hint_used` (false until the hint is
@@ -191,10 +191,10 @@ Older plain saves are still read.
 
 ### Layout on different devices
 
-- Desktop and large tablet (≥ 1024 px, or ≥ 1280 px with Larger text): all ten columns fit on screen.
+- Desktop and large tablet (≥ 1024 px, or ≥ 1280 px with Larger text): all ten columns fit on screen. The page is up to 1024 px wide, and up to 1280 px from a 1280 px screen (always with Larger text), so desktop tiles get the room to keep their text at full size.
 - Phones and tablets under 1024 px (1280 px with Larger text): no sideways scrolling. Each guess is a compact card: sprite and name on top, then the
   comparison tiles in two rows (three wider tiles: Type 1, Type 2, Height; then four: Weight, Color, Evolution, Form) and full-width Egg Group and Shared Ability strips,
-  with a small key above the list laid out in the same two rows as the tiles (rows of three under 640 px with Larger text; `cardTileSpan` in `src/lib/cardLayout.ts` sets the spans for both). The search box uses 16 px text so iOS doesn't
+  with a small key above the list laid out in the same two rows as the tiles (rows of three under 640 px with Larger text, where the Form tile gets a full-width row of its own and labels itself "Form: Base" like the strips, so the key leaves it out; `cardTileSpan` in `src/lib/cardLayout.ts` sets the spans for both). The Egg Group and Ability strips keep 18 px of padding on each side so their text never runs into the ✓/✗ corner mark. The search box uses 16 px text so iOS doesn't
   zoom, and every button and suggestion is at least 44 px tall for touch. From 720 px wide (iPad portrait; 900 px with Larger text) the cards sit two to a row,
   each column with its own key, so tablet tiles aren't stretched across the whole screen.
 - Only one of the two layouts is rendered at a time (`useMediaQuery` in GuessGrid), not both with one hidden by CSS. Rotating
@@ -237,7 +237,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    4px of air). Guess tiles shrink long words to fit (`.tile-fit`, down to 7px, or 9px with Larger text); only a word that
    can't fit on one line even at 7px wraps at a soft hyphen (`src/lib/tileText.ts`), rather than run edge to edge. The
    table's columns leave room for every common word on one line ("Regional", "Undiscovered"), and the Form tile says
-   "G-Max" for Gigantamax, so a hyphen split is now rare (on phones narrower than about 385px, "Regional" and "Cosmetic" still split). Multi-line tiles are also sized by
+   "G-Max" for Gigantamax, so a hyphen split is now rare (on phones narrower than about 385px, "Regional" and "Cosmetic" still split, and in a 1024 px table the abilities "Proto-synthesis" and "Electro-morphosis"). Multi-line tiles are also sized by
    line count so nothing is cut off: the table's Pokémon name gets up to 3 lines under its sprite and Pokédex number
    (the sprite shrinks, from 40px, to the room the name leaves, so it never crosses the bevel), and Shared Ability up to
    4 lines at 9px or 5 at 8px (`lineChars` in `tileText.ts`). The table's Shared Ability column uses one size for every

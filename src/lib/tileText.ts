@@ -24,6 +24,8 @@ const BREAKS: Record<string, string> = {
   Amorphous: `Amor${SHY}phous`,
   Regional: `Region${SHY}al`,
   Cosmetic: `Cos${SHY}metic`,
+  Protosynthesis: `Proto${SHY}synthesis`,
+  Electromorphosis: `Electro${SHY}morphosis`,
 }
 
 /** Adds soft hyphens to the long game words in a tile's text. */
@@ -57,7 +59,7 @@ export function longestPiece(...parts: (string | number)[]): number {
  * Pokémon tile so even "Paldean Tauros (Combat Breed)" fits without being cut off.
  */
 export function lineChars(text: string, maxLines: number): number {
-  const words = text.split(/\s+/).filter(Boolean)
+  const words = text.replace(/\u00AD/g, '').split(/\s+/).filter(Boolean)
   const lines = (cap: number) => {
     let count = 0
     let len = 0

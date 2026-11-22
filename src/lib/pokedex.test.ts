@@ -5,7 +5,8 @@ describe('searchKey', () => {
   it('strips accents, case and punctuation', () => {
     expect(searchKey('Flabébé')).toBe('flabebe')
     expect(searchKey('Mr. Mime')).toBe('mr mime')
-    expect(searchKey("Farfetch'd")).toBe('farfetch d')
+    expect(searchKey("Farfetch'd")).toBe('farfetchd')
+    expect(searchKey('Nidoran♀')).toBe('nidoran f')
   })
 })
 
@@ -22,6 +23,17 @@ describe('searchPokemon', () => {
     expect(names('flabebe')[0]).toBe('Flabébé')
     expect(names('mr. mime')[0]).toBe('Mr. Mime')
   })
+  it('finds names typed without their punctuation or spaces', () => {
+    expect(names('farfetchd')[0]).toBe("Farfetch'd")
+    expect(names('farfetchd')).toContain("Galarian Farfetch'd")
+    expect(names('hooh')[0]).toBe('Ho-Oh')
+    expect(names('porygonz')[0]).toBe('Porygon-Z')
+    expect(names('typenull')[0]).toBe('Type: Null')
+    expect(names('nidoran f')[0]).toBe('Nidoran♀')
+    expect(names('nidoranm')[0]).toBe('Nidoran♂')
+    expect(names('mrmime')[0]).toBe('Mr. Mime')
+    expect(names('ho oh')[0]).toBe('Ho-Oh')
+  })
   it('returns nothing for an empty query and respects the limit', () => {
     expect(names('  ')).toEqual([])
     expect(searchPokemon(POKEDEX, 'a', 5)).toHaveLength(5)
@@ -34,6 +46,7 @@ describe('findGuessedByName', () => {
   it('finds an already-guessed Pokémon typed in full', () => {
     expect(findGuessedByName(POKEDEX, [pikachu.id], 'pikachu')?.id).toBe(pikachu.id)
     expect(findGuessedByName(POKEDEX, [mime.id], 'mr mime')?.id).toBe(mime.id)
+    expect(findGuessedByName(POKEDEX, [mime.id], 'mrmime')?.id).toBe(mime.id)
   })
   it('ignores partial names and Pokémon not yet guessed', () => {
     expect(findGuessedByName(POKEDEX, [pikachu.id], 'pika')).toBeUndefined()

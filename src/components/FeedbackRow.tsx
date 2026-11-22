@@ -135,7 +135,7 @@ function buildTiles(guess: Pokemon, feedback: GuessFeedback, abilityColumn?: Fit
     {
       label: 'Shared Ability',
       result: feedback.ability.result,
-      content: abilityCellText(guess, feedback.ability),
+      content: breakable(abilityCellText(guess, feedback.ability)),
       chars: abilityColumn ?? abilityFit(abilityCellText(guess, feedback.ability)),
     },
   ]
@@ -164,6 +164,12 @@ export function GuessCard({ guess, feedback, animate, bigText = false }: Feedbac
         <Mark result={result} />
         <span className="sr-only">{label}: </span>
         <span className="fit">
+          {label === 'Form' && (
+            // With Larger text under 640px the Form tile has a full-width row of its own, so it labels itself like the strips below (the key leaves it out).
+            <span aria-hidden className="hidden big:max-sm:inline">
+              Form:{' '}
+            </span>
+          )}
           {content}
           {ARROW[result] && (
             <span aria-hidden className="ml-0.5">
@@ -188,7 +194,7 @@ export function GuessCard({ guess, feedback, animate, bigText = false }: Feedbac
       </div>
       {tiles.slice(0, -2).map((_, i) => tile(i, cardTileSpan(i)))}
       <div
-        className={`${BG[egg.result]} ${animate ? 'tile-flip' : ''} px-notch relative col-span-12 flex min-h-9 items-center justify-center px-2.5 py-1.5 text-center tx-8 leading-[1.6] text-white sm:tx-10 ${TILE_EDGE}`}
+        className={`${BG[egg.result]} ${animate ? 'tile-flip' : ''} px-notch relative col-span-12 flex min-h-9 items-center justify-center px-[18px] py-1.5 text-center tx-8 leading-[1.6] text-white sm:tx-10 ${TILE_EDGE}`}
         style={delay(tiles.length - 1)}
         data-result={egg.result}
       >
@@ -197,7 +203,7 @@ export function GuessCard({ guess, feedback, animate, bigText = false }: Feedbac
         <span className="sr-only">, {LABEL[egg.result]}</span>
       </div>
       <div
-        className={`${BG[ability.result]} ${animate ? 'tile-flip' : ''} px-notch relative col-span-12 flex min-h-9 items-center justify-center px-2.5 py-1.5 text-center tx-8 leading-[1.6] text-white sm:tx-10 ${TILE_EDGE}`}
+        className={`${BG[ability.result]} ${animate ? 'tile-flip' : ''} px-notch relative col-span-12 flex min-h-9 items-center justify-center px-[18px] py-1.5 text-center tx-8 leading-[1.6] text-white sm:tx-10 ${TILE_EDGE}`}
         style={delay(tiles.length)}
         data-result={ability.result}
       >

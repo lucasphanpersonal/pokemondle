@@ -101,7 +101,7 @@ export default function App() {
   return (
     <div className="flex min-h-dvh flex-col">
       <Header mode={mode} onModeChange={setMode} onHelp={() => setShowHelp(true)} />
-      <main className="mx-auto flex w-full max-w-5xl big:max-w-[80rem] flex-col gap-4 px-3 py-4 sm:px-5 sm:py-6">
+      <main className="mx-auto flex w-full max-w-5xl xl:max-w-[80rem] big:max-w-[80rem] flex-col gap-4 px-3 py-4 sm:px-5 sm:py-6">
         <div className="flex flex-col items-center gap-2 text-center">
           {/*
             The title sits in its own box (the guess box's look) in both modes. In Endless it names the Gens the game
@@ -109,49 +109,52 @@ export default function App() {
             the game keeps its Gens. The gear's tap area is the full 44px but its negative margins keep the box as
             short as the Daily one, so both titles match.
           */}
-          <div className="ds-box flex max-w-full items-center gap-2 px-4 py-2">
-            <p className="tx-10 leading-5 sm:text-xs sm:leading-5">
-              {mode === 'endless' ? `Endless · ${gensLabel(game.gameGens)}` : `Daily #${game.puzzleNumber}`}
-            </p>
-            {mode === 'endless' && (
-              <button
-                type="button"
-                onClick={() => setShowGens(true)}
-                aria-label="Endless Gens settings"
-                title={game.inProgress ? 'Gens for this game' : 'Choose which Gens Endless picks from'}
-                className="ds-focus-inset -my-3 -mr-3 flex h-11 w-11 shrink-0 items-center justify-center text-ds-ink transition-transform hover:text-ds-frame active:translate-y-px"
-              >
-                <PixelGear />
-              </button>
-            )}
-          </div>
-          {/*
-            Game menu: the Gen hint (Endless's Gens settings are the gear in the title box). Give up lives in the page
-            footer, as far from the guess box as it can be. History and the streak are not here: they belong to the end
-            of a game, so they live on the result screen.
-          */}
-          {(canHint || showHint) && (
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {canHint && (
+          {/* The title box and the Gen hint button share one width (the wider of the two), so they stack as a neat column. */}
+          <div className="flex max-w-full flex-col items-stretch gap-2">
+            <div className="ds-box flex max-w-full items-center justify-center gap-2 px-4 py-2">
+              <p className="tx-10 leading-5 sm:text-xs sm:leading-5">
+                {mode === 'endless' ? `Endless · ${gensLabel(game.gameGens)}` : `Daily #${game.puzzleNumber}`}
+              </p>
+              {mode === 'endless' && (
                 <button
                   type="button"
-                  onClick={() => setHintPromptOpen(gameId)}
-                  className="ds-button bevel-paper inline-flex h-11 items-center gap-1.5 whitespace-nowrap px-3 text-[9px] sm:px-4 sm:text-[10px]"
+                  onClick={() => setShowGens(true)}
+                  aria-label="Endless Gens settings"
+                  title={game.inProgress ? 'Gens for this game' : 'Choose which Gens Endless picks from'}
+                  className="ds-focus-inset -my-3 -mr-3 flex h-11 w-11 shrink-0 items-center justify-center text-ds-ink transition-transform hover:text-ds-frame active:translate-y-px"
                 >
-                  <PixelBulb />
-                  Gen hint
+                  <PixelGear />
                 </button>
               )}
-              {/* Once taken, the hint button stays in its place pressed in (the "on" look) and shows the Gen. */}
-              {showHint && (
-                <p className="ds-button bevel-paper bevel-pressed inline-flex h-11 items-center gap-1.5 whitespace-nowrap px-3 text-[9px] sm:px-4 sm:text-[10px]">
-                  <PixelBulb />
-                  <span aria-hidden="true">Hint · Gen {game.targetPokemon.generation}</span>
-                  <span className="sr-only">Hint: the answer is from Gen {game.targetPokemon.generation}</span>
-                </p>
-              )}
             </div>
-          )}
+            {/*
+              Game menu: the Gen hint (Endless's Gens settings are the gear in the title box). Give up lives in the page
+              footer, as far from the guess box as it can be. History and the streak are not here: they belong to the end
+              of a game, so they live on the result screen.
+            */}
+            {(canHint || showHint) && (
+              <div className="flex flex-col items-stretch">
+                {canHint && (
+                  <button
+                    type="button"
+                    onClick={() => setHintPromptOpen(gameId)}
+                    className="ds-button bevel-paper inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap px-3 text-[9px] sm:px-4 sm:text-[10px]"
+                  >
+                    <PixelBulb />
+                    Gen hint
+                  </button>
+                )}
+                {/* Once taken, the hint button stays in its place pressed in (the "on" look) and shows the Gen. */}
+                {showHint && (
+                  <p className="ds-button bevel-paper bevel-pressed inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap px-3 text-[9px] sm:px-4 sm:text-[10px]">
+                    <PixelBulb />
+                    <span aria-hidden="true">Hint · Gen {game.targetPokemon.generation}</span>
+                    <span className="sr-only">Hint: the answer is from Gen {game.targetPokemon.generation}</span>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mx-auto w-full max-w-xl">
@@ -197,7 +200,7 @@ export default function App() {
       */}
       {(game.canGiveUp || (revealing && game.guesses.length > 1)) && (
         <footer className="mt-auto border-t-2 border-ds-frame/40">
-          <div className="mx-auto flex w-full max-w-5xl big:max-w-[80rem] items-center justify-between gap-3 px-3 py-3 sm:px-5">
+          <div className="mx-auto flex w-full max-w-5xl xl:max-w-[80rem] big:max-w-[80rem] items-center justify-between gap-3 px-3 py-3 sm:px-5">
             <p className="tx-8 leading-4 text-ds-frame">Stuck? Give up to see the answer.</p>
             <button
               type="button"
