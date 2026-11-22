@@ -13,7 +13,7 @@ import { PixelBall } from './PixelBall'
 const TABLE_QUERY = '(min-width: 64rem)'
 /**
  * With Larger text the table needs a quarter more width for the same words, so it starts at
- * 1280 px (the page is 1280 px wide there, xl:max-w-[80rem] and big:max-w-[80rem] in App.tsx); cards are shown below that.
+ * 1280 px (the page grows with the screen from 1024 px up to 1280 px wide, lg:max-w-[80rem] and big:max-w-[80rem] in App.tsx); cards are shown below that.
  */
 const BIG_TABLE_QUERY = '(min-width: 80rem)'
 
