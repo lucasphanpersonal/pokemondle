@@ -15,6 +15,7 @@ npm run test       # unit tests
 npm run test:e2e   # browser smoke test (Playwright; first run: npx playwright install chromium)
 npm run fetch-data # rebuild src/data/pokemon.json from PokéAPI
 npm run icons      # rebuild the site icons in public/ from scripts/icons/pokeball.txt
+npm run font       # rebuild the ♀/♂ pixel font (needs Python 3: pip install fonttools brotli)
 ```
 
 ## Project layout
@@ -246,6 +247,9 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    and `.ds-button` labels keep fixed `text-[Npx]` sizes, so those rows still fit at 320px.
 5. **Stepped corners and pixel font.** Boxes and buttons use stepped pixel corners (`.ds-button`, `.px-notch`) and
    Press Start 2P, self-hosted from `@fontsource/press-start-2p` (no Google Fonts request); images use `image-rendering: pixelated`.
+   Press Start 2P has no ♀ or ♂, so a tiny extra font (`src/assets/fonts/pixel-symbols.woff2`, 428 bytes, drawn on the
+   same 8 x 8 grid by `scripts/makeSymbolFont.py`, `npm run font`) sits next in the font stack with a `unicode-range` of just
+   those two signs, so "Nidoran♀" and "Nidoran♂" show them in the pixel style everywhere.
 6. **One action colour.** Each spot has one red main action: Guess while playing, then See results in the guess box
    once a Daily is over, or New Pokémon in Endless (where See results beside it turns white). Secondary actions
    (History, Give up) are white.
