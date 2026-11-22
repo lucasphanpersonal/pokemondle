@@ -1,11 +1,23 @@
 @import 'tailwindcss';
 
 /*
+ * Press Start 2P has no ♀ or ♂, so "Nidoran♀" lost its sign (or got a smooth system-font one). This tiny font
+ * draws just those two on the same 8 x 8 pixel grid (scripts/makeSymbolFont.py); the unicode-range means the
+ * browser only ever downloads it for a name that uses them, and uses it for nothing else.
+ */
+@font-face {
+  font-family: 'Pokemondle Pixel Symbols';
+  src: url('./assets/fonts/pixel-symbols.woff2') format('woff2');
+  font-display: swap;
+  unicode-range: U+2640, U+2642;
+}
+
+/*
  * NDS / 3DS-era palette. Two-tone menu panels, soft gradients,
  * rounded dialog boxes with a thick dark outer border and light inner border.
  */
 @theme {
-  --font-pixel: 'Press Start 2P', ui-monospace, monospace;
+  --font-pixel: 'Press Start 2P', 'Pokemondle Pixel Symbols', ui-monospace, monospace;
 
   --color-ds-ink: #202830;
   --color-ds-paper: #f8f8f8;
