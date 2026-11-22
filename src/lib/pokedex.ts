@@ -65,21 +65,24 @@ export function findGuessedByName(pokedex: readonly Pokemon[], guessedIds: reado
 }
 
 /**
- * Pokémon whose name matches the query: names starting with it first, then
- * names with a word starting with it, then any other match. Ties keep Pokédex order.
+ * Pokémon whose name matches the query: an exact name first (so "Mew" + Enter guesses Mew, not
+ * Mewtwo), then names starting with it, then names with a word starting with it, then any other
+ * match. Ties keep Pokédex order.
  */
 export function searchPokemon(pool: readonly Pokemon[], query: string, limit = 8): Pokemon[] {
   const q = squash(searchKey(query))
   if (!q) return []
+  const exact: Pokemon[] = []
   const starts: Pokemon[] = []
   const wordStarts: Pokemon[] = []
   const contains: Pokemon[] = []
   for (const p of pool) {
     // Matched with spaces taken out of both sides, so "farfetchd", "hooh" and "mrmime" all work.
     const { fromWords } = SEARCH_KEYS.get(p) ?? entry(p.name)
-    if (fromWords[0].startsWith(q)) starts.push(p)
+    if (fromWords[0] === q) exact.push(p)
+    else if (fromWords[0].startsWith(q)) starts.push(p)
     else if (fromWords.some((w) => w.startsWith(q))) wordStarts.push(p)
     else if (fromWords[0].includes(q)) contains.push(p)
   }
-  return [...starts, ...wordStarts, ...contains].slice(0, limit)
+  return [...exact, ...starts, ...wordStarts, ...contains].slice(0, limit)
 }

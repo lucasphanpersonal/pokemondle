@@ -285,3 +285,36 @@ test('Gen hint: offered after 5 guesses, optional, and shown for the rest of the
   await expect(hintButton).toHaveCount(0)
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pokemondle:daily') ?? '{}').hinted)).toBe(true)
 })
+
+test('Enter guesses the exact name typed, not a longer name that starts with it', async ({ page }) => {
+  await page.goto('/')
+  const name = await nonAnswer(page, 'daily', ['Mew', 'Pidgeot', 'Porygon'])
+  await guessBox(page).fill(name)
+  await guessBox(page).press('Enter')
+  await expect.poll(async () => (await savedGame(page, 'daily'))?.guessIds.map((id) => names.get(id))).toEqual([name])
+})
+
+test('a still mouse pointer under the opening list does not change what Enter guesses', async ({ page, isMobile }, info) => {
+  test.skip(info.project.name.startsWith('phone') || isMobile, 'desktop pointer only')
+  await page.goto('/')
+  const name = await nonAnswer(page, 'daily', ['Pikachu', 'Raichu'])
+  await guessBox(page).focus()
+  await page.keyboard.type(name.toLowerCase())
+  await expect(page.getByRole('option').first()).toBeVisible()
+  // Browsers send hover events with no movement when a row appears under a still pointer. Headless
+  // Chromium doesn't, so send them by hand to the second row, as if the pointer were parked there.
+  await page.getByRole('option').nth(1).evaluate((li) => {
+    li.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: document.body }))
+    li.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }))
+  })
+  await expect(page.getByRole('option').first()).toHaveAttribute('aria-selected', 'true')
+  await guessBox(page).press('Enter')
+  await expect.poll(async () => (await savedGame(page, 'daily'))?.guessIds.map((id) => names.get(id))).toEqual([name])
+  // A real move over a row still highlights it.
+  await guessBox(page).fill(name.toLowerCase().slice(0, 3))
+  const second = page.getByRole('option').nth(1)
+  const r = (await second.boundingBox())!
+  await page.mouse.move(5, 5)
+  await page.mouse.move(r.x + 20, r.y + r.height / 2, { steps: 3 })
+  await expect(second).toHaveAttribute('aria-selected', 'true')
+})

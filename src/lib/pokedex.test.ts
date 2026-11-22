@@ -15,6 +15,12 @@ describe('searchPokemon', () => {
   it('puts prefix matches first', () => {
     expect(names('pika')[0]).toBe('Pikachu')
   })
+  it('puts an exact name before longer names that start with it', () => {
+    expect(names('mew')[0]).toBe('Mew')
+    expect(names('Pidgeot')[0]).toBe('Pidgeot')
+    expect(names('porygon')[0]).toBe('Porygon')
+    expect(names('10% zygarde')[0]).toBe('10% Zygarde')
+  })
   it('finds forms by any word', () => {
     expect(names('alolan vul')).toContain('Alolan Vulpix')
     expect(names('vulpix')).toEqual(expect.arrayContaining(['Vulpix', 'Alolan Vulpix']))
