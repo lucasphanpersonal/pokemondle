@@ -22,28 +22,46 @@ export const iconUrl = (id: number) =>
 
 /**
  * Lowercase, accent-free, punctuation-free form of a name for search, so
- * "flabebe" finds "Flabébé" and "mr mime" finds "Mr. Mime".
+ * "flabebe" finds "Flabébé" and "mr mime" finds "Mr. Mime". Apostrophes go without a gap
+ * ("farfetchd") and ♀/♂ become f/m ("nidoran f").
  */
 export function searchKey(name: string): string {
   return name
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\u2640/g, ' f')
+    .replace(/\u2642/g, ' m')
     .toLowerCase()
+    .replace(/['\u2019]/g, '')
     .replace(/[^a-z0-9%]+/g, ' ')
     .trim()
 }
 
+/** The search key with its spaces taken out too, so "hooh", "porygonz" and "typenull" match "Ho-Oh", "Porygon-Z" and "Type: Null". */
+const squash = (key: string) => key.replace(/ /g, '')
+
+interface SearchEntry {
+  key: string
+  /** The squashed key from the start of each word: "type null" gives ["typenull", "null"]. */
+  fromWords: string[]
+}
+const entry = (name: string): SearchEntry => {
+  const key = searchKey(name)
+  const words = key.split(' ')
+  return { key, fromWords: words.map((_, i) => words.slice(i).join('')) }
+}
+
 /** Search key for every enabled Pokémon, computed once instead of on every keystroke. */
-const SEARCH_KEYS: Map<Pokemon, string> = new Map(POKEDEX.map((p) => [p, searchKey(p.name)]))
+const SEARCH_KEYS: Map<Pokemon, SearchEntry> = new Map(POKEDEX.map((p) => [p, entry(p.name)]))
 
 /**
- * The already-guessed Pokémon whose name is exactly the query (ignoring case, accents and punctuation), if any.
+ * The already-guessed Pokémon whose name is exactly the query (ignoring case, accents, punctuation and spaces), if any.
  */
 export function findGuessedByName(pokedex: readonly Pokemon[], guessedIds: readonly number[], query: string): Pokemon | undefined {
-  const q = searchKey(query)
+  const q = squash(searchKey(query))
   if (!q) return undefined
   const guessed = new Set(guessedIds)
-  return pokedex.find((p) => guessed.has(p.id) && searchKey(p.name) === q)
+  return pokedex.find((p) => guessed.has(p.id) && squash(searchKey(p.name)) === q)
 }
 
 /**
@@ -51,16 +69,17 @@ export function findGuessedByName(pokedex: readonly Pokemon[], guessedIds: reado
  * names with a word starting with it, then any other match. Ties keep Pokédex order.
  */
 export function searchPokemon(pool: readonly Pokemon[], query: string, limit = 8): Pokemon[] {
-  const q = searchKey(query)
+  const q = squash(searchKey(query))
   if (!q) return []
   const starts: Pokemon[] = []
   const wordStarts: Pokemon[] = []
   const contains: Pokemon[] = []
   for (const p of pool) {
-    const key = SEARCH_KEYS.get(p) ?? searchKey(p.name)
-    if (key.startsWith(q)) starts.push(p)
-    else if (key.includes(` ${q}`)) wordStarts.push(p)
-    else if (key.includes(q)) contains.push(p)
+    // Matched with spaces taken out of both sides, so "farfetchd", "hooh" and "mrmime" all work.
+    const { fromWords } = SEARCH_KEYS.get(p) ?? entry(p.name)
+    if (fromWords[0].startsWith(q)) starts.push(p)
+    else if (fromWords.some((w) => w.startsWith(q))) wordStarts.push(p)
+    else if (fromWords[0].includes(q)) contains.push(p)
   }
   return [...starts, ...wordStarts, ...contains].slice(0, limit)
 }

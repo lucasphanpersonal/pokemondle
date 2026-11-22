@@ -126,7 +126,7 @@ export function GuessGrid({ guesses, feedback }: GuessGridProps) {
                 }`}
               >
                 {[...KEY_TOP, ...KEY_BOTTOM].map((label, i) => (
-                  <span key={label} className={cardTileSpan(i)}>
+                  <span key={label} className={`${cardTileSpan(i)} ${label === 'Form' ? 'big:max-sm:hidden' : ''}`}>
                     {label}
                   </span>
                 ))}
