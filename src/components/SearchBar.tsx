@@ -166,7 +166,9 @@ export function SearchBar({ pokedex, guessedIds, onGuess, disabled, doneText = '
               aria-selected={i === active}
               // Only a pointer that really moves picks a row. A list that opens (or re-sorts) under a still
               // pointer fires hover events too, and Enter would then guess that row instead of the top match.
-              onMouseMove={(e) => (e.movementX || e.movementY) && setActive(i)}
+              onMouseMove={(e) => {
+                if (e.movementX || e.movementY) setActive(i)
+              }}
               onClick={() => choose(p)}
               className={`flex min-h-11 cursor-pointer items-center gap-3 px-notch px-2 tx-10 sm:text-xs ${
                 i === active ? 'bg-ds-sky-bottom' : ''

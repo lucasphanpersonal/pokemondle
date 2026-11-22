@@ -178,7 +178,7 @@ Older plain saves are still read.
   whole pixels so the pixel font stays crisp) and the tile font fitting (`.tile-fit`) multiplies its sizes by `--ts` too.
   The layout breakpoints that depend on tile width move by the same quarter: table tiles grow taller, phone cards show
   three tiles to a row under 640 px, cards sit two to a row from 900 px instead of 720 px, and the table starts at
-  1280 px instead of 1024 px (the page widens to 1280 px to give it room). The header, search box and menu buttons keep
+  1280 px instead of 1024 px, where the page is 1280 px wide. The header, search box and menu buttons keep
   their size, so they still fit in one row on a 320 px phone.
 
 - **Sound effects and volume**: original 8-bit style blips synthesised in the browser with the Web Audio API
