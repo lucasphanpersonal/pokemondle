@@ -292,12 +292,11 @@ export function usePokemondle(mode: GameMode) {
     endlessGames,
     /** True if the current game can be given up (in progress, at least one guess). */
     canGiveUp: canGiveUp(game),
-    /** Daily puzzle number (#1 = launch day); null in Endless mode. */
-    puzzleNumber: mode === 'daily' ? puzzleNumber(game.key) : null,
     /**
      * Both modes' title facts whatever mode is on screen, so the title box can size itself to the longer of the two
      * titles and keep its width when switching modes.
      */
+    /** Daily puzzle number (#1 = launch day). */
     dailyPuzzleNumber: puzzleNumber(games.daily.key),
     endlessGameGens: gameGens(games.endless, ALL_GENS),
     submitGuess,

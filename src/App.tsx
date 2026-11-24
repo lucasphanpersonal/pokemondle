@@ -143,7 +143,7 @@ export default function App() {
                   type="button"
                   onClick={() => setShowGens(true)}
                   aria-label="Endless Gens settings"
-                  title={mode === 'endless' && game.inProgress ? 'Gens for this game' : 'Choose which Gens Endless picks from'}
+                  title={game.inProgress ? 'Gens for this game' : 'Choose which Gens Endless picks from'}
                   className="ds-focus-inset -my-3 -mr-3 flex h-11 w-11 shrink-0 items-center justify-center text-ds-ink transition-transform hover:text-ds-frame active:translate-y-px"
                 >
                   <PixelGear />
