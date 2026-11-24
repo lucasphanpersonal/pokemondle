@@ -107,7 +107,7 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   taken), and the Daily stats panel says what share of players used it.
 - **Pokédex numbers**: every guess shows its National Dex number (`#025`) beside the name as a display-only label,
   never a clue. Forms use their species' number (Alolan Raichu is `#026`).
-- **Results**: after the last tile flips, a dialog shows the answer's artwork, how many guesses it took and a
+- **Results**: after the last tile flips, a dialog shows the answer's sprite, how many guesses it took and a
   **Pokédex entry card** (number, category such as "Mouse Pokémon", height, weight and English flavor text). Number,
   height and weight come from the local dataset; category and text are fetched from PokéAPI's `pokemon-species`
   endpoint only when the game ends, on a win or a give up (cached per session), with a graceful message if offline (`src/lib/dexEntry.ts`). On the
@@ -159,8 +159,13 @@ Older plain saves are still read.
   corners), buttons and tiles have stepped "pixel" corners (`.ds-button`, `.px-notch`) and a dark frame-colored
   outline. Every button and tile shares one bevel, like Platinum's battle-menu blocks (`.bevel` in
   `src/index.css`: light top edge, dark bottom edge, shaded sides; see [Design rules](#design-rules)), the sky is drawn in flat
-  bands, and every image is scaled with `image-rendering: pixelated`. The results screen shows the Pokémon's
-  in-game pixel sprite, scaled up crisply (falling back to the official artwork if a form has no sprite).
+  bands, and every sprite is scaled with `image-rendering: pixelated`. The results screen shows the Pokémon's
+  in-game pixel sprite, scaled up crisply.
+- **Missing sprites**: every Pokémon picture (search list, guess board, results, History) goes through
+  `SpriteImg` (`src/components/SpriteImg.tsx`), so the browser's broken-image icon never shows. It tries the form's
+  own sprite, then its official artwork (scaled smoothly, slightly inset), then the base species' sprite and artwork
+  (`iconSources` in `src/lib/pokedex.ts`), and if none load (offline, or no picture exists), a grey pixel Poké Ball.
+  Today 9 forms have no sprite: Koraidon's four builds, Miraidon's four modes and Mega Zygarde.
 - **Rare shiny**: about one catch in 20 (`SHINY_ODDS` in `src/lib/shiny.ts`) is shiny. The result screen then shows the
   shiny sprite (shiny artwork, then the normal sprite, as fallbacks) with four pixel sparkles blinking around it (still for
   "reduce motion"), a **Shiny! A 1 in 20 catch** badge and "You caught a shiny …". Wins only, never a give-up. It is a hash of
@@ -249,7 +254,8 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    Write small text sizes as `tx-N`, not `text-[Npx]`, so the Larger text option scales them; only the header, search box
    and `.ds-button` labels keep fixed `text-[Npx]` sizes, so those rows still fit at 320px.
 5. **Stepped corners and pixel font.** Boxes and buttons use stepped pixel corners (`.ds-button`, `.px-notch`) and
-   Press Start 2P, self-hosted from `@fontsource/press-start-2p` (no Google Fonts request); images use `image-rendering: pixelated`.
+   Press Start 2P, self-hosted from `@fontsource/press-start-2p` (no Google Fonts request); sprites use `image-rendering: pixelated`.
+   The one exception is official artwork, shown only when a form has no sprite: it is smooth, high-resolution art, so `SpriteImg` scales it smoothly.
    Press Start 2P has no ♀ or ♂, so a tiny extra font (`src/assets/fonts/pixel-symbols.woff2`, under 1 KB, drawn on the
    same 8 x 8 grid by `scripts/makeSymbolFont.py`, `npm run font`) sits next in the font stack with a `unicode-range` of just
    those two signs, so "Nidoran♀" and "Nidoran♂" show them in the pixel style everywhere.

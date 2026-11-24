@@ -9,7 +9,8 @@ import {
   type NumberFeedback,
 } from '../lib/compare'
 import { formatDex } from '../lib/dexEntry'
-import { iconUrl } from '../lib/pokedex'
+import { iconSources } from '../lib/pokedex'
+import { SpriteImg } from './SpriteImg'
 import { cardTileSpan, TWO_UP } from '../lib/cardLayout'
 import { abilityFit, breakable, lineChars, longestPiece, longestWord, type Fit } from '../lib/tileText'
 import type { Pokemon } from '../types/pokemon'
@@ -187,7 +188,7 @@ export function GuessCard({ guess, feedback, animate, bigText = false }: Feedbac
         className={`${BG[feedback.pokemon]} ${animate ? 'tile-flip' : ''} px-notch col-span-12 flex min-h-11 items-center gap-2 px-2.5 py-1.5 tx-9 text-white sm:tx-10 ${TILE_EDGE}`}
         data-result={feedback.pokemon}
       >
-        <img src={iconUrl(guess.id)} alt="" width={40} height={40} className="-my-1 h-10 w-10 shrink-0 [image-rendering:pixelated]" />
+        <SpriteImg sources={iconSources(guess)} alt="" width={40} height={40} className="-my-1 h-10 w-10 shrink-0" />
         <span className="min-w-0 [overflow-wrap:anywhere]">{guess.name}</span>
         <span className="ml-auto shrink-0 tx-8 opacity-80 sm:tx-9">{formatDex(guess.dexNumber)}</span>
         <span className="sr-only">, {LABEL[feedback.pokemon]}</span>
@@ -231,7 +232,7 @@ export function FeedbackRow({ guess, feedback, animate, abilityColumn }: Feedbac
         >
           {/* The sprite row takes whatever height the name leaves (up to 40px), so big sprites never cross the bevel. */}
           <div className="flex min-h-0 flex-1 items-end justify-between">
-            <img src={iconUrl(guess.id)} alt="" width={40} height={40} className="-ml-1 h-full max-h-10 min-h-0 w-auto shrink-0 object-contain object-bottom [image-rendering:pixelated]" />
+            <SpriteImg sources={iconSources(guess)} alt="" width={40} height={40} className="-ml-1 h-full max-h-10 min-h-0 w-auto shrink-0 object-contain object-bottom" />
             <span className="mt-1.5 self-start tx-7 leading-none opacity-80">{formatDex(guess.dexNumber)}</span>
           </div>
           <span className="fit relative line-clamp-3 shrink-0 text-center big:line-clamp-4 big:leading-[11px]">{guess.name}</span>

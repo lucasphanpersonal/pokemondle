@@ -21,6 +21,19 @@ export const iconUrl = (id: number) =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
 
 /**
+ * Where to look for a Pokémon's picture, best first: its own in-game sprite, its own artwork, then
+ * (for a form) the base species' sprite and artwork. A few forms have no sprite at all (Koraidon's
+ * builds, Miraidon's modes, Mega Zygarde), and some have no artwork either. SpriteImg walks this list.
+ */
+export const iconSources = (p: Pick<Pokemon, 'id' | 'dexNumber'>): string[] =>
+  p.id === p.dexNumber
+    ? [iconUrl(p.id), spriteUrl(p.id)]
+    : [iconUrl(p.id), spriteUrl(p.id), iconUrl(p.dexNumber), spriteUrl(p.dexNumber)]
+
+/** Official artwork is smooth, high-resolution art, so it is scaled smoothly, not pixel by pixel. */
+export const isArtworkUrl = (url: string) => url.includes('/official-artwork/')
+
+/**
  * Lowercase, accent-free, punctuation-free form of a name for search, so
  * "flabebe" finds "Flabébé" and "mr mime" finds "Mr. Mime". Apostrophes go without a gap
  * ("farfetchd") and ♀/♂ become f/m ("nidoran f").

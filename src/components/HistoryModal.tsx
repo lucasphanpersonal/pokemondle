@@ -9,7 +9,8 @@ import {
   type EndlessRecord,
   type HistoryEntry,
 } from '../lib/history'
-import { iconUrl, POKEDEX_BY_ID } from '../lib/pokedex'
+import { iconSources, POKEDEX_BY_ID } from '../lib/pokedex'
+import { SpriteImg } from './SpriteImg'
 import { Modal } from './Modal'
 import { PixelBulb } from './PixelBulb'
 
@@ -56,13 +57,13 @@ function GameRow({ targetId, detail, hinted, lost, lostText, guesses }: {
   const name = POKEDEX_BY_ID.get(targetId)?.name ?? `#${targetId}`
   return (
     <li className="flex items-center gap-3 py-1">
-      <img
-        src={iconUrl(targetId)}
+      <SpriteImg
+        sources={iconSources(POKEDEX_BY_ID.get(targetId) ?? { id: targetId, dexNumber: targetId })}
         alt=""
         width={40}
         height={40}
         loading="lazy"
-        className="h-10 w-10 shrink-0 [image-rendering:pixelated]"
+        className="h-10 w-10 shrink-0"
       />
       <div className="min-w-0 flex-1">
         {/* Long form names wrap rather than being cut off. */}

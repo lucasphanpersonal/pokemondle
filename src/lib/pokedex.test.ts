@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { POKEDEX, findGuessedByName, searchKey, searchPokemon } from './pokedex'
+import { POKEDEX, findGuessedByName, iconSources, iconUrl, searchKey, searchPokemon, spriteUrl } from './pokedex'
 
 describe('searchKey', () => {
   it('strips accents, case and punctuation', () => {
@@ -58,5 +58,20 @@ describe('findGuessedByName', () => {
     expect(findGuessedByName(POKEDEX, [pikachu.id], 'pika')).toBeUndefined()
     expect(findGuessedByName(POKEDEX, [], 'pikachu')).toBeUndefined()
     expect(findGuessedByName(POKEDEX, [pikachu.id], '  ')).toBeUndefined()
+  })
+})
+
+describe('iconSources', () => {
+  it('tries a form\'s own sprite and artwork before its base species\'', () => {
+    const lowPower = POKEDEX.find((p) => p.name === 'Miraidon (Low-Power Mode)')!
+    expect(iconSources(lowPower)).toEqual([
+      iconUrl(lowPower.id),
+      spriteUrl(lowPower.id),
+      iconUrl(1008),
+      spriteUrl(1008),
+    ])
+  })
+  it('has no base fallback for a base species', () => {
+    expect(iconSources({ id: 25, dexNumber: 25 })).toEqual([iconUrl(25), spriteUrl(25)])
   })
 })
