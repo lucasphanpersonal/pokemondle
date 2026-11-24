@@ -64,7 +64,8 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   out of the solved count, average, fewest and no-hint share. An Endless give up counts as given up in the Endless stats.
 - **Endless Gens**: in Endless the title names the Gens the game was drawn from ("Endless · All Gens", "Endless ·
   Gens 1-3, 5") inside its own box (the guess box's look; the Daily shows "Daily #N" in the same box, the same
-  height), and a plain pixel-art gear inside that box, with no box of its own (`PixelGear.tsx`, a 44px tap area kept
+  height and width: both titles always sit in the box with the other mode's hidden, so it keeps the longer title's
+  size and doesn't jump when switching Daily / Endless, at either text size), and a plain pixel-art gear inside that box, with no box of its own (`PixelGear.tsx`, a 44px tap area kept
   inside the box by negative margins, labelled
   "Endless Gens settings" for screen readers) opens a picker
   (`src/components/GensModal.tsx`, titled **Select Gens**, or **This game's Gens** while it is view-only): nine **Gen 1** to **Gen 9** toggles in a 3 by 3 grid (green and pressed in when on,

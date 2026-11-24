@@ -122,21 +122,33 @@ export default function App() {
           */}
           {/* The title box and the Gen hint button share one width (the wider of the two), so they stack as a neat column. */}
           <div className="flex max-w-full flex-col items-stretch gap-2">
-            <div className="ds-box flex max-w-full items-center justify-center gap-2 px-4 py-2">
-              <p className="tx-10 leading-5 sm:text-xs sm:leading-5">
-                {mode === 'endless' ? `Endless · ${gensLabel(game.gameGens)}` : `Daily #${game.puzzleNumber}`}
-              </p>
-              {mode === 'endless' && (
+            {/*
+              Both titles are always rendered in one grid cell and the other mode's is hidden (visibility, so it keeps
+              its size but can't be seen, read or focused). The box is therefore as wide as the longer title in either
+              mode and does not jump when switching Daily / Endless, at any text size.
+            */}
+            <div className="ds-box grid max-w-full px-4 py-2">
+              <div
+                className={`col-start-1 row-start-1 flex items-center justify-center ${mode === 'daily' ? '' : 'invisible'}`}
+                aria-hidden={mode !== 'daily'}
+              >
+                <p className="tx-10 leading-5 sm:text-xs sm:leading-5">Daily #{game.dailyPuzzleNumber}</p>
+              </div>
+              <div
+                className={`col-start-1 row-start-1 flex items-center justify-center gap-2 ${mode === 'endless' ? '' : 'invisible'}`}
+                aria-hidden={mode !== 'endless'}
+              >
+                <p className="tx-10 leading-5 sm:text-xs sm:leading-5">Endless · {gensLabel(game.endlessGameGens)}</p>
                 <button
                   type="button"
                   onClick={() => setShowGens(true)}
                   aria-label="Endless Gens settings"
-                  title={game.inProgress ? 'Gens for this game' : 'Choose which Gens Endless picks from'}
+                  title={mode === 'endless' && game.inProgress ? 'Gens for this game' : 'Choose which Gens Endless picks from'}
                   className="ds-focus-inset -my-3 -mr-3 flex h-11 w-11 shrink-0 items-center justify-center text-ds-ink transition-transform hover:text-ds-frame active:translate-y-px"
                 >
                   <PixelGear />
                 </button>
-              )}
+              </div>
             </div>
             {/*
               Game menu: the Gen hint (Endless's Gens settings are the gear in the title box). Give up lives in the page
