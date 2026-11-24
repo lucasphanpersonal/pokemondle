@@ -139,13 +139,13 @@ export function HelpModal({ onClose }: HelpModalProps) {
             <Swatch result="mismatch"><ResultMark kind="mismatch" className="" /></Swatch> No match
           </li>
           <li className="flex items-center gap-2">
-            <Swatch result="mismatch">▲</Swatch> Answer is higher
+            <Swatch result="mismatch"><ResultMark kind="higher" className="" /></Swatch> Answer is higher
           </li>
           <li className="flex items-center gap-2">
-            <Swatch result="mismatch">▼</Swatch> Answer is lower
+            <Swatch result="mismatch"><ResultMark kind="lower" className="" /></Swatch> Answer is lower
           </li>
         </ul>
-        <p>The ✓ ~ ✕ in a tile's corner means the same as its colour.</p>
+        <p>The mark in a tile's corner (✓ ~ ✕ or ▲ ▼) means the same as its colour.</p>
         <dl className="space-y-2">
           <div>
             <dt className="inline">Types: </dt>
