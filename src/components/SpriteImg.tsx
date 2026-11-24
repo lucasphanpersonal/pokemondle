@@ -58,14 +58,12 @@ export function SpriteImg({ sources, className = '', ...rest }: SpriteImgProps) 
     let alive = true
     pixelArtwork(wanted).then(
       (data) => alive && setPixel({ url: wanted, data }),
-      () => alive && next(),
+      () => alive && setFailed((f) => (f.key === key && f.count === count ? { key, count: count + 1 } : f)),
     )
     return () => {
       alive = false
     }
-    // next only changes with key and count, which wanted already follows.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [artwork, wanted])
+  }, [artwork, wanted, key, count])
 
   const src = wanted === undefined ? PLACEHOLDER_SPRITE : artwork ? (pixel?.url === wanted ? pixel.data : BLANK) : wanted
   return (

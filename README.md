@@ -162,9 +162,9 @@ Older plain saves are still read.
   bands, and every sprite is scaled with `image-rendering: pixelated`. The results screen shows the Pokémon's
   in-game pixel sprite, scaled up crisply.
 - **Missing sprites**: every Pokémon picture (search list, guess board, results, History) goes through
-  `SpriteImg` (`src/components/SpriteImg.tsx`), so the browser's broken-image icon never shows. It tries the form's
-  own sprite, then its official artwork run through a pixel filter (`src/lib/pixelate.ts`: shrunk to sprite size on a 96x96
-  frame, hard-edged, cut to 16 colours and outlined in a darker shade, made once per image in a canvas), then the base
+  `SpriteImg` (`src/components/SpriteImg.tsx`), so the browser's broken-image icon never shows (the give-up scene's escaping Pokémon uses the same order and filter). It tries the form's
+  own sprite, then its official artwork run through a pixel filter (`src/lib/pixelate.ts`, a canvas: shrunk to sprite
+  size on a 96x96 frame, hard-edged, cut to 16 colours and outlined in a darker shade, once per image), then the base
   species' sprite and artwork
   (`iconSources` in `src/lib/pokedex.ts`), and if none load (offline, or no picture exists), a grey pixel Poké Ball.
   Today 9 forms have no sprite: Koraidon's four builds, Miraidon's four modes and Mega Zygarde.
