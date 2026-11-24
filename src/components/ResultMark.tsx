@@ -1,9 +1,9 @@
 /**
- * A 7x7 pixel-art mark (check, tilde, cross) so a tile's result never depends on colour alone:
+ * A 7x7 pixel-art mark (check, tilde, cross, or up/down arrow) so a tile's result never depends on colour alone:
  * red and green look alike to many colour-blind players. One art pixel is one CSS pixel, drawn in
  * currentColor, so it takes the tile's text colour (white, or ink on yellow) and its shadow.
  */
-const ART: Record<'match' | 'partial' | 'mismatch', string[]> = {
+const ART: Record<'match' | 'partial' | 'mismatch' | 'higher' | 'lower', string[]> = {
   match: [
     '.......',
     '.....##',
@@ -30,6 +30,25 @@ const ART: Record<'match' | 'partial' | 'mismatch', string[]> = {
     '.#####.',
     '###.###',
     '##...##',
+  ],
+  // Number tiles: the answer is higher or lower. A solid arrow with a stem, so it reads as a direction even at 7px.
+  higher: [
+    '...#...',
+    '..###..',
+    '.#####.',
+    '#######',
+    '..###..',
+    '..###..',
+    '..###..',
+  ],
+  lower: [
+    '..###..',
+    '..###..',
+    '..###..',
+    '#######',
+    '.#####.',
+    '..###..',
+    '...#...',
   ],
 }
 
