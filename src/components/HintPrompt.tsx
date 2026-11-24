@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { playSound } from '../lib/sound'
+import { PixelBulb } from './PixelBulb'
 
 interface HintPromptProps {
   /** The answer's Gen, revealed if the player says yes. */
@@ -15,14 +16,22 @@ interface HintPromptProps {
 /** Milliseconds per letter as the text types out, like the games' text speed. */
 const LETTER_MS = 22
 
+/**
+ * Taps and keys are ignored for this long after the box opens and again after the choices appear, so
+ * a tap or Enter meant for the board (or for skipping the text) can't land on a choice by accident.
+ */
+export const HINT_GUARD_MS = 500
+
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
 /**
  * The one-time Gen hint offer, drawn as an in-game text box centred on screen over a dimmed
  * background. The question types out letter by letter (a tap, Enter or Space finishes it), then a
- * Show Gen / Not now choice appears. Show Gen types out the answer's Gen; advancing then closes the
- * box. Escape or a tap on the dimmed background is "Not now" (or closes, once the Gen is shown).
+ * Show hint / No thanks choice appears (No thanks on the right, focused). Show hint types out the
+ * answer's Gen; advancing then closes the box. Escape or a tap on the dimmed background is "No thanks"
+ * (or closes, once the Gen is shown). Input is ignored for HINT_GUARD_MS after opening and after the
+ * choices appear.
  */
 export function HintPrompt({ gen, guesses, onTake, onClose }: HintPromptProps) {
   const [revealed, setRevealed] = useState(false)
@@ -34,11 +43,26 @@ export function HintPrompt({ gen, guesses, onTake, onClose }: HintPromptProps) {
   const noRef = useRef<HTMLButtonElement>(null)
   const [shown, setShown] = useState(() => (prefersReducedMotion() ? text.length : 0))
   const done = shown >= text.length
+  const choices = done && !revealed
+
+  // Tap guard: input is ignored for HINT_GUARD_MS at the start of the "open" phase (text typing)
+  // and the "choices" phase. A phase leaves the guard once its timer has run.
+  const phase = revealed ? 'revealed' : choices ? 'choices' : 'open'
+  const [cleared, setCleared] = useState<string[]>([])
+  const guarded = phase !== 'revealed' && !cleared.includes(phase)
+  const guardedRef = useRef(guarded)
+  useEffect(() => {
+    if (phase === 'revealed') return
+    const id = window.setTimeout(() => setCleared((c) => [...c, phase]), HINT_GUARD_MS)
+    return () => window.clearTimeout(id)
+  }, [phase])
 
   // Latest state for the key/tap handlers without re-binding them every letter.
   const advanceRef = useRef((_dismiss: boolean) => {})
   useEffect(() => {
+    guardedRef.current = guarded
     advanceRef.current = (dismiss: boolean) => {
+      if (guarded) return
       if (!done) setShown(text.length)
       else if (revealed || dismiss) {
         playSound('select')
@@ -53,7 +77,7 @@ export function HintPrompt({ gen, guesses, onTake, onClose }: HintPromptProps) {
     return () => window.clearTimeout(id)
   }, [shown, done])
 
-  // Once the question has typed out, focus "Not now", so a stray Enter never spends the hint.
+  // Once the question has typed out, focus "No thanks", so a stray Enter never spends the hint.
   useEffect(() => {
     if (done && !revealed) noRef.current?.focus()
     if (revealed) boxRef.current?.focus()
@@ -72,8 +96,11 @@ export function HintPrompt({ gen, guesses, onTake, onClose }: HintPromptProps) {
         advanceRef.current(true)
         return
       }
-      // Enter/Space on a choice button is that button's own click.
-      if ((e.target as HTMLElement | null)?.tagName === 'BUTTON') return
+      // Enter/Space on a choice button is that button's own click (swallowed while guarded).
+      if ((e.target as HTMLElement | null)?.tagName === 'BUTTON') {
+        if (guardedRef.current && (e.key === 'Enter' || e.key === ' ')) e.preventDefault()
+        return
+      }
       if (['Enter', ' ', 'z', 'Z', 'a', 'A'].includes(e.key)) {
         e.preventDefault()
         // A held key (e.g. Enter still down from the guess) must not skip the message unread.
@@ -89,6 +116,7 @@ export function HintPrompt({ gen, guesses, onTake, onClose }: HintPromptProps) {
   }, [])
 
   const choose = (take: boolean) => {
+    if (guarded) return
     playSound('select')
     if (!take) {
       onClose()
@@ -99,14 +127,12 @@ export function HintPrompt({ gen, guesses, onTake, onClose }: HintPromptProps) {
     setShown(prefersReducedMotion() ? Number.MAX_SAFE_INTEGER : 0)
   }
 
-  const choices = done && !revealed
-
   return createPortal(
     <div
       data-modal
       className="fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/50 p-3 sm:p-4"
       onClick={(e) => {
-        // Taps inside the box finish or advance the text; taps outside also mean "Not now".
+        // Taps inside the box finish or advance the text; taps outside also mean "No thanks".
         if (e.target === e.currentTarget) advanceRef.current(true)
         else if (!choices) advanceRef.current(false)
       }}
@@ -129,16 +155,26 @@ export function HintPrompt({ gen, guesses, onTake, onClose }: HintPromptProps) {
           <span className="invisible">{text.slice(shown)}</span>
         </p>
         {choices && (
-          <div className="mt-4 flex justify-end gap-2">
-            <button ref={noRef} type="button" onClick={() => choose(false)} className="ds-button bevel-paper h-11 px-4 text-[10px]">
-              Not now
-            </button>
+          <div className="mt-4 flex justify-between gap-2">
+            {/* Show hint on the left, No thanks on the right where "next" usually sits. They differ by label,
+                face and the bulb icon, not colour alone. */}
             <button
               type="button"
               onClick={() => choose(true)}
-              className="ds-button bevel-red h-11 px-4 text-[10px] text-ds-paper"
+              aria-disabled={guarded || undefined}
+              className="ds-button bevel-red inline-flex h-11 min-w-0 flex-1 basis-0 items-center justify-center gap-1.5 whitespace-nowrap px-2 text-[9px] text-ds-paper sm:flex-none sm:basis-auto sm:px-4 sm:text-[10px]"
             >
-              Show Gen
+              <PixelBulb />
+              Show hint
+            </button>
+            <button
+              ref={noRef}
+              type="button"
+              onClick={() => choose(false)}
+              aria-disabled={guarded || undefined}
+              className="ds-button bevel-paper h-11 min-w-0 flex-1 basis-0 whitespace-nowrap px-2 text-[9px] sm:flex-none sm:basis-auto sm:px-4 sm:text-[10px]"
+            >
+              No thanks
             </button>
           </div>
         )}

@@ -97,10 +97,13 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
 - **Gen hint**: one mode for everyone (Hard mode and its Gen column were removed). Once a game has 5 guesses
   (`HINT_AFTER_GUESSES` in `src/lib/game.ts`) and is still open, an in-game style text box pops up in the middle of
   the screen over the dimmed background (`src/components/HintPrompt.tsx`), after the fifth row has flipped in. Its
-  question types out letter by letter (a tap, Enter, Space or Z/A finishes it), then offers **Not now** (focused, so a
-  stray Enter never spends the hint) and **Show Gen**. Show Gen types out "This Pokémon is from Gen N!" with a stepping
-  ▼; advancing closes it. Esc or a tap on the dimmed background means Not now. The pop-up appears once per game
-  (`localStorage['pokemondle:hint-offered']`, the last game offered in each mode); after Not now a white **Gen hint**
+  question types out letter by letter (a tap, Enter, Space or Z/A finishes it), then offers **Show hint** (red, with the
+  pixel bulb) on the left and **No thanks** (white) on the right, where players expect "next". No thanks is focused, so a
+  stray Enter never spends the hint. Taps and keys are ignored for 0.5 s after the box opens and again after the two
+  buttons appear (`HINT_GUARD_MS`; the buttons are `aria-disabled` meanwhile), so a tap meant for the board can't
+  accept by accident. Show hint types out "This Pokémon is from Gen N!" with a stepping
+  ▼; advancing closes it. Esc or a tap on the dimmed background means No thanks. The pop-up appears once per game
+  (`localStorage['pokemondle:hint-offered']`, the last game offered in each mode); after No thanks a white **Gen hint**
   button (with a pixel bulb, `PixelBulb.tsx`) sits under the title box, stretched to the same width, until the game ends. Once taken, that button stays in
   place pressed in (the inverse bevel, a non-interactive status) and reads **Hint · Gen N**, the save gets `hinted: true`, the result screen shows **Used the Gen hint**
   and History marks the Daily with a bulb. A hinted win still counts as a win and keeps the streak; History shows

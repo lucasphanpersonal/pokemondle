@@ -291,7 +291,7 @@ html.big-text {
       var(--px) var(--px)
     );
   }
-  .ds-button:active:not(:disabled, .bevel-pressed) {
+  .ds-button:active:not(:disabled, .bevel-pressed, [aria-disabled='true']) {
     transform: translateY(2px);
     --bevel-top: var(--lo);
     --bevel-bottom: var(--hi);
