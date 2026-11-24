@@ -88,7 +88,7 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
 - **Columns**: Pokémon, Type 1, Type 2, Height, Weight, Color, Evolution (stage 1–3), Form, Egg Group, Shared Ability.
   There is no Gen column: a guess never shows its generation, so the Gen is only revealed by the optional Gen hint.
   Green ✓ = match, yellow ~ = type in the other slot (or one shared egg group), red ✕ = no match, ▲/▼ = the answer is higher/lower.
-  Every tile carries its ✓, ~ or ✕ as a small pixel mark in the top-right corner (`src/components/ResultMark.tsx`), and number tiles carry their arrow, so no match, partial or miss depends on telling red from green.
+  Every tile carries its ✓, ~, ✕, ▲ or ▼ as a small pixel mark in the same top-right corner spot (`src/components/ResultMark.tsx`), so no match, partial or miss depends on telling red from green.
   Form is green when the guess and the answer share a form category (Base, Mega, Regional, G-Max for Gigantamax, Cosmetic, Other), red otherwise; the tile shows the guess's own category.
   Egg Group (from PokéAPI's species data; forms share their species' groups, legendaries are mostly "Undiscovered") is green when the guess and the answer have exactly the same groups, yellow when they share at least one, red when none; the tile lists the guess's own groups.
   Shared Ability lists every ability the two share (hidden abilities count). With no match it is red and lists all of
@@ -174,8 +174,10 @@ Older plain saves are still read.
   bands, and every sprite is scaled with `image-rendering: pixelated`. The results screen shows the Pokémon's
   in-game pixel sprite, scaled up crisply.
 - **Missing sprites**: every Pokémon picture (search list, guess board, results, History) goes through
-  `SpriteImg` (`src/components/SpriteImg.tsx`), so the browser's broken-image icon never shows. It tries the form's
-  own sprite, then its official artwork (scaled smoothly, slightly inset), then the base species' sprite and artwork
+  `SpriteImg` (`src/components/SpriteImg.tsx`), so the browser's broken-image icon never shows (the give-up scene's escaping Pokémon uses the same order and filter). It tries the form's
+  own sprite, then its official artwork run through a pixel filter (`src/lib/pixelate.ts`, a canvas: shrunk to sprite
+  size on a 96x96 frame, hard-edged, cut to 16 colours and outlined in a darker shade, once per image), then the base
+  species' sprite and artwork
   (`iconSources` in `src/lib/pokedex.ts`), and if none load (offline, or no picture exists), a grey pixel Poké Ball.
   Today 9 forms have no sprite: Koraidon's four builds, Miraidon's four modes and Mega Zygarde.
 - **Rare shiny**: about one catch in 20 (`SHINY_ODDS` in `src/lib/shiny.ts`) is shiny. The result screen then shows the
@@ -267,7 +269,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    and `.ds-button` labels keep fixed `text-[Npx]` sizes, so those rows still fit at 320px.
 5. **Stepped corners and pixel font.** Boxes and buttons use stepped pixel corners (`.ds-button`, `.px-notch`) and
    Press Start 2P, self-hosted from `@fontsource/press-start-2p` (no Google Fonts request); sprites use `image-rendering: pixelated`.
-   The one exception is official artwork, shown only when a form has no sprite: it is smooth, high-resolution art, so `SpriteImg` scales it smoothly.
+   Official artwork, shown only when a form has no sprite, goes through the pixel filter in `src/lib/pixelate.ts` first, so it matches the sprites.
    Press Start 2P has no ♀ or ♂, so a tiny extra font (`src/assets/fonts/pixel-symbols.woff2`, under 1 KB, drawn on the
    same 8 x 8 grid by `scripts/makeSymbolFont.py`, `npm run font`) sits next in the font stack with a `unicode-range` of just
    those two signs, so "Nidoran♀" and "Nidoran♂" show them in the pixel style everywhere.
@@ -278,8 +280,8 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    the box's top and right edges.
 8. **Readable colours, never colour alone.** White text needs at least 4.5:1 against its face, so the tile green is
    `#2a8530` (4.67:1) and red `#c84040` (4.93:1); yellow tiles use dark ink text. Every result also has a non-colour
-   cue: the ✓ / ~ / ✕ corner mark (7×7 pixel art, 8px from the top and ending 10px from the right edge, so it never
-   meets tile text) or a ▲/▼ arrow. Check contrast before changing `--color-fb-*`.
+   cue: the ✓ / ~ / ✕ / ▲ / ▼ corner mark (7×7 pixel art, 8px from the top and ending 10px from the right edge, so it
+   never meets tile text). Number tiles use the arrows in that same corner spot. Check contrast before changing `--color-fb-*`.
 
 ## Dataset
 

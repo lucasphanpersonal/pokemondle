@@ -46,12 +46,10 @@ const BG: Record<Result, string> = {
   unknown: 'bg-fb-mismatch',
 }
 
-const ARROW: Partial<Record<Result, string>> = { higher: '▲', lower: '▼' }
-
-/** The tile's corner mark (check, tilde or cross), so no result is told apart by colour alone. */
+/** The tile's corner mark (check, tilde, cross, or ▲/▼ on number tiles), so no result is told apart by colour alone. */
 function Mark({ result }: { result: Result }) {
-  // Higher/lower tiles already carry an arrow, and 'unknown' has nothing to mark.
-  return result === 'match' || result === 'partial' || result === 'mismatch' ? <ResultMark kind={result} /> : null
+  // 'unknown' (a weight the games never list) has nothing to mark.
+  return result === 'unknown' ? null : <ResultMark kind={result} />
 }
 
 const LABEL: Record<Result, string> = {
@@ -96,11 +94,6 @@ function Tile({
       >
         <Mark result={result} />
         <span className={`fit ${hyphenate ? '[hyphens:auto]' : ''}`}>{children}</span>
-        {ARROW[result] && (
-          <span aria-hidden className="absolute bottom-[7px] left-0 right-0 tx-9 leading-none">
-            {ARROW[result]}
-          </span>
-        )}
         <span className="sr-only">, {LABEL[result]}</span>
       </div>
     </td>
@@ -121,13 +114,13 @@ function buildTiles(guess: Pokemon, feedback: GuessFeedback, abilityColumn?: Fit
   return [
     { label: 'Type 1', result: feedback.type1, content: breakable(guess.type1), chars: fitOf(guess.type1) },
     { label: 'Type 2', result: feedback.type2, content: breakable(guess.type2 ?? 'None'), chars: fitOf(guess.type2 ?? 'None') },
-    // Units sit on their own line; count one extra character for the ▲/▼ that follows them on phones.
-    { label: 'Height', result: feedback.height, content: <>{guess.height}{" "}<br />m</>, chars: fitOf(guess.height, 'm▲') },
+    // Units sit on their own line; the ▲/▼ is the corner mark, so it takes no room in the text.
+    { label: 'Height', result: feedback.height, content: <>{guess.height}{" "}<br />m</>, chars: fitOf(guess.height, 'm') },
     {
       label: 'Weight',
       result: feedback.weight,
       content: guess.weight > 0 ? <>{guess.weight}{" "}<br />kg</> : '???',
-      chars: guess.weight > 0 ? fitOf(guess.weight, 'kg▲') : fitOf('???'),
+      chars: guess.weight > 0 ? fitOf(guess.weight, 'kg') : fitOf('???'),
     },
     { label: 'Color', result: feedback.color, content: breakable(guess.color), chars: fitOf(guess.color) },
     { label: 'Evolution', result: feedback.evolutionStage, content: <>Stage{" "}<br />{guess.evolutionStage}</>, chars: fitOf('Stage') },
@@ -172,11 +165,6 @@ export function GuessCard({ guess, feedback, animate, bigText = false }: Feedbac
             </span>
           )}
           {content}
-          {ARROW[result] && (
-            <span aria-hidden className="ml-0.5">
-              {ARROW[result]}
-            </span>
-          )}
         </span>
         <span className="sr-only">, {LABEL[result]}</span>
       </div>
