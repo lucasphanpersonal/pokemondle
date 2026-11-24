@@ -222,7 +222,7 @@ Older plain saves are still read.
 
 ### Layout on different devices
 
-- Desktop and large tablet (≥ 1024 px, or ≥ 1280 px with Larger text): all ten columns fit on screen. From 1024 px the page fills the screen, up to 1280 px wide (an iPad in landscape at 1180 px gets the full 1180 px), so desktop tiles get the room to keep their text at full size.
+- Desktop and large tablet (≥ 1024 px, or ≥ 1280 px with Larger text): all ten columns fit on screen. From 1024 px the page fills the screen, up to 1280 px wide (an iPad in landscape at 1180 px gets the full 1180 px), so desktop tiles get the room to keep their text at full size. The Pokémon tile centres its sprite above the name (the pair centred in the tile, like the text in the other tiles), with the Pokédex number in the top-right corner where the other tiles show their result mark.
 - Phones and tablets under 1024 px (1280 px with Larger text): no sideways scrolling. Each guess is a compact card: sprite and name on top, then the
   comparison tiles in two rows (three wider tiles: Type 1, Type 2, Height; then four: Weight, Color, Evolution, Form) and full-width Egg Group and Shared Ability strips,
   with a small key above the list laid out in the same two rows as the tiles (rows of three under 640 px with Larger text, where the Form tile gets a full-width row of its own and labels itself "Form: Base" like the strips, so the key leaves it out; `cardTileSpan` in `src/lib/cardLayout.ts` sets the spans for both). The Egg Group and Ability strips keep 18 px of padding on each side so their text never runs into the ✓/✗ corner mark. The search box uses 16 px text so iOS doesn't

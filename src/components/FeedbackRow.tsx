@@ -210,20 +210,18 @@ export function FeedbackRow({ guess, feedback, animate, abilityColumn }: Feedbac
     <tr>
       <th scope="row" className="p-0 font-normal">
         {/*
-          Sprite and Pokédex number share the top row (like the phone card), so the number never
-          covers the sprite; the name gets up to three full-width lines below (four with Larger text), sized so it all fits.
+          Sprite centred above the name, the pair centred in the tile like the text in the other tiles. The Pokédex
+          number sits in the top-right corner, where the other tiles keep their result mark. The name gets up to three
+          full-width lines (four with Larger text), sized so it all fits; the sprite shrinks to make room for them.
         */}
         <div
-          className={`${BG[feedback.pokemon]} ${animate ? 'tile-flip' : ''} tile-fit flex h-16 w-full flex-col px-notch px-2.5 py-1.5 leading-[calc(10px*var(--ts))] text-white ${TILE_EDGE} sm:h-[calc(72px*var(--ts))]`}
+          className={`${BG[feedback.pokemon]} ${animate ? 'tile-flip' : ''} tile-fit relative flex h-16 w-full flex-col items-center justify-center px-notch px-2.5 py-1.5 leading-[calc(10px*var(--ts))] text-white ${TILE_EDGE} sm:h-[calc(72px*var(--ts))]`}
           style={fit(8, { chars: lineChars(guess.name, 3), piece: lineChars(guess.name, 3) })}
           data-result={feedback.pokemon}
         >
-          {/* The sprite row takes whatever height the name leaves (up to 40px), so big sprites never cross the bevel. */}
-          <div className="flex min-h-0 flex-1 items-end justify-between">
-            <SpriteImg sources={iconSources(guess)} alt="" width={40} height={40} className="-ml-1 h-full max-h-10 min-h-0 w-auto shrink-0 object-contain object-bottom" />
-            <span className="mt-1.5 self-start tx-7 leading-none opacity-80">{formatDex(guess.dexNumber)}</span>
-          </div>
-          <span className="fit relative line-clamp-3 shrink-0 text-center big:line-clamp-4 big:leading-[11px]">{guess.name}</span>
+          <span className="absolute top-2 right-2.5 tx-7 leading-none opacity-80">{formatDex(guess.dexNumber)}</span>
+          <SpriteImg sources={iconSources(guess)} alt="" width={32} height={32} className="h-8 min-h-0 w-[30px] shrink object-contain" />
+          <span className="fit relative line-clamp-3 w-full shrink-0 text-center big:line-clamp-4 big:leading-[11px]">{guess.name}</span>
         </div>
       </th>
       {tiles.map(({ label, result, content }, i) => (
