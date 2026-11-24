@@ -1,7 +1,6 @@
-import { useState, type CSSProperties } from 'react'
-import { loadJson, saveJson } from '../lib/storage'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { TYPE_LABELS, TYPES, type TypeName } from '../lib/typeNotes'
-import { Modal } from './Modal'
+import { ResultMark } from './ResultMark'
 
 interface TypeTrackerProps {
   ruledOut: readonly TypeName[]
@@ -31,9 +30,9 @@ function TypeButtons({ ruledOut, onToggle, className }: Pick<TypeTrackerProps, '
               onClick={() => onToggle(type)}
               // Ruled out: a dark grey face with a hint of the type's colour (white text over 5:1 on every type).
               style={{ '--face': out ? `color-mix(in srgb, ${face} 15%, #646a72)` : face } as CSSProperties}
-              className={`ds-button type-label flex w-full items-center justify-center px-2.5 leading-none ${out ? 'bevel-pressed line-through decoration-2' : ''}`}
+              className={`ds-button type-label flex w-full items-center justify-center px-2.5 leading-none ${out ? 'bevel-pressed' : ''}`}
             >
-              {label}
+              <span className={out ? 'type-struck' : undefined}>{label}</span>
             </button>
           </li>
         )
@@ -59,65 +58,80 @@ function ClearButton({ ruledOut, onClear }: Pick<TypeTrackerProps, 'ruledOut' | 
 const NOTE = 'Tap the types you have ruled out. These are just your notes: the game never reads them.'
 
 /**
- * Desktop (1024 px and up): the tracker sits between the guess box and the board as its own box, all 18 types in two
- * rows of nine. It can be folded away to a single row; that choice is remembered on this device.
+ * The tracker lives off to the side so it never crowds the game: a small "TYPES" tab on the right edge of the screen
+ * (every screen size) slides out a panel with all 18 types in three columns. The panel isn't a dialog: the page stays
+ * usable behind it, so a player can keep guessing with it open. The tab or the panel's close button (or Esc) puts it away.
  */
-export function TypeTrackerPanel(props: TypeTrackerProps) {
-  const [open, setOpen] = useState(() => loadJson('type-tracker-open') !== false)
-  const toggleOpen = () => {
-    setOpen(!open)
-    saveJson('type-tracker-open', !open)
+export function TypeTrackerDrawer({ ruledOut, onToggle, onClear }: TypeTrackerProps) {
+  const [open, setOpen] = useState(false)
+  const tabRef = useRef<HTMLButtonElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  // Focus follows the open/close, but not on first render (the tab must not steal focus from the guess box).
+  const moved = useRef(false)
+  useEffect(() => {
+    if (!moved.current) return
+    ;(open ? closeRef : tabRef).current?.focus()
+  }, [open])
+  const toggle = (next: boolean) => {
+    moved.current = true
+    setOpen(next)
   }
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      // A dialog on top (Help, results) handles its own Esc.
+      if (e.key === 'Escape' && !document.querySelector('[data-modal]')) toggle(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open])
+
   return (
-    <section className="ds-box p-2 sm:p-3" aria-labelledby="type-tracker-title">
-      <div className="mx-1 flex items-center gap-3">
-        <h2 id="type-tracker-title" className="min-w-0 flex-1 tx-10 leading-5 font-normal">Type tracker</h2>
-        {open && <ClearButton ruledOut={props.ruledOut} onClear={props.onClear} />}
-        <button
-          type="button"
-          onClick={toggleOpen}
-          aria-expanded={open}
-          aria-controls={open ? 'type-tracker-grid' : undefined}
-          className="ds-button bevel-paper h-11 shrink-0 whitespace-nowrap px-3 text-[10px]"
+    <div className="fixed top-1/2 right-0 z-40 -translate-y-1/2">
+      {open ? (
+        <section
+          id="type-tracker"
+          aria-labelledby="type-tracker-title"
+          className="ds-box pop-in mr-2 max-h-[85dvh] w-[min(22rem,calc(100vw-1rem))] overflow-y-auto p-3"
         >
-          {open ? 'Hide ▲' : 'Show ▼'}
+          <div className="mb-2 flex items-center gap-2">
+            <h2 id="type-tracker-title" className="min-w-0 flex-1 tx-10 leading-5 font-normal">Type tracker</h2>
+            <ClearButton ruledOut={ruledOut} onClear={onClear} />
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={() => toggle(false)}
+              aria-label="Close the type tracker"
+              aria-expanded="true"
+              aria-controls="type-tracker"
+              className="ds-button bevel-paper flex h-11 w-11 shrink-0 items-center justify-center text-ds-ink"
+            >
+              <ResultMark kind="mismatch" scale={2} className="" />
+            </button>
+          </div>
+          <p className="mb-2 tx-9 leading-4">{NOTE}</p>
+          <TypeButtons ruledOut={ruledOut} onToggle={onToggle} className="grid-cols-3" />
+        </section>
+      ) : (
+        <button
+          ref={tabRef}
+          type="button"
+          onClick={() => toggle(true)}
+          aria-label="Types: open the type tracker"
+          aria-expanded="false"
+          title="Type tracker"
+          // A narrow tab (36 px wide) so it barely covers the board's right edge; the letters are stacked, upright.
+          className="ds-button bevel-paper flex w-9 flex-col items-center justify-center gap-1.5 py-3 text-[9px] leading-none text-ds-ink"
+        >
+          <span aria-hidden="true">◀</span>
+          {'TYPES'.split('').map((letter, i) => (
+            <span key={i} aria-hidden="true">
+              {letter}
+            </span>
+          ))}
         </button>
-      </div>
-      {open && (
-        <div id="type-tracker-grid" className="mt-2">
-          <p className="mx-1 mb-2 tx-9 leading-4">{NOTE}</p>
-          <TypeButtons ruledOut={props.ruledOut} onToggle={props.onToggle} className="grid-cols-9" />
-        </div>
       )}
-    </section>
-  )
-}
-
-/** The button that opens the tracker on phones and tablets (under 1024 px), in the board's heading. */
-export function TypeTrackerButton({ onOpen }: { onOpen: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      aria-haspopup="dialog"
-      aria-label="Types: open the type tracker"
-      className="ds-button bevel-paper inline-flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[9px] sm:text-[10px]"
-    >
-      Types
-      <span aria-hidden="true">▲</span>
-    </button>
-  )
-}
-
-/** Phones and tablets: the tracker pops out as a sheet from the bottom of the screen (a dialog box on tablets). */
-export function TypeTrackerModal({ onClose, ...props }: TypeTrackerProps & { onClose: () => void }) {
-  return (
-    <Modal title="Type tracker" onClose={onClose}>
-      <p className="mb-3 tx-9 leading-4">{NOTE}</p>
-      <TypeButtons ruledOut={props.ruledOut} onToggle={props.onToggle} className="grid-cols-3" />
-      <div className="mt-3 flex justify-end">
-        <ClearButton ruledOut={props.ruledOut} onClear={props.onClear} />
-      </div>
-    </Modal>
+    </div>
   )
 }

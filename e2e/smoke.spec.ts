@@ -322,7 +322,7 @@ test('a still mouse pointer under the opening list does not change what Enter gu
 test('the type tracker marks types for this game and keeps them on reload', async ({ page }) => {
   await page.goto('/')
   await guess(page, await nonAnswer(page, 'daily', ['Pikachu', 'Eevee']))
-  // A panel above the board on desktop; a Types button that opens a dialog on phones.
+  // The tracker slides out from a TYPES tab on the side of the page at every size.
   const opener = page.getByRole('button', { name: /^Types/ })
   const openTracker = async () => {
     if (await opener.isVisible()) await opener.click()

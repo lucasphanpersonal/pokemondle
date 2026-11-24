@@ -287,7 +287,25 @@ html.big-text {
     text-shadow: 0.125em 0.125em 0 rgb(32 40 48 / 0.8);
     font-size: clamp(8px, (100cqi - 20px) / 6, 16px);
     font-size: round(down, clamp(8px, (100cqi - 20px) / 6, 16px), 1px);
-    text-decoration-color: #f8f8f8;
+  }
+  /*
+   * A ruled-out type's name is struck through the middle of the letters. CSS line-through sits low in the pixel font
+   * (its capitals fill the top 7 of 8 font pixels), so the line is drawn instead: one font pixel thick, through the
+   * capitals' middle row, with the same shadow as the text.
+   */
+  .type-struck {
+    position: relative;
+  }
+  .type-struck::after {
+    content: '';
+    position: absolute;
+    left: -0.125em;
+    right: -0.125em;
+    top: calc(0.5em - 0.125em);
+    height: 0.125em;
+    min-height: 1px;
+    background: #f8f8f8;
+    box-shadow: 0.125em 0.125em 0 rgb(32 40 48 / 0.8);
   }
 
   /* DS-style menu button: the bevel plus stepped pixel corners; presses in on tap. */

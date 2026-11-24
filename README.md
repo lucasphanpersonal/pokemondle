@@ -33,7 +33,7 @@ src/lib/history.ts            Daily history (solved and given up), streak maths,
 src/hooks/useAnalytics.ts     wraps guesses with anonymous analytics
 src/hooks/useRevealEffects.ts  flip-reveal hold, tick sounds, the catch/escape scene, then win fanfare, cry and confetti
 src/components/CaptureScene.tsx  the Poké Ball catch (win) and escape (give up) animation; timings in src/lib/capture.ts
-src/hooks/useMediaQuery.ts     live CSS media-query match (GuessGrid picks table or cards with it; App picks the Type tracker's panel or pop-out)
+src/hooks/useMediaQuery.ts     live CSS media-query match (GuessGrid picks table or cards with it)
 src/hooks/useTypeNotes.ts     the Type tracker's marks for the game on screen; the rules (types, colours, per-game reset) are in src/lib/typeNotes.ts (pure, tested)
 src/lib/                      dataset + search, Pokédex entry fetch (dexEntry.ts), comparison, daily seed, game rules, Endless Gen filter (gens.ts), sound, storage, display settings (display.ts: CRT, Larger text), tile text fitting (tileText.ts), phone card layout (cardLayout.ts)
 src/config/gameConfig.ts      game settings, including which form categories are enabled
@@ -113,11 +113,11 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   `src/lib/typeNotes.ts`), white text with a one-font-pixel dark drop shadow, and the text as big as the label allows
   (`.type-label` in `src/index.css`: sized for six letters from the label's width, 8 to 16 px, so all eighteen share one size).
   They sit on the shared bevel. A ruled-out type is pressed in (the inverse bevel), its face turns dark grey and its name
-  is struck through, so it never relies on colour alone.
-  From 1024 px wide it is a box between the guess box and the board, two rows of nine, with **Clear** and **Hide/Show**
-  (folded or not is remembered per device in `localStorage['pokemondle:type-tracker-open']`). Under 1024 px a
-  **Types ▲** button in the board's heading (next to the Poké Ball count, so it appears with the first guess) opens it as a
-  dialog, a bottom sheet on phones, in three columns. Marks belong to one game: they are saved per mode with that game's
+  is struck through (a drawn line through the middle of the capitals, `.type-struck`, since CSS line-through sits low in
+  the pixel font), so it never relies on colour alone.
+  It sits off to the side so it never crowds the game: on every screen size a narrow **◀ TYPES** tab on the right edge
+  of the screen (36 px wide, vertically centred) slides out a panel with the 18 types in three columns, **Clear** and a
+  close button (Esc also closes it). The panel isn't a dialog, so the page stays usable behind it. Marks belong to one game: they are saved per mode with that game's
   key in `localStorage['pokemondle:type-notes']` (`{ daily: { key, out }, endless: { key, out } }`), so a refresh keeps
   them and a new Daily or a new Endless Pokémon starts with none.
 - **Pokédex numbers**: every guess shows its National Dex number (`#025`) beside the name as a display-only label,
@@ -248,7 +248,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
 
 1. **One bevel for everything.** Every button, toggle and guess tile uses the shared `.bevel` style in
    `src/index.css` (`.ds-button` includes it): 2px dark outline, 6px light top edge, 6px dark bottom edge, 4px shaded
-   sides. Pick the face colour with `.bevel-paper` (white), `.bevel-red`, `.bevel-green`, or `data-result` on tiles (the Type tracker's toggles set `--face` to their type colour).
+   sides. Pick the face colour with `.bevel-paper` (white), `.bevel-red`, `.bevel-green`, or `data-result` on tiles (the Type tracker's toggles set `--face` to their type colour; its side tab is 36 px wide, not 44, so it covers less of the board).
    Never hand-roll a `box-shadow` or `border` bevel on a single control. A dialog's close button is a 44px
    `.ds-button bevel-paper` square holding the pixel-art cross (`ResultMark` drawn at 2px per art pixel), like the
    header's ? button. The exceptions are the small on/off switch graphics in Help, which are not menu buttons, and the Endless
