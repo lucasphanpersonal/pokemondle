@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { GRID_COLUMNS } from '../config/gameConfig'
 import type { GuessFeedback } from '../lib/compare'
 import type { Pokemon } from '../types/pokemon'
@@ -34,6 +34,8 @@ const KEY_BOTTOM = ['Weight', 'Color', 'Evolution', 'Form']
 interface GuessGridProps {
   guesses: Pokemon[]
   feedback: GuessFeedback[]
+  /** Shown at the right of the board's heading (the Type tracker button on phones and tablets). */
+  headerAction?: ReactNode
 }
 
 /**
@@ -45,7 +47,7 @@ interface GuessGridProps {
  * scrolling); larger tablets and desktops show the full ten-column table.
  * Only the layout that fits is rendered, so each guess's tiles exist once in the DOM.
  */
-export function GuessGrid({ guesses, feedback }: GuessGridProps) {
+export function GuessGrid({ guesses, feedback, headerAction }: GuessGridProps) {
   const abilityColumn = abilityColumnFit(guesses, feedback)
   const bigText = useSyncExternalStore(subscribeBigText, isBigText, () => false)
   const twoUp = TWO_UP[bigText ? 'big' : 'normal']
@@ -76,11 +78,14 @@ export function GuessGrid({ guesses, feedback }: GuessGridProps) {
       */}
       <div className="mx-1 mb-2 flex items-center justify-between gap-2 border-b-2 border-dashed border-ds-frame/30 pb-2 tx-10 leading-5">
         <h2 className="font-normal">Your guesses</h2>
-        <p className="inline-flex items-center gap-1.5">
-          <PixelBall />
-          <span aria-hidden="true">×{guesses.length}</span>
-          <span className="sr-only">{guesses.length === 1 ? '1 guess' : `${guesses.length} guesses`}</span>
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="inline-flex items-center gap-1.5">
+            <PixelBall />
+            <span aria-hidden="true">×{guesses.length}</span>
+            <span className="sr-only">{guesses.length === 1 ? '1 guess' : `${guesses.length} guesses`}</span>
+          </p>
+          {headerAction}
+        </div>
       </div>
       {showTable ? (
         <div>

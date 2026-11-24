@@ -27,13 +27,14 @@ scripts/makeIcons.ts          builds the tab icon, home-screen icons and manifes
 scripts/icons/pokeball.txt    the hand-drawn Poké Ball (16x16 and 32x32 grids, one letter per colour); its 16x16 grid is also drawn in-game, at 1x, by CaptureScene and PixelBall (the board's guess count)
 src/lib/pokeballArt.ts        its palette and parser, shared by makeIcons.ts, the catch/escape scene and PixelBall (plus the pixel star)
 public/                       favicon.ico, apple-touch-icon.png, manifest.json and its icons (generated, committed)
-src/components/               Header, SearchBar, GuessGrid, FeedbackRow, ResultModal, HistoryModal, HelpModal, GiveUpModal, GensModal, Modal, and pixel icons (PixelBall, PixelBulb, PixelGear)
+src/components/               Header, SearchBar, GuessGrid, FeedbackRow, ResultModal, HistoryModal, HelpModal, GiveUpModal, GensModal, TypeTracker, Modal, and pixel icons (PixelBall, PixelBulb, PixelGear)
 src/hooks/usePokemondle.ts    game state (target, guesses, status), saved to localStorage (answer id scrambled, see below)
 src/lib/history.ts            Daily history (solved and given up), streak maths, Endless stats and recent Endless games (pure, tested)
 src/hooks/useAnalytics.ts     wraps guesses with anonymous analytics
 src/hooks/useRevealEffects.ts  flip-reveal hold, tick sounds, the catch/escape scene, then win fanfare, cry and confetti
 src/components/CaptureScene.tsx  the Poké Ball catch (win) and escape (give up) animation; timings in src/lib/capture.ts
-src/hooks/useMediaQuery.ts     live CSS media-query match (GuessGrid picks table or cards with it)
+src/hooks/useMediaQuery.ts     live CSS media-query match (GuessGrid picks table or cards with it; App picks the Type tracker's panel or pop-out)
+src/hooks/useTypeNotes.ts     the Type tracker's marks for the game on screen; the rules (types, colours, per-game reset) are in src/lib/typeNotes.ts (pure, tested)
 src/lib/                      dataset + search, Pokédex entry fetch (dexEntry.ts), comparison, daily seed, game rules, Endless Gen filter (gens.ts), sound, storage, display settings (display.ts: CRT, Larger text), tile text fitting (tileText.ts), phone card layout (cardLayout.ts)
 src/config/gameConfig.ts      game settings, including which form categories are enabled
 src/config/uiConfig.ts        tile animation timing
@@ -105,6 +106,17 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   and History marks the Daily with a bulb. A hinted win still counts as a win and keeps the streak; History shows
   "N% of wins without a hint" for the Daily and for Endless. Analytics events carry `config.hint_used` (false until the hint is
   taken), and the Daily stats panel says what share of players used it.
+- **Type tracker**: a notepad of all 18 types, each a toggle on the shared bevel in the classic type colour, that the
+  player taps to mark a type as ruled out (`src/components/TypeTracker.tsx`). It is only a memory aid: nothing in the game
+  reads it, it never fills itself in from guesses, and it isn't sent to analytics. A ruled-out type is pressed in (the
+  inverse bevel), its face turns grey and its name is struck through, so it never relies on colour alone. Text is dark
+  ink on the light type colours and white on Fighting, Poison, Ghost, Dragon and Dark (every pairing at least 4.5:1).
+  From 1024 px wide it is a box between the guess box and the board, two rows of nine, with a count, **Clear** and
+  **Hide/Show** (folded or not is remembered per device in `localStorage['pokemondle:type-tracker-open']`). Under 1024 px a
+  **Types ▲** button in the board's heading (next to the Poké Ball count, so it appears with the first guess) opens it as a
+  dialog, a bottom sheet on phones, in three columns. Marks belong to one game: they are saved per mode with that game's
+  key in `localStorage['pokemondle:type-notes']` (`{ daily: { key, out }, endless: { key, out } }`), so a refresh keeps
+  them and a new Daily or a new Endless Pokémon starts with none.
 - **Pokédex numbers**: every guess shows its National Dex number (`#025`) beside the name as a display-only label,
   never a clue. Forms use their species' number (Alolan Raichu is `#026`).
 - **Results**: after the last tile flips, a dialog shows the answer's sprite, how many guesses it took and a
@@ -233,12 +245,12 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
 
 1. **One bevel for everything.** Every button, toggle and guess tile uses the shared `.bevel` style in
    `src/index.css` (`.ds-button` includes it): 2px dark outline, 6px light top edge, 6px dark bottom edge, 4px shaded
-   sides. Pick the face colour with `.bevel-paper` (white), `.bevel-red`, `.bevel-green`, or `data-result` on tiles.
+   sides. Pick the face colour with `.bevel-paper` (white), `.bevel-red`, `.bevel-green`, or `data-result` on tiles (the Type tracker's toggles set `--face` to their type colour).
    Never hand-roll a `box-shadow` or `border` bevel on a single control. A dialog's close button is a 44px
    `.ds-button bevel-paper` square holding the pixel-art cross (`ResultMark` drawn at 2px per art pixel), like the
    header's ? button. The exceptions are the small on/off switch graphics in Help, which are not menu buttons, and the Endless
    Gens gear, a bare pixel icon inside the title box (a deliberate exception so the box stays small).
-2. **Pressed means the inverse bevel.** A selected or "on" control (the chosen Daily/Endless side, a chosen Gen in the Endless Gens picker, the taken Gen hint) adds
+2. **Pressed means the inverse bevel.** A selected or "on" control (the chosen Daily/Endless side, a chosen Gen in the Endless Gens picker, the taken Gen hint, a type ruled out in the Type tracker) adds
    `.bevel-pressed`: same edges, dark on top and light at the bottom. The edges stay the same size, so labels sit at
    the same height whether a control is up or down.
 3. **Equal heights and gaps.** Header and menu controls are all 44px tall (also the minimum touch target), top-aligned

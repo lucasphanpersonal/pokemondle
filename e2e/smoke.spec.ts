@@ -318,3 +318,23 @@ test('a still mouse pointer under the opening list does not change what Enter gu
   await page.mouse.move(r.x + 20, r.y + r.height / 2, { steps: 3 })
   await expect(second).toHaveAttribute('aria-selected', 'true')
 })
+
+test('the type tracker marks types for this game and keeps them on reload', async ({ page }) => {
+  await page.goto('/')
+  await guess(page, await nonAnswer(page, 'daily', ['Pikachu', 'Eevee']))
+  // A panel above the board on desktop; a Types button that opens a dialog on phones.
+  const opener = page.getByRole('button', { name: /^Type tracker/ })
+  const openTracker = async () => {
+    if (await opener.isVisible()) await opener.click()
+  }
+  await openTracker()
+  const fire = page.getByRole('button', { name: /^Fire/ })
+  await expect(fire).toHaveAttribute('aria-pressed', 'false')
+  await fire.click()
+  await expect(fire).toHaveAttribute('aria-pressed', 'true')
+  await page.reload()
+  await openTracker()
+  await expect(page.getByRole('button', { name: /^Fire/ })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Clear' }).click()
+  await expect(page.getByRole('button', { name: /^Fire/ })).toHaveAttribute('aria-pressed', 'false')
+})
