@@ -24,7 +24,6 @@ function TypeButtons({ ruledOut, onToggle, className }: Pick<TypeTrackerProps, '
             <button
               type="button"
               aria-pressed={out}
-              aria-label={`${type}${out ? ', ruled out' : ''}`}
               onClick={() => onToggle(type)}
               // Ruled out: a grey face with a hint of the type's colour, dark ink text (at least 7:1 on every type).
               style={{ '--face': out ? `color-mix(in srgb, ${face} 15%, #c4c8cc)` : face } as CSSProperties}
@@ -77,7 +76,7 @@ export function TypeTrackerPanel(props: TypeTrackerProps) {
           type="button"
           onClick={toggleOpen}
           aria-expanded={open}
-          aria-controls="type-tracker-grid"
+          aria-controls={open ? 'type-tracker-grid' : undefined}
           className="ds-button bevel-paper h-11 shrink-0 whitespace-nowrap px-3 text-[10px]"
         >
           {open ? 'Hide ▲' : 'Show ▼'}

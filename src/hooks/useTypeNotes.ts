@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameMode } from '../lib/game'
 import { loadJson, saveJson, storageKey } from '../lib/storage'
 import { clearTypes, parseTypeNotes, ruledOutFor, toggleType, type TypeName, type TypeNotes } from '../lib/typeNotes'
@@ -11,7 +11,13 @@ const load = () => parseTypeNotes(loadJson('type-notes'))
  * across open tabs, like the games themselves.
  */
 export function useTypeNotes(mode: GameMode, gameKey: string) {
-  const [notes, setNotes] = useState<TypeNotes>(load)
+  const [notes, setNotesState] = useState<TypeNotes>(load)
+  // The latest notes, updated synchronously so quick taps each build on the one before.
+  const notesRef = useRef(notes)
+  const setNotes = useCallback((next: TypeNotes) => {
+    notesRef.current = next
+    setNotesState(next)
+  }, [])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -19,15 +25,16 @@ export function useTypeNotes(mode: GameMode, gameKey: string) {
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
-  }, [])
+  }, [setNotes])
 
-  const update = useCallback((change: (notes: TypeNotes) => TypeNotes) => {
-    setNotes((current) => {
-      const next = change(current)
+  const update = useCallback(
+    (change: (notes: TypeNotes) => TypeNotes) => {
+      const next = change(notesRef.current)
+      setNotes(next)
       saveJson('type-notes', next)
-      return next
-    })
-  }, [])
+    },
+    [setNotes],
+  )
 
   const toggle = useCallback((type: TypeName) => update((n) => toggleType(n, mode, gameKey, type)), [update, mode, gameKey])
   const clear = useCallback(() => update((n) => clearTypes(n, mode, gameKey)), [update, mode, gameKey])

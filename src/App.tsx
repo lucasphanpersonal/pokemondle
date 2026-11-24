@@ -100,6 +100,8 @@ export default function App() {
   const typeNotes = useTypeNotes(mode, game.gameKey)
   const trackerInline = useMediaQuery('(min-width: 64rem)')
   const [typesOpen, setTypesOpen] = useState(false)
+  // Widening past 1024 px (rotating an iPad) swaps the pop-out for the panel; it shouldn't pop back out on rotating back.
+  if (typesOpen && trackerInline) setTypesOpen(false)
   const showTypesModal = typesOpen && !trackerInline
 
   const closeHelp = () => {
