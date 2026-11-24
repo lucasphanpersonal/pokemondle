@@ -1,7 +1,8 @@
-import { useState, type ImgHTMLAttributes } from 'react'
+import { useEffect, useState, type ImgHTMLAttributes } from 'react'
 import ballArt from '../../scripts/icons/pokeball.txt?raw'
 import { isArtworkUrl } from '../lib/pokedex'
 import { ballPaths, parseBallArt } from '../lib/pokeballArt'
+import { pixelArtwork } from '../lib/pixelate'
 
 /** The 16x16 pixel Poké Ball in greys: the "no picture" stand-in, like an empty Pokédex slot. */
 const GREY_BALL: Record<string, string> = {
@@ -34,26 +35,45 @@ interface SpriteImgProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'
   sources: string[]
 }
 
+/** A blank 1x1 image: holds the slot while artwork is being pixel-filtered (a few milliseconds). */
+const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
 /**
  * A Pokémon picture that never shows the browser's broken-image icon: a source that fails to load
- * moves on to the next, and the last resort is a grey pixel Poké Ball.
+ * moves on to the next, and the last resort is a grey pixel Poké Ball. Official artwork (for forms
+ * with no sprite) goes through the pixel filter first, so it matches the sprites around it.
  */
-export function SpriteImg({ sources, className = '', style, ...rest }: SpriteImgProps) {
+export function SpriteImg({ sources, className = '', ...rest }: SpriteImgProps) {
   // Failures are counted per list, so a slot that is reused for another Pokémon starts over.
   const key = sources.join(' ')
   const [failed, setFailed] = useState({ key, count: 0 })
   const count = failed.key === key ? failed.count : 0
-  const src = sources[count] ?? PLACEHOLDER_SPRITE
+  const next = () => setFailed((f) => (f.key === key && f.count === count ? { key, count: count + 1 } : f))
+  const wanted = sources[count]
+  const artwork = wanted !== undefined && isArtworkUrl(wanted)
+  const [pixel, setPixel] = useState<{ url: string; data: string } | null>(null)
+
+  useEffect(() => {
+    if (!artwork) return
+    let alive = true
+    pixelArtwork(wanted).then(
+      (data) => alive && setPixel({ url: wanted, data }),
+      () => alive && setFailed((f) => (f.key === key && f.count === count ? { key, count: count + 1 } : f)),
+    )
+    return () => {
+      alive = false
+    }
+  }, [artwork, wanted, key, count])
+
+  const src = wanted === undefined ? PLACEHOLDER_SPRITE : artwork ? (pixel?.url === wanted ? pixel.data : BLANK) : wanted
   return (
     <img
       {...rest}
       src={src}
       onError={() => {
-        if (count < sources.length) setFailed({ key, count: count + 1 })
+        if (!artwork && count < sources.length) next()
       }}
       className={`[image-rendering:pixelated] ${className}`}
-      // Artwork fills its frame edge to edge, unlike the sprites, so it gets a little air and smooth scaling.
-      style={isArtworkUrl(src) ? { ...style, imageRendering: 'auto', transform: 'scale(0.84)' } : style}
     />
   )
 }

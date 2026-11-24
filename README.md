@@ -162,8 +162,10 @@ Older plain saves are still read.
   bands, and every sprite is scaled with `image-rendering: pixelated`. The results screen shows the Pokémon's
   in-game pixel sprite, scaled up crisply.
 - **Missing sprites**: every Pokémon picture (search list, guess board, results, History) goes through
-  `SpriteImg` (`src/components/SpriteImg.tsx`), so the browser's broken-image icon never shows. It tries the form's
-  own sprite, then its official artwork (scaled smoothly, slightly inset), then the base species' sprite and artwork
+  `SpriteImg` (`src/components/SpriteImg.tsx`), so the browser's broken-image icon never shows (the give-up scene's escaping Pokémon uses the same order and filter). It tries the form's
+  own sprite, then its official artwork run through a pixel filter (`src/lib/pixelate.ts`, a canvas: shrunk to sprite
+  size on a 96x96 frame, hard-edged, cut to 16 colours and outlined in a darker shade, once per image), then the base
+  species' sprite and artwork
   (`iconSources` in `src/lib/pokedex.ts`), and if none load (offline, or no picture exists), a grey pixel Poké Ball.
   Today 9 forms have no sprite: Koraidon's four builds, Miraidon's four modes and Mega Zygarde.
 - **Rare shiny**: about one catch in 20 (`SHINY_ODDS` in `src/lib/shiny.ts`) is shiny. The result screen then shows the
@@ -255,7 +257,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    and `.ds-button` labels keep fixed `text-[Npx]` sizes, so those rows still fit at 320px.
 5. **Stepped corners and pixel font.** Boxes and buttons use stepped pixel corners (`.ds-button`, `.px-notch`) and
    Press Start 2P, self-hosted from `@fontsource/press-start-2p` (no Google Fonts request); sprites use `image-rendering: pixelated`.
-   The one exception is official artwork, shown only when a form has no sprite: it is smooth, high-resolution art, so `SpriteImg` scales it smoothly.
+   Official artwork, shown only when a form has no sprite, goes through the pixel filter in `src/lib/pixelate.ts` first, so it matches the sprites.
    Press Start 2P has no ♀ or ♂, so a tiny extra font (`src/assets/fonts/pixel-symbols.woff2`, under 1 KB, drawn on the
    same 8 x 8 grid by `scripts/makeSymbolFont.py`, `npm run font`) sits next in the font stack with a `unicode-range` of just
    those two signs, so "Nidoran♀" and "Nidoran♂" show them in the pixel style everywhere.

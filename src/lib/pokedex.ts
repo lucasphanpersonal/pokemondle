@@ -30,7 +30,7 @@ export const iconSources = (p: Pick<Pokemon, 'id' | 'dexNumber'>): string[] =>
     ? [iconUrl(p.id), spriteUrl(p.id)]
     : [iconUrl(p.id), spriteUrl(p.id), iconUrl(p.dexNumber), spriteUrl(p.dexNumber)]
 
-/** Official artwork is smooth, high-resolution art, so it is scaled smoothly, not pixel by pixel. */
+/** Official artwork is smooth, high-resolution art; SpriteImg runs it through the pixel filter (src/lib/pixelate.ts). */
 export const isArtworkUrl = (url: string) => url.includes('/official-artwork/')
 
 /**

@@ -4,7 +4,8 @@ import ballArt from '../../scripts/icons/pokeball.txt?raw'
 import { captureTimeline, DROP_MS, SHAKE_MS, type CaptureKind } from '../lib/capture'
 import { playCry } from '../lib/cry'
 import { ballPaths, parseBallArt, STAR_ART, STAR_PALETTE } from '../lib/pokeballArt'
-import { iconSources } from '../lib/pokedex'
+import { iconSources, isArtworkUrl } from '../lib/pokedex'
+import { pixelArtwork } from '../lib/pixelate'
 import { playSound } from '../lib/sound'
 import type { Pokemon } from '../types/pokemon'
 
@@ -79,7 +80,18 @@ export function CaptureScene({ kind, pokemon, onDone }: CaptureSceneProps) {
     const load = (i: number) => {
       const img = new Image()
       img.onload = () => {
-        if (alive) loadedSprite.current = urls[i]
+        if (!alive) return
+        // Artwork (forms with no sprite) is pixel-filtered first, like everywhere else.
+        if (isArtworkUrl(urls[i])) {
+          pixelArtwork(urls[i]).then(
+            (data) => {
+              if (alive) loadedSprite.current = data
+            },
+            () => {
+              if (alive && i + 1 < urls.length) load(i + 1)
+            },
+          )
+        } else loadedSprite.current = urls[i]
       }
       img.onerror = () => {
         if (alive && i + 1 < urls.length) load(i + 1)
