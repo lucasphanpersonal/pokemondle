@@ -26,7 +26,8 @@ function TypeButtons({ ruledOut, onToggle, className }: Pick<TypeTrackerProps, '
             <button
               type="button"
               aria-pressed={out}
-              aria-label={type}
+              // The full name for screen readers, keeping the visible short form in it (ELECTR, Electric).
+              aria-label={label === type.toUpperCase() ? type : `${label}, ${type}`}
               onClick={() => onToggle(type)}
               // Ruled out: a dark grey face with a hint of the type's colour (white text over 5:1 on every type).
               style={{ '--face': out ? `color-mix(in srgb, ${face} 15%, #646a72)` : face } as CSSProperties}
@@ -99,7 +100,7 @@ export function TypeTrackerButton({ onOpen }: { onOpen: () => void }) {
       type="button"
       onClick={onOpen}
       aria-haspopup="dialog"
-      aria-label="Type tracker"
+      aria-label="Types: open the type tracker"
       className="ds-button bevel-paper inline-flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[9px] sm:text-[10px]"
     >
       Types

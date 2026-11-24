@@ -323,7 +323,7 @@ test('the type tracker marks types for this game and keeps them on reload', asyn
   await page.goto('/')
   await guess(page, await nonAnswer(page, 'daily', ['Pikachu', 'Eevee']))
   // A panel above the board on desktop; a Types button that opens a dialog on phones.
-  const opener = page.getByRole('button', { name: /^Type tracker/ })
+  const opener = page.getByRole('button', { name: /^Types/ })
   const openTracker = async () => {
     if (await opener.isVisible()) await opener.click()
   }
