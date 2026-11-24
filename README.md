@@ -125,7 +125,7 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   Closed, the tab overlaps the right edge of the board by up to 24 px at mid-height; the page scrolls under it. Marks belong to one game: they are saved per mode with that game's
   key in `localStorage['pokemondle:type-notes']` (`{ daily: { key, out }, endless: { key, out } }`), so a refresh keeps
   them and a new Daily or a new Endless Pokémon starts with none.
-- **Pokédex numbers**: every guess shows its National Dex number (`#025`) beside the name as a display-only label,
+- **Pokédex numbers**: every guess shows its National Dex number (`#025`) as a display-only label (beside the name on phone cards, in the top-right corner of the table's Pokémon tile),
   never a clue. Forms use their species' number (Alolan Raichu is `#026`).
 - **Results**: after the last tile flips, a dialog shows the answer's sprite, how many guesses it took and a
   **Pokédex entry card** (number, category such as "Mouse Pokémon", height, weight and English flavor text). Number,
@@ -269,8 +269,8 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    can't fit on one line even at 7px wraps at a soft hyphen (`src/lib/tileText.ts`), rather than run edge to edge. The
    table's columns leave room for every common word on one line ("Regional", "Undiscovered"), and the Form tile says
    "G-Max" for Gigantamax, so a hyphen split is now rare (on phones narrower than about 385px, "Regional" and "Cosmetic" still split, and in a 1024 px table the abilities "Proto-synthesis" and "Electro-morphosis"). Multi-line tiles are also sized by
-   line count so nothing is cut off: the table's Pokémon name gets up to 3 lines under its sprite and Pokédex number
-   (the sprite shrinks, from 40px, to the room the name leaves, so it never crosses the bevel), and Shared Ability up to
+   line count so nothing is cut off: the table's Pokémon name gets up to 3 lines under its centred sprite
+   (the sprite shrinks, from 30px, to the room the name leaves, so it never crosses the bevel), and Shared Ability up to
    4 lines at 9px or 5 at 8px (`lineChars` in `tileText.ts`). The table's Shared Ability column uses one size for every
    row, the one its most demanding row needs (`abilityColumnFit`), so rows don't jump in size.
    Write small text sizes as `tx-N`, not `text-[Npx]`, so the Larger text option scales them; only the header, search box

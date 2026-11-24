@@ -212,7 +212,7 @@ export function FeedbackRow({ guess, feedback, animate, abilityColumn }: Feedbac
         {/*
           Sprite centred above the name, the pair centred in the tile like the text in the other tiles. The Pokédex
           number sits in the top-right corner, where the other tiles keep their result mark. The name gets up to three
-          full-width lines (four with Larger text), sized so it all fits; the sprite shrinks to make room for them.
+          full-width lines (four with Larger text), sized so it all fits; the sprite (30px) shrinks to make room for them.
         */}
         <div
           className={`${BG[feedback.pokemon]} ${animate ? 'tile-flip' : ''} tile-fit relative flex h-16 w-full flex-col items-center justify-center px-notch px-2.5 py-1.5 leading-[calc(10px*var(--ts))] text-white ${TILE_EDGE} sm:h-[calc(72px*var(--ts))]`}
@@ -220,7 +220,7 @@ export function FeedbackRow({ guess, feedback, animate, abilityColumn }: Feedbac
           data-result={feedback.pokemon}
         >
           <span className="absolute top-2 right-2.5 tx-7 leading-none opacity-80">{formatDex(guess.dexNumber)}</span>
-          <SpriteImg sources={iconSources(guess)} alt="" width={32} height={32} className="h-8 min-h-0 w-[30px] shrink object-contain" />
+          <SpriteImg sources={iconSources(guess)} alt="" width={30} height={30} className="h-[30px] min-h-0 w-[30px] shrink object-contain" />
           <span className="fit relative line-clamp-3 w-full shrink-0 text-center big:line-clamp-4 big:leading-[11px]">{guess.name}</span>
         </div>
       </th>
