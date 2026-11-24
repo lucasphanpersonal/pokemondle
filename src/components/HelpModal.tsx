@@ -173,6 +173,11 @@ export function HelpModal({ onClose }: HelpModalProps) {
           {HINT_AFTER_GUESSES} guesses you can reveal the answer's Gen. A hinted win still counts.
         </p>
         <p>
+          <strong>Type tracker:</strong> tap types to cross them off as you rule them out. It's just a notepad for you
+          and resets with each new Pokémon. It sits above your guesses on a big screen; on phones and tablets, tap{' '}
+          <strong>Types</strong> beside your guess count.
+        </p>
+        <p>
           <strong>Daily:</strong> one Pokémon for everyone, new at midnight. Solve it every day for a streak; missing a day
           or giving up resets it. Your streak and History are on the result screen.
         </p>
