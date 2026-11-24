@@ -81,7 +81,9 @@ export function TypeTrackerDrawer({ ruledOut, onToggle, onClear }: TypeTrackerPr
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       // A dialog on top (Help, results) handles its own Esc.
-      if (e.key === 'Escape' && !document.querySelector('[data-modal]')) toggle(false)
+      // Esc in the guess box closes its suggestion list, not the tracker.
+      const inField = e.target instanceof HTMLElement && e.target.closest('input, textarea')
+      if (e.key === 'Escape' && !e.defaultPrevented && !inField && !document.querySelector('[data-modal]')) toggle(false)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -103,8 +105,6 @@ export function TypeTrackerDrawer({ ruledOut, onToggle, onClear }: TypeTrackerPr
               type="button"
               onClick={() => toggle(false)}
               aria-label="Close the type tracker"
-              aria-expanded="true"
-              aria-controls="type-tracker"
               className="ds-button bevel-paper flex h-11 w-11 shrink-0 items-center justify-center text-ds-ink"
             >
               <ResultMark kind="mismatch" scale={2} className="" />

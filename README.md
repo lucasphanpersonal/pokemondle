@@ -108,7 +108,7 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   taken), and the Daily stats panel says what share of players used it.
 - **Type tracker**: a notepad of all 18 types that the player taps to mark a type as ruled out
   (`src/components/TypeTracker.tsx`). It is only a memory aid: nothing in the game reads it, it never fills itself in from
-  guesses, and it isn't sent to analytics. Each toggle is drawn like the type labels in the DS games (Lucas's reference):
+  guesses, and it isn't sent to analytics. Each toggle is drawn like the type labels in the DS games (the owner's reference):
   the type's colour, its all-caps name shortened to six letters as the games do (ELECTR, FIGHT, PSYCHC; `TYPE_LABELS` in
   `src/lib/typeNotes.ts`), white text with a one-font-pixel dark drop shadow, and the text as big as the label allows
   (`.type-label` in `src/index.css`: sized for six letters from the label's width, 8 to 16 px, so all eighteen share one size).
@@ -117,7 +117,8 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   the pixel font), so it never relies on colour alone.
   It sits off to the side so it never crowds the game: on every screen size a narrow **◀ TYPES** tab on the right edge
   of the screen (36 px wide, vertically centred) slides out a panel with the 18 types in three columns, **Clear** and a
-  close button (Esc also closes it). The panel isn't a dialog, so the page stays usable behind it. Marks belong to one game: they are saved per mode with that game's
+  close button (Esc also closes it). The panel isn't a dialog: on wider screens the page stays usable beside it (on phones it covers the page until closed).
+  Closed, the tab overlaps the right edge of the board by up to 24 px at mid-height; the page scrolls under it. Marks belong to one game: they are saved per mode with that game's
   key in `localStorage['pokemondle:type-notes']` (`{ daily: { key, out }, endless: { key, out } }`), so a refresh keeps
   them and a new Daily or a new Endless Pokémon starts with none.
 - **Pokédex numbers**: every guess shows its National Dex number (`#025`) beside the name as a display-only label,
@@ -285,7 +286,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    `#2a8530` (4.67:1) and red `#c84040` (4.93:1); yellow tiles use dark ink text. Every result also has a non-colour
    cue: the ✓ / ~ / ✕ / ▲ / ▼ corner mark (7×7 pixel art, 8px from the top and ending 10px from the right edge, so it
    never meets tile text). Number tiles use the arrows in that same corner spot. Check contrast before changing `--color-fb-*`. The one exception is the Type tracker's labels, which copy the games' white-on-colour type labels
-   at Lucas's request: on the light faces (Electric, Ice, Ground) the white relies on its dark drop shadow, not the face, to stay readable.
+   at the owner's request: on the light faces (Electric, Ice, Ground) the white relies on its dark drop shadow, not the face, to stay readable.
 
 ## Dataset
 

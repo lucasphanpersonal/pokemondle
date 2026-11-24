@@ -303,7 +303,7 @@ html.big-text {
     right: -0.125em;
     top: calc(0.5em - 0.125em);
     height: 0.125em;
-    min-height: 1px;
+    height: max(1px, round(0.125em, 1px));
     background: #f8f8f8;
     box-shadow: 0.125em 0.125em 0 rgb(32 40 48 / 0.8);
   }
