@@ -107,7 +107,7 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   taken), and the Daily stats panel says what share of players used it.
 - **Pokédex numbers**: every guess shows its National Dex number (`#025`) beside the name as a display-only label,
   never a clue. Forms use their species' number (Alolan Raichu is `#026`).
-- **Results**: after the last tile flips, a dialog shows the answer's artwork, how many guesses it took and a
+- **Results**: after the last tile flips, a dialog shows the answer's sprite, how many guesses it took and a
   **Pokédex entry card** (number, category such as "Mouse Pokémon", height, weight and English flavor text). Number,
   height and weight come from the local dataset; category and text are fetched from PokéAPI's `pokemon-species`
   endpoint only when the game ends, on a win or a give up (cached per session), with a graceful message if offline (`src/lib/dexEntry.ts`). On the
@@ -254,7 +254,8 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    Write small text sizes as `tx-N`, not `text-[Npx]`, so the Larger text option scales them; only the header, search box
    and `.ds-button` labels keep fixed `text-[Npx]` sizes, so those rows still fit at 320px.
 5. **Stepped corners and pixel font.** Boxes and buttons use stepped pixel corners (`.ds-button`, `.px-notch`) and
-   Press Start 2P, self-hosted from `@fontsource/press-start-2p` (no Google Fonts request); images use `image-rendering: pixelated`.
+   Press Start 2P, self-hosted from `@fontsource/press-start-2p` (no Google Fonts request); sprites use `image-rendering: pixelated`.
+   The one exception is official artwork, shown only when a form has no sprite: it is smooth, high-resolution art, so `SpriteImg` scales it smoothly.
    Press Start 2P has no ♀ or ♂, so a tiny extra font (`src/assets/fonts/pixel-symbols.woff2`, under 1 KB, drawn on the
    same 8 x 8 grid by `scripts/makeSymbolFont.py`, `npm run font`) sits next in the font stack with a `unicode-range` of just
    those two signs, so "Nidoran♀" and "Nidoran♂" show them in the pixel style everywhere.
