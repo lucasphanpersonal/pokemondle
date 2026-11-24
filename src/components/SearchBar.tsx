@@ -1,7 +1,8 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import type { GuessResult } from '../lib/game'
 import { formatDex } from '../lib/dexEntry'
-import { findGuessedByName, iconUrl, searchPokemon } from '../lib/pokedex'
+import { findGuessedByName, iconSources, searchPokemon } from '../lib/pokedex'
+import { SpriteImg } from './SpriteImg'
 import { playSound } from '../lib/sound'
 import type { Pokemon } from '../types/pokemon'
 
@@ -174,7 +175,7 @@ export function SearchBar({ pokedex, guessedIds, onGuess, disabled, doneText = '
                 i === active ? 'bg-ds-sky-bottom' : ''
               }`}
             >
-              <img src={iconUrl(p.id)} alt="" width={40} height={40} loading="lazy" className="h-10 w-10 [image-rendering:pixelated]" />
+              <SpriteImg sources={iconSources(p)} alt="" width={40} height={40} loading="lazy" className="h-10 w-10" />
               <span className="flex-1 leading-4">{p.name}</span>
               <span className="tx-8 text-ds-frame">{formatDex(p.dexNumber)}</span>
             </li>

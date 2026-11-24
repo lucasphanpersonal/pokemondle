@@ -4,7 +4,7 @@ import ballArt from '../../scripts/icons/pokeball.txt?raw'
 import { captureTimeline, DROP_MS, SHAKE_MS, type CaptureKind } from '../lib/capture'
 import { playCry } from '../lib/cry'
 import { ballPaths, parseBallArt, STAR_ART, STAR_PALETTE } from '../lib/pokeballArt'
-import { iconUrl, spriteUrl } from '../lib/pokedex'
+import { iconSources } from '../lib/pokedex'
 import { playSound } from '../lib/sound'
 import type { Pokemon } from '../types/pokemon'
 
@@ -70,12 +70,12 @@ export function CaptureScene({ kind, pokemon, onDone }: CaptureSceneProps) {
     onDoneRef.current = onDone
   })
 
-  // The escaping Pokémon's sprite: the small in-game one, else the artwork. Loaded at once, so it is
+  // The escaping Pokémon's sprite: the small in-game one, else the artwork, else the base species'. Loaded at once, so it is
   // usually ready by the burst a second and a half later; if not, the scene plays without it.
   useEffect(() => {
     if (kind !== 'escape') return
     let alive = true
-    const urls = [iconUrl(pokemon.id), spriteUrl(pokemon.id)]
+    const urls = iconSources(pokemon)
     const load = (i: number) => {
       const img = new Image()
       img.onload = () => {
@@ -90,7 +90,7 @@ export function CaptureScene({ kind, pokemon, onDone }: CaptureSceneProps) {
     return () => {
       alive = false
     }
-  }, [kind, pokemon.id])
+  }, [kind, pokemon])
 
   useEffect(() => {
     const timers: number[] = []

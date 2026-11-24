@@ -159,8 +159,13 @@ Older plain saves are still read.
   corners), buttons and tiles have stepped "pixel" corners (`.ds-button`, `.px-notch`) and a dark frame-colored
   outline. Every button and tile shares one bevel, like Platinum's battle-menu blocks (`.bevel` in
   `src/index.css`: light top edge, dark bottom edge, shaded sides; see [Design rules](#design-rules)), the sky is drawn in flat
-  bands, and every image is scaled with `image-rendering: pixelated`. The results screen shows the Pokémon's
-  in-game pixel sprite, scaled up crisply (falling back to the official artwork if a form has no sprite).
+  bands, and every sprite is scaled with `image-rendering: pixelated`. The results screen shows the Pokémon's
+  in-game pixel sprite, scaled up crisply.
+- **Missing sprites**: every Pokémon picture (search list, guess board, results, History) goes through
+  `SpriteImg` (`src/components/SpriteImg.tsx`), so the browser's broken-image icon never shows. It tries the form's
+  own sprite, then its official artwork (scaled smoothly, slightly inset), then the base species' sprite and artwork
+  (`iconSources` in `src/lib/pokedex.ts`), and if none load (offline, or no picture exists), a grey pixel Poké Ball.
+  Today 9 forms have no sprite: Koraidon's four builds, Miraidon's four modes and Mega Zygarde.
 - **Rare shiny**: about one catch in 20 (`SHINY_ODDS` in `src/lib/shiny.ts`) is shiny. The result screen then shows the
   shiny sprite (shiny artwork, then the normal sprite, as fallbacks) with four pixel sparkles blinking around it (still for
   "reduce motion"), a **Shiny! A 1 in 20 catch** badge and "You caught a shiny …". Wins only, never a give-up. It is a hash of

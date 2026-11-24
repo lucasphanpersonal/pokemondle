@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { GuessFeedback } from '../lib/compare'
 import type { GameMode } from '../lib/game'
-import { iconUrl, spriteUrl } from '../lib/pokedex'
+import { iconSources } from '../lib/pokedex'
+import { SpriteImg } from './SpriteImg'
 import { shinyIconUrl, shinySpriteUrl } from '../lib/shiny'
 import type { Pokemon } from '../types/pokemon'
 import { DailyStats } from './DailyStats'
@@ -60,27 +61,19 @@ const SPARKLES = [
 export function ResultModal({ mode, target, feedback, puzzleDate, streak, bestStreak, hinted, gaveUp, shiny = false, onClose, onHistory, onNewGame }: ResultModalProps) {
   const guessText = `${feedback.length} ${feedback.length === 1 ? 'guess' : 'guesses'}`
   const isShiny = shiny && !gaveUp
-  // Sprite, then artwork for forms without one; a shiny tries its shiny pair first and falls back to the normal ones.
-  const sources = isShiny
-    ? [shinyIconUrl(target.id), shinySpriteUrl(target.id), iconUrl(target.id), spriteUrl(target.id)]
-    : [iconUrl(target.id), spriteUrl(target.id)]
+  // Sprite, then artwork, then the base species' (see iconSources); a shiny tries its shiny pair first.
+  const sources = isShiny ? [shinyIconUrl(target.id), shinySpriteUrl(target.id), ...iconSources(target)] : iconSources(target)
   return (
     <Modal title={gaveUp ? 'It got away!' : 'Gotcha!'} onClose={onClose}>
       <div className="flex flex-col items-center gap-4 text-center tx-10 leading-5">
-        {/* The game's own pixel sprite, scaled up crisply; official artwork if a form has none. */}
+        {/* The game's own pixel sprite, scaled up crisply; official artwork if a form has none, never a broken image. */}
         <div className="relative">
-          <img
-            key={`${target.id}:${isShiny}`}
-            src={sources[0]}
+          <SpriteImg
+            sources={sources}
             alt={isShiny ? `Shiny ${target.name}` : target.name}
             width={192}
             height={192}
-            onError={(e) => {
-              const img = e.currentTarget
-              const next = sources[sources.indexOf(img.src) + 1]
-              if (next) img.src = next
-            }}
-            className="h-40 w-40 drop-shadow-[0_4px_0_rgb(0_0_0/0.15)] [image-rendering:pixelated] sm:h-48 sm:w-48"
+            className="h-40 w-40 drop-shadow-[0_4px_0_rgb(0_0_0/0.15)] sm:h-48 sm:w-48"
           />
           {isShiny &&
             SPARKLES.map((s) => (
