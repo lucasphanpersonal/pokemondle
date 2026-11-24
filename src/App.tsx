@@ -12,8 +12,7 @@ import { PixelBulb } from './components/PixelBulb'
 import { PixelGear } from './components/PixelGear'
 import { ResultModal } from './components/ResultModal'
 import { SearchBar } from './components/SearchBar'
-import { TypeTrackerButton, TypeTrackerModal, TypeTrackerPanel } from './components/TypeTracker'
-import { useMediaQuery } from './hooks/useMediaQuery'
+import { TypeTrackerDrawer } from './components/TypeTracker'
 import { useAnalytics } from './hooks/useAnalytics'
 import { useRevealEffects } from './hooks/useRevealEffects'
 import { useTypeNotes } from './hooks/useTypeNotes'
@@ -96,13 +95,8 @@ export default function App() {
     game.takeHint()
   }
 
-  // The type tracker: the player's own notes of ruled-out types, kept per game. Inline from 1024 px; a pop-out below that.
+  // The type tracker: the player's own notes of ruled-out types, kept per game, in a drawer at the side of the page.
   const typeNotes = useTypeNotes(mode, game.gameKey)
-  const trackerInline = useMediaQuery('(min-width: 64rem)')
-  const [typesOpen, setTypesOpen] = useState(false)
-  // Widening past 1024 px (rotating an iPad) swaps the pop-out for the panel; it shouldn't pop back out on rotating back.
-  if (typesOpen && trackerInline) setTypesOpen(false)
-  const showTypesModal = typesOpen && !trackerInline
 
   const closeHelp = () => {
     setShowHelp(false)
@@ -211,15 +205,8 @@ export default function App() {
           />
         </div>
 
-        {trackerInline && <TypeTrackerPanel ruledOut={typeNotes.ruledOut} onToggle={typeNotes.toggle} onClear={typeNotes.clear} />}
-
         {/* Remount per game so only guesses made now animate. */}
-        <GuessGrid
-          key={gameId}
-          guesses={game.guesses}
-          feedback={game.feedback}
-          headerAction={trackerInline ? undefined : <TypeTrackerButton count={typeNotes.ruledOut.length} onOpen={() => setTypesOpen(true)} />}
-        />
+        <GuessGrid key={gameId} guesses={game.guesses} feedback={game.feedback} />
       </main>
 
       {/*
@@ -300,9 +287,7 @@ export default function App() {
           onClose={closeHintPrompt}
         />
       )}
-      {showTypesModal && (
-        <TypeTrackerModal ruledOut={typeNotes.ruledOut} onToggle={typeNotes.toggle} onClear={typeNotes.clear} onClose={() => setTypesOpen(false)} />
-      )}
+      <TypeTrackerDrawer ruledOut={typeNotes.ruledOut} onToggle={typeNotes.toggle} onClear={typeNotes.clear} />
       {showHelp && <HelpModal onClose={closeHelp} />}
     </div>
   )

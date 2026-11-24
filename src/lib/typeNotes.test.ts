@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { clearTypes, parseTypeNotes, ruledOutFor, toggleType, TYPE_COLORS, TYPES } from './typeNotes'
+import { clearTypes, parseTypeNotes, ruledOutFor, toggleType, TYPE_LABELS, TYPES } from './typeNotes'
 import POKEMON from '../data/pokemon.json'
 
 describe('type tracker notes', () => {
   it('lists the 18 types, each with a colour, covering every type in the data', () => {
     expect(TYPES).toHaveLength(18)
-    expect(Object.keys(TYPE_COLORS).sort()).toEqual([...TYPES].sort())
+    expect(Object.keys(TYPE_LABELS).sort()).toEqual([...TYPES].sort())
+    // In-game labels: all caps, at most six letters (so they all fit the same size of text).
+    for (const { label } of Object.values(TYPE_LABELS)) expect(label).toMatch(/^[A-Z]{3,6}$/)
     const inData = new Set<string>()
     for (const p of POKEMON as { type1: string; type2: string | null }[]) {
       inData.add(p.type1)
