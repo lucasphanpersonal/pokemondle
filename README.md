@@ -106,13 +106,16 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   and History marks the Daily with a bulb. A hinted win still counts as a win and keeps the streak; History shows
   "N% of wins without a hint" for the Daily and for Endless. Analytics events carry `config.hint_used` (false until the hint is
   taken), and the Daily stats panel says what share of players used it.
-- **Type tracker**: a notepad of all 18 types, each a toggle on the shared bevel in the classic type colour, that the
-  player taps to mark a type as ruled out (`src/components/TypeTracker.tsx`). It is only a memory aid: nothing in the game
-  reads it, it never fills itself in from guesses, and it isn't sent to analytics. A ruled-out type is pressed in (the
-  inverse bevel), its face turns grey and its name is struck through, so it never relies on colour alone. Text is dark
-  ink on the light type colours and white on Fighting, Poison, Ghost, Dragon and Dark (every pairing at least 4.5:1).
-  From 1024 px wide it is a box between the guess box and the board, two rows of nine, with a count, **Clear** and
-  **Hide/Show** (folded or not is remembered per device in `localStorage['pokemondle:type-tracker-open']`). Under 1024 px a
+- **Type tracker**: a notepad of all 18 types that the player taps to mark a type as ruled out
+  (`src/components/TypeTracker.tsx`). It is only a memory aid: nothing in the game reads it, it never fills itself in from
+  guesses, and it isn't sent to analytics. Each toggle is drawn like the type labels in the DS games (Lucas's reference):
+  the type's colour, its all-caps name shortened to six letters as the games do (ELECTR, FIGHT, PSYCHC; `TYPE_LABELS` in
+  `src/lib/typeNotes.ts`), white text with a one-font-pixel dark drop shadow, and the text as big as the label allows
+  (`.type-label` in `src/index.css`: sized for six letters from the label's width, 8 to 16 px, so all eighteen share one size).
+  They sit on the shared bevel. A ruled-out type is pressed in (the inverse bevel), its face turns dark grey and its name
+  is struck through, so it never relies on colour alone.
+  From 1024 px wide it is a box between the guess box and the board, two rows of nine, with **Clear** and **Hide/Show**
+  (folded or not is remembered per device in `localStorage['pokemondle:type-tracker-open']`). Under 1024 px a
   **Types ▲** button in the board's heading (next to the Poké Ball count, so it appears with the first guess) opens it as a
   dialog, a bottom sheet on phones, in three columns. Marks belong to one game: they are saved per mode with that game's
   key in `localStorage['pokemondle:type-notes']` (`{ daily: { key, out }, endless: { key, out } }`), so a refresh keeps
@@ -281,7 +284,8 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
 8. **Readable colours, never colour alone.** White text needs at least 4.5:1 against its face, so the tile green is
    `#2a8530` (4.67:1) and red `#c84040` (4.93:1); yellow tiles use dark ink text. Every result also has a non-colour
    cue: the ✓ / ~ / ✕ / ▲ / ▼ corner mark (7×7 pixel art, 8px from the top and ending 10px from the right edge, so it
-   never meets tile text). Number tiles use the arrows in that same corner spot. Check contrast before changing `--color-fb-*`.
+   never meets tile text). Number tiles use the arrows in that same corner spot. Check contrast before changing `--color-fb-*`. The one exception is the Type tracker's labels, which copy the games' white-on-colour type labels
+   at Lucas's request: on the light faces (Electric, Ice, Ground) the white relies on its dark drop shadow, not the face, to stay readable.
 
 ## Dataset
 

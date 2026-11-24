@@ -206,7 +206,7 @@ export default function App() {
           key={gameId}
           guesses={game.guesses}
           feedback={game.feedback}
-          headerAction={trackerInline ? undefined : <TypeTrackerButton count={typeNotes.ruledOut.length} onOpen={() => setTypesOpen(true)} />}
+          headerAction={trackerInline ? undefined : <TypeTrackerButton onOpen={() => setTypesOpen(true)} />}
         />
       </main>
 

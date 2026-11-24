@@ -271,6 +271,25 @@ html.big-text {
     overflow-wrap: anywhere;
   }
 
+  /*
+   * Type tracker labels (TypeTracker.tsx), drawn like the DS games' type labels: white all-caps name with a dark drop
+   * shadow, as big as the label allows. Every label is at most six letters, so the text is sized for six (the pixel font
+   * is monospaced) and all eighteen read at one size: the cell's width less the 10px side padding, over six, rounded down
+   * to a whole pixel, between 8px and 16px. The shadow is darker than the games' grey one, so the white stays readable on
+   * the light faces (Electric, Ice, Ground): a deliberate exception to design rule 8's contrast figure, which Lucas asked for.
+   */
+  .type-label-cell {
+    container-type: inline-size;
+  }
+  .type-label {
+    color: #f8f8f8;
+    /* One font pixel down and right (the font is drawn on an 8 x 8 grid), like the games' shadow. */
+    text-shadow: 0.125em 0.125em 0 rgb(32 40 48 / 0.8);
+    font-size: clamp(8px, (100cqi - 20px) / 6, 16px);
+    font-size: round(down, clamp(8px, (100cqi - 20px) / 6, 16px), 1px);
+    text-decoration-color: #f8f8f8;
+  }
+
   /* DS-style menu button: the bevel plus stepped pixel corners; presses in on tap. */
   .ds-button {
     --px: 4px;

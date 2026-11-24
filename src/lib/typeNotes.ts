@@ -28,28 +28,29 @@ export const TYPES = [
 export type TypeName = (typeof TYPES)[number]
 
 /**
- * The classic handheld-era type colours, as button faces. `ink` is true where dark ink text reads better than white;
- * every pairing is at least 4.5:1 (the lowest is Psychic with ink, 4.79:1).
+ * How the DS games (Diamond, Pearl, Platinum) draw each type's label: the face colour and the all-caps name,
+ * shortened to six letters where the game shortens it (ELECTR, FIGHT, PSYCHC). Every label has white text with a
+ * dark drop shadow, as in the games; the shadow is what keeps it readable on the light faces (see the README's design rules).
  */
-export const TYPE_COLORS: Record<TypeName, { face: string; ink: boolean }> = {
-  Normal: { face: '#a8a878', ink: true },
-  Fire: { face: '#f08030', ink: true },
-  Water: { face: '#6890f0', ink: true },
-  Electric: { face: '#f8d030', ink: true },
-  Grass: { face: '#78c850', ink: true },
-  Ice: { face: '#98d8d8', ink: true },
-  Fighting: { face: '#c03028', ink: false },
-  Poison: { face: '#a040a0', ink: false },
-  Ground: { face: '#e0c068', ink: true },
-  Flying: { face: '#a890f0', ink: true },
-  Psychic: { face: '#f85888', ink: true },
-  Bug: { face: '#a8b820', ink: true },
-  Rock: { face: '#b8a038', ink: true },
-  Ghost: { face: '#705898', ink: false },
-  Dragon: { face: '#7038f8', ink: false },
-  Dark: { face: '#705848', ink: false },
-  Steel: { face: '#b8b8d0', ink: true },
-  Fairy: { face: '#ee99ac', ink: true },
+export const TYPE_LABELS: Record<TypeName, { face: string; label: string }> = {
+  Normal: { face: '#a8a878', label: 'NORMAL' },
+  Fire: { face: '#f88030', label: 'FIRE' },
+  Water: { face: '#6890f8', label: 'WATER' },
+  Electric: { face: '#f8d030', label: 'ELECTR' },
+  Grass: { face: '#78c850', label: 'GRASS' },
+  Ice: { face: '#98d8d8', label: 'ICE' },
+  Fighting: { face: '#c03028', label: 'FIGHT' },
+  Poison: { face: '#a040a0', label: 'POISON' },
+  Ground: { face: '#e0c068', label: 'GROUND' },
+  Flying: { face: '#a890f0', label: 'FLYING' },
+  Psychic: { face: '#f85888', label: 'PSYCHC' },
+  Bug: { face: '#a8b820', label: 'BUG' },
+  Rock: { face: '#b8a038', label: 'ROCK' },
+  Ghost: { face: '#705898', label: 'GHOST' },
+  Dragon: { face: '#7038f8', label: 'DRAGON' },
+  Dark: { face: '#705848', label: 'DARK' },
+  Steel: { face: '#b8b8d0', label: 'STEEL' },
+  Fairy: { face: '#f0a0b8', label: 'FAIRY' },
 }
 
 /** The marks for one game: which game (its key) and the types ruled out in it. */
