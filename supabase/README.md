@@ -168,5 +168,138 @@ for a browser talking to the hosted project.
 
 `.github/workflows/supabase-test.yml` runs only when something under `supabase/` changes: it starts a local stack
 (`supabase start`, CLI pinned like the deploy workflow) and runs `supabase test db`, which executes the pgTAP files in
-`supabase/tests/database/`. Add new SQL tests there (`*.test.sql`). The placeholder `00_placeholder.test.sql` only checks that
-the migrations applied and pg_cron is installed. Run the same thing locally with Docker: `npx supabase start` then `npx supabase test db`.
+`supabase/tests/database/`. Add new SQL tests there (`*.test.sql`). `00_setup.test.sql` checks that the migrations applied and the
+pg_cron jobs are scheduled; `10_party.test.sql` covers the Party turn rules (below). Run the same thing locally with Docker:
+`npx supabase start` then `npx supabase test db`.
+
+## Party database
+
+Migration `20261127200000_party.sql`. The SQL functions own the turn rules (whose turn, deadline, lives, round cleared, next
+category, winner), so the Edge Function, the clients' timeout calls and the cron job can never disagree. Every change runs in one
+transaction that locks the room row (`select ... for update`).
+
+### Tables
+
+| Table | Holds | anon / browsers |
+| --- | --- | --- |
+| `party_rooms` | `id`, `host_id`, `status` (`lobby`, `playing`, `over`), settings `lives` (1-5) and `start_tier`, `game_no` (1 for the first game), `round` (1-based, 0 in the lobby), `category_no` (the `party_categories.deck_no` this round plays), `turn_player_id`, `turn_no` (+1 on every turn), `turn_seconds`, `turn_started_at`, `deadline`, `winner_id`, `last_event`, `last_activity` | select + Realtime |
+| `party_players` | `id`, `room_id`, `nickname`, `icon` (a starter's dex number), `joined_at`, `seat` (0-7 turn order; null = watching or lobby), `lives`, `is_out`, `answers_given`, `gone_at` / `gone_reason` (`left`, `removed`, `dropped`) | select + Realtime (no token, no last_seen) |
+| `party_categories` | the dealt deck: `room_id`, `game_no`, `deck_no` (1 = round 1), `parts` (the engine's `Category` JSON), `tier`, `pool`, `seconds`, `result` (`cleared` / `failed` once its round ends) | select + Realtime |
+| `party_answers` | `room_id`, `game_no`, `round`, `player_id`, `pokemon_id`, `species`, `created_at`; unique `(room_id, game_no, round, species)` | select + Realtime |
+| `party_tokens` | `player_id`, `token_hash` (sha256 hex), `last_seen` | nothing |
+| `party_room_codes` | `code` (4 letters from `BCDFGHJKMNPQRSTVWXYZ`), `room_id` | nothing (so nobody can list open rooms) |
+| `party_network_hits` | per-network create/join counts (`ip_hash`, `action`, `at`), kept 1 day | nothing |
+
+Row-level security is on everywhere. anon, authenticated and service_role may only `select` the first four tables; nobody but the
+owner can insert, update or delete any table: all writes go through the functions below. A player "in the turn order" means
+`seat is not null and not is_out and gone_at is null`.
+
+Realtime: the first four tables are in the `supabase_realtime` publication. Subscribe with `filter: 'id=eq.<room>'` on
+`party_rooms` and `filter: 'room_id=eq.<room>'` on the others. Inserts and updates carry the whole row. Deletes under RLS carry only
+the primary key and can't be filtered, so the functions never delete these rows during play (leaving marks a player gone, a new game
+uses a new `game_no`); the only deletes are whole idle rooms. `last_seen` lives in `party_tokens` so heartbeats send no Realtime
+messages. On a `party_rooms` update where `game_no` changed, or status went back to `lobby`, refetch the room's rows.
+
+`last_event` (jsonb) says what just happened, for the banners:
+`{"kind":"lobby"}`, `{"kind":"start","round":1}`, `{"kind":"answer","round","player_id","pokemon_id"}`,
+`{"kind":"cleared","round","player_id","deck_no","exhausted"}` (`round` is the round that was cleared; `exhausted`: the pool ran out
+mid-lap), `{"kind":"timeout","round","player_id","lives","out","deck_no"}`, `{"kind":"gone","round","player_id","reason"}`. When the
+event ended the game it also has `"over":true,"winner_id"`. "Also fit" for a failed round: the category is the `party_categories` row
+with that `deck_no`, the used species are that round's `party_answers`.
+
+### Tokens
+
+Create and join return a random 64-hex-character token **once**. Only `sha256(token)` (hex) is stored, in `party_tokens`. The hashing
+is done in SQL (core `sha256()`, no pgcrypto), so the Edge Function and browsers pass the **raw** token to every function and never
+hash it themselves. Leaving or being removed deletes the token, so it stops working.
+
+### Functions
+
+All are `security definer` with a fixed `search_path`. They return `jsonb`: `{"ok": true, ...}` on success, or
+`{"ok": false, "error": "<code>"}` for a refusal (nothing changed unless stated). Only service_role (the `party` Edge Function)
+may call them, except `party_timeout` and `party_heartbeat`, which anon may call. An unknown room id gives `no_room`; a token that
+doesn't match the player (or a player not in that room, or already gone where it matters) gives `bad_token`.
+
+| Function | Who | Returns / refusals |
+| --- | --- | --- |
+| `party_create(p_nickname text, p_lives int = 3, p_start_tier text = 'easy')` | service | `{ok, room_id, code, player_id, token, nickname, icon, status}`; `bad_nickname`, `bad_settings` |
+| `party_join(p_code text, p_nickname text)` | service | same shape (nickname made unique: "Ash 2"); `no_room`, `bad_nickname`, `room_full` (8 present). Joining a game in progress watches (`seat` null) until the next game. |
+| `party_rejoin(p_player_id uuid, p_token text)` | service | `{ok, room_id, code, player_id, nickname, icon, status, server_time}` (no token); `bad_token`. Counts as a heartbeat. |
+| `party_settings(p_room_id, p_player_id, p_token, p_lives int, p_start_tier text)` | service | `{ok}`; `not_host`, `not_lobby`, `bad_settings` |
+| `party_start(p_room_id, p_player_id, p_token, p_deck jsonb)` | service | `{ok, game_no, players}`; `not_host`, `not_lobby`, `too_few_players` (< 2 present), `bad_deck` |
+| `party_apply_answer(p_room_id, p_player_id, p_token, p_pokemon_id int, p_species int, p_pool_exhausted boolean = false)` | service | `{ok, result: 'passed' or 'cleared', round, turn_player_id, deadline, turn_no}`; `not_playing`, `not_your_turn`, `already_used`, `bad_answer`, `too_late` (see below) |
+| `party_leave(p_room_id, p_player_id, p_token)` | service | `{ok}`; `bad_token` |
+| `party_remove(p_room_id, p_player_id, p_token, p_target_id uuid)` | service | `{ok}`; `not_host`, `no_player` (unknown, self, or already removed) |
+| `party_play_again(p_room_id, p_player_id, p_token)` | service | `{ok}` (room back to `lobby`); `not_host`, `not_over`. Then call `party_start` with a new deck. |
+| `party_network_hit(p_ip_hash text, p_action text, p_limit int, p_window interval)` | service | `boolean`: true = under the cap (hit recorded), false = over it. `p_action` is `'create'` or `'join'`. |
+| `party_timeout(p_room_id uuid, p_turn_no bigint = null)` | anon | `{ok, acted: false}` or `{ok, acted: true, kind: 'timeout', round, player_id, lives, out, deck_no[, over, winner_id]}` |
+| `party_heartbeat(p_player_id uuid, p_token text)` | anon | `{ok, server_time (epoch ms), present}`; `bad_token` |
+| `party_sweep()`, `party_cleanup(p_idle interval = '2 hours')` | cron (owner) | rooms/players touched; rooms deleted |
+
+`p_deck` is a JSON array, round 1 first, 1 to 200 entries, each `{"parts": Category, "tier": "easy"|"medium"|"hard"|"expert",
+"pool": int >= 1, "seconds": int 3..120}`. The SQL never reads `partyConfig.ts`: a round's seconds come from its deck entry. Rounds
+past the end of the deck replay its last 10 entries in a loop.
+
+### The turn rules SQL enforces
+
+- **Start:** up to 8 present players (`gone_at` null, longest-joined first) get shuffled seats 0..n-1 with the room's `lives`; seat 0
+  starts round 1 with `deadline = now() + seconds`.
+- **Answer:** refused unless the game is playing, it is this player's turn, and `now() <= deadline + 300 ms` (server clock, at the
+  start of the transaction). A species already answered this round gives `already_used` (backed by the unique constraint); the turn
+  and timer are unchanged. Otherwise the answer is recorded, `answers_given` goes up, and the turn passes to the next player in the
+  turn order with a fresh deadline. When everyone in the turn order has answered this round (a full lap), or `p_pool_exhausted` is
+  true, the round is **cleared**: no life lost, and the next round starts with the next player after the answerer.
+- **Too late:** an answer after `deadline + 300 ms` is refused with `too_late` and the turn is timed out in the same transaction (the
+  reply carries the timeout event under `timeout`).
+- **Timeout** (`party_timeout`, the cron sweep, or a late answer): does nothing unless `now() > deadline + 300 ms` for the current turn
+  (and `p_turn_no` matches, if given), so it acts once per turn however many clients call it. The turn player loses a life (out at
+  0), the round ends (deck entry marked `failed`), and the next round starts with the failed player, or with the next player in the
+  turn order if they are out or gone. With one player (or none) left in the turn order the game is `over` and `winner_id` is that
+  player.
+- **Gone:** leaving, being removed, or no heartbeat for 60 s (cron) takes a player out of the turn order for the rest of the game; they
+  keep their lives for the result screen. If it was their turn, that counts as a timeout. A dropped player whose heartbeat returns is
+  present again in the lobby, while watching, or after the game, but not back in a running game's turn order. When the host is gone
+  the host passes to the longest-joined present player.
+- **Play again:** everyone still present is reset (lives, out, answers, seat) and the room goes back to the lobby; the next start uses
+  a new `game_no`. Gone players stay gone and get no seat.
+
+### pg_cron jobs
+
+- `party-sweep`, every `1 seconds`: `party_sweep()` times out every playing room past `deadline + 300 ms` and drops players not seen
+  for 60 s. It skips rooms another transaction holds (`for update skip locked`); the next second picks them up. With no rooms it is
+  two index lookups on empty tables.
+- `party-cleanup`, hourly at :07: `party_cleanup()` deletes rooms with no action (`last_activity`) and no heartbeat for 2 hours,
+  network hits older than a day, and `cron.job_run_details` rows of `party-sweep` older than an hour (otherwise 86,400 log rows a day).
+- Unlike the analytics roll-up, scheduling these is not optional: if pg_cron is missing the migration fails, so the Deploy Supabase
+  run goes red rather than leaving the live project without a sweep. `cron.schedule` upserts by job name, so re-running is safe.
+
+### Contract for the `party` Edge Function
+
+What the function must do, and what it can rely on SQL for:
+
+1. **Origin, body shape, rate caps.** Check `Origin` against `ALLOWED_ORIGINS` and the JSON shape of each request. Before create
+   and join, call `party_network_hit(ipHash, 'create' or 'join', limit, window)` with the salted daily IP hash (as `track` computes
+   it: `sha256(salt|ip|<ip>)`) and refuse with 429 when it returns false. SQL re-checks nicknames (trimmed, spaces collapsed, 1 to 12
+   ASCII letters, digits and single spaces), but the function should send its own friendly message first.
+2. **Tokens.** Pass the raw token from the request straight to the SQL function. Never hash, log or store it. Only create and join
+   return a token.
+3. **Start.** Read the room (`start_tier`) and count the present players (`gone_at is null`, at most 8), deal with
+   `dealDeck(seed, players, dataset, { startTier })`, and send `p_deck = deck.map(e => ({ parts: e.category, tier: e.tier,
+   pool: e.pool, seconds: <the tier's seconds from partyConfig> }))` to `party_start`. Host, lobby and player-count checks are SQL's.
+4. **Answer.** Read the room (`status`, `game_no`, `round`, `category_no`, `turn_player_id`), the category (`party_categories` where
+   `room_id`, `game_no` and `deck_no = category_no`) and the species already used (`party_answers` where `room_id`, `game_no`,
+   `round`). Run `checkAnswer(category, pokemon, usedSpecies)`. If it fails, reply with its reason and **do not call SQL** (a wrong
+   answer costs time, not a life, and nothing is written). If it fits, compute `p_pool_exhausted` = no unused species fits once this
+   one is added (`speciesLeft(...) === 0`), and call `party_apply_answer(room, player, token, pokemon.id, pokemon.dexNumber,
+   exhausted)`. SQL then decides the turn, the deadline (with the grace), the "already used" race, lives and rounds, so a stale read
+   by the function does no harm.
+5. **Errors.** Suggested replies for `{ok:false}` codes: `bad_token` 401; `not_host`, `not_your_turn` 403; `no_room`, `no_player` 404;
+   `not_lobby`, `not_playing`, `not_over`, `room_full`, `too_few_players`, `already_used`, `too_late` 409; `bad_nickname`,
+   `bad_settings`, `bad_deck`, `bad_answer` 400. A thrown SQL error is a 500.
+6. **Not the function's job:** timeouts (clients call `party_timeout` at zero, cron backs them up), heartbeats (clients call
+   `party_heartbeat` every 4 s; it returns `server_time` for the clock offset), and Realtime (clients subscribe to the tables).
+
+**For the client (task 6):** a `party_timeout` call made exactly when the countdown hits zero lands inside the 300 ms grace and
+returns `acted: false`. That is expected, not an error. Call it again about 400 ms after zero (pass `p_turn_no` so a late retry
+can't hit the next turn); the every-second sweep also times the turn out within about 1 s if no client does. Treat the room row
+arriving over Realtime as the result, not the call's reply.
