@@ -50,10 +50,11 @@ export function SideTabs({ tabs }: { tabs: readonly SideTab[] }) {
   }
 
   // Tell the page, so from 1024 px up it makes room for the panel beside the board (lib/sidePanel.ts).
+  const anyOpen = openId !== null
   useEffect(() => {
-    setSidePanelOpen(openId !== null)
+    setSidePanelOpen(anyOpen)
     return () => setSidePanelOpen(false)
-  }, [openId])
+  }, [anyOpen])
 
   useEffect(() => {
     if (!openId) return

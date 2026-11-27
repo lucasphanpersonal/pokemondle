@@ -289,7 +289,7 @@ html.big-text {
   /*
    * Tile text that always stays inside the tile's padding (10px a side: the 6px bevel
    * plus 4px of air). The tile sets --fs (its normal font size) and --chars (its longest
-   * word) and --piece (its longest piece between hyphens; see lib/tileText.ts). The pixel
+   * word) and --piece (its longest piece between soft hyphens; real hyphens are kept whole, see lib/tileText.ts). The pixel
    * font is monospaced, so a word fits when font-size <= content width / chars: use that,
    * capped at --fs. Every size here is multiplied by --ts (Larger text). A whole word on one line at 7px or more beats a
    * hyphen ("Region- / al" read badly): only when the word can't fit at 7px does it wrap at its soft hyphen, sized for
@@ -300,7 +300,7 @@ html.big-text {
   }
   .tile-fit .fit {
     /*
-     * Whole word on one line if it fits at 7px or more; otherwise wrapped at its hyphen at up to 8px. The last term
+     * Whole word on one line if it fits at 7px or more; otherwise wrapped at its soft hyphen at up to 8px. The last term
      * of the min() is a switch: hugely positive when the whole word is under 7px (so the wrapped size counts), negative
      * once it reaches 7px (so the whole-word size wins the max()). The 7px is rounded up to a whole pixel, as the font
      * size is, so with Larger text (7 × 1.25 = 8.75px) a word isn't kept whole at a size that rounds up past its room.

@@ -294,7 +294,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    Words with a real hyphen ("Human-Like", "G-Max") are kept whole: `breakable()` puts an invisible word joiner after
    the hyphen, so "Ground, Human-Like" wraps between the words, never as "Human- / Like". The
    table's columns leave room for every common word on one line ("Regional", "Undiscovered"), and the Form tile says
-   "G-Max" for Gigantamax, so a hyphen split is now rare (on phones narrower than about 405px, "Regional" and "Cosmetic" still split, and in a 1024 px table the abilities "Proto-synthesis" and "Electro-morphosis"). Multi-line tiles are also sized by
+   "G-Max" for Gigantamax, so a soft-hyphen split is now rare (on phones narrower than about 405px, "Regional" and "Cosmetic" still split, and in a 1024 px table the abilities "Proto-synthesis" and "Electro-morphosis"). Multi-line tiles are also sized by
    line count so nothing is cut off: the table's Pokémon name gets up to 3 lines under its centred sprite
    (the sprite shrinks, from 30px, to the room the name leaves, so it never crosses the bevel), and Shared Ability up to
    4 lines at 9px or 5 at 8px (`lineChars` in `tileText.ts`). The table's Shared Ability column uses one size for every

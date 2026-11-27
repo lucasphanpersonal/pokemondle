@@ -175,7 +175,7 @@ export function HelpModal({ onClose }: HelpModalProps) {
         </p>
         <p>
           <strong>Type tracker:</strong> tap the <strong>◀ TYPES</strong> tab on the right edge of the screen, then tap types to
-          cross them off as you rule them out. It's just a notepad for you and resets with each new Pokémon.
+          cross them off as you rule them out. It's just a notepad for you and resets with each new Pokémon. On a wide screen an open tab sits beside your guesses (they may show as cards while it's open); on a phone it slides over them.
         </p>
         <p>
           <strong>Daily:</strong> one Pokémon for everyone, new at midnight. Solve it every day for a streak; missing a day

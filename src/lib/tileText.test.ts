@@ -19,6 +19,10 @@ describe('tile text helpers', () => {
     expect(breakable('Fire')).toBe('Fire')
     expect(breakable('Human-Like, Electric')).toBe('Human-\u2060Like, Elec\u00ADtric')
     expect(longestWord(breakable('Ground, Human-Like'))).toBe(10)
+    expect(breakable('Porygon-Z')).toBe('Porygon-\u2060Z')
+    expect(breakable('G-Max 5-10')).toBe('G-\u2060Max 5-10') // not before a digit
+    expect(breakable(breakable('Human-Like'))).toBe(breakable('Human-Like')) // safe to apply twice
+    expect(longestPiece('Human-Like, Undiscovered')).toBe(11) // "Human-Like," whole; "Undiscovered" splits at its soft hyphen
   })
 
   it('finds the narrowest line that keeps a name within a number of lines', () => {
