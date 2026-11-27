@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 
 /** Git short SHA, else the package.json version, else 'dev'. */
@@ -28,8 +29,20 @@ export default defineConfig({
   base: './',
   define: { __APP_VERSION__: JSON.stringify(appVersion()) },
   plugins: [react(), tailwindcss()],
-  // The bundled Pokémon dataset makes the main chunk ~540 kB (~115 kB gzipped).
-  build: { chunkSizeWarningLimit: 700 },
+  build: {
+    // The bundled Pokémon dataset makes the main chunk ~540 kB (~115 kB gzipped).
+    chunkSizeWarningLimit: 700,
+    // (Vite 8's name for what was rollupOptions.)
+    rolldownOptions: {
+      // Two pages: the game, and Party at /party/ (its own bundle, so Daily and Endless don't grow from Party code).
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        party: fileURLToPath(new URL('./party/index.html', import.meta.url)),
+      },
+      // What both pages use (React, the shared styles, the dialog) goes in one chunk named "shared".
+      output: { codeSplitting: { groups: [{ name: 'shared', minShareCount: 2 }] } },
+    },
+  },
   test: {
     environment: 'node',
     // Browser smoke tests (e2e/) run under Playwright, not Vitest.

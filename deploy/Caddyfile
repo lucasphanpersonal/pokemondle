@@ -45,6 +45,10 @@ http://www.pokemondle.io:4190 {
 	header @asset Cache-Control "public, max-age=31536000, immutable"
 	header / Cache-Control "no-cache"
 	header /index.html Cache-Control "no-cache"
+	# Party's page (party/index.html, at /party/). file_server serves a folder's index.html and adds the missing
+	# slash, so /party redirects to /party/ and the page's relative ../assets/ links resolve.
+	header /party/ Cache-Control "no-cache"
+	header /party/index.html Cache-Control "no-cache"
 
 	file_server
 }
