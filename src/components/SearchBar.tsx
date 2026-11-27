@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import type { GuessResult } from '../lib/game'
 import { formatDex } from '../lib/dexEntry'
 import { findGuessedByName, iconSources, searchPokemon } from '../lib/pokedex'
@@ -18,6 +18,8 @@ interface SearchBarProps {
   doneAction?: ReactNode
   /** The done buttons need the whole box on phones (Endless has two), so the done text hides there. */
   doneWide?: boolean
+  /** Move focus into the box whenever it becomes enabled (Party: when the turn comes to this player). */
+  focusWhenEnabled?: boolean
 }
 
 const MAX_SUGGESTIONS = 8
@@ -27,7 +29,7 @@ const MAX_SUGGESTIONS = 8
  * can be submitted. Keyboard: type, ↑/↓ to move, Enter to guess, Esc to close.
  * Touch: tap a suggestion.
  */
-export function SearchBar({ pokedex, guessedIds, onGuess, disabled, doneText = 'You got it!', doneAction, doneWide }: SearchBarProps) {
+export function SearchBar({ pokedex, guessedIds, onGuess, disabled, doneText = 'You got it!', doneAction, doneWide, focusWhenEnabled }: SearchBarProps) {
   const done = disabled && !!doneAction
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -37,6 +39,10 @@ export function SearchBar({ pokedex, guessedIds, onGuess, disabled, doneText = '
   const [message, setMessage] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listId = useId()
+
+  useEffect(() => {
+    if (focusWhenEnabled && !disabled) inputRef.current?.focus()
+  }, [focusWhenEnabled, disabled])
 
   const pool = useMemo(() => {
     const guessed = new Set(guessedIds)

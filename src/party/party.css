@@ -1,0 +1,41 @@
+/*
+ * Styles only the Party page uses (imported by src/party/main.tsx, so Daily and Endless don't carry them).
+ */
+
+/* A wrong answer: the search box shakes side to side, in whole pixels, for about 0.4 s. */
+@keyframes party-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15%,
+  55% {
+    transform: translateX(-6px);
+  }
+  35%,
+  75% {
+    transform: translateX(6px);
+  }
+}
+.party-shake {
+  animation: party-shake 400ms steps(1, end) both;
+}
+
+/* An out player's rail tile: a grey face and softer text (it also carries the ✕ and "OUT", never colour alone). */
+.party-out {
+  --face: #c4c9d0;
+  color: var(--color-ds-frame);
+}
+
+/* The rail scrolls sideways on phones: a thin scrollbar in the frame colour. */
+.party-rail {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ds-frame) transparent;
+  overscroll-behavior-x: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .party-shake {
+    animation: none;
+  }
+}

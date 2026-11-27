@@ -1,4 +1,5 @@
 import { PARTY_CONFIG, type TierId } from '../config/partyConfig.ts'
+import type { Category } from '../lib/party/types.ts'
 
 /*
  * View models for the Party screens. They stay close to the database rows (supabase/migrations/20261127200000_party.sql,
@@ -55,6 +56,71 @@ export function startBlockedReason(view: Pick<LobbyView, 'players' | 'status'>):
   return null
 }
 
+/** One player on the game screen's rail (a party_players row with a seat). */
+export interface GamePlayer {
+  /** party_players.id */
+  id: string
+  /** party_players.nickname */
+  nickname: string
+  /** party_players.icon: the starter's dex number shown as the player's picture. */
+  icon: number
+  /** party_players.lives: lives left (0 once out). */
+  lives: number
+  /** party_players.is_out: no lives left, watching the rest of the game. */
+  out: boolean
+  /** Connected right now (as LobbyPlayer.online). */
+  online: boolean
+}
+
+/** One valid answer of this round (a party_answers row of the room's current game_no and round). */
+export interface GameAnswer {
+  /** party_answers.id, as a string: a stable key, and a new one at the top makes the screen chime. */
+  id: string
+  /** party_answers.pokemon_id: the dataset entry said (a form counts as itself: "Vulpix (Alola)"). */
+  pokemonId: number
+  /** party_answers.player_id */
+  playerId: string
+  /** Who said it, as the list shows it: the player's nickname, kept here so an answer still names a player who left. */
+  nickname: string
+}
+
+/**
+ * Everything the game screen shows while party_rooms.status is 'playing'. Times are local epoch milliseconds: the room
+ * connection turns the server's deadline into this browser's clock (its estimated server-clock offset applied).
+ */
+export interface GameView {
+  /** The room code, 4 letters. */
+  code: string
+  /** party_rooms.round, from 1. */
+  round: number
+  /** The current category's tier (party_categories.tier of party_rooms.category_no). */
+  tier: TierId
+  /** The current category's parts (party_categories.parts), in any order: the screen sorts them for display. */
+  category: Category
+  /** Species that still fit and weren't said this round ("14 left"): `speciesLeftFor(category, answers)` in game.ts. */
+  left: number
+  /**
+   * Seated players (party_players.seat not null, gone_at null) in turn order (by seat), out players included: the rail
+   * greys them.
+   */
+  players: GamePlayer[]
+  /** This browser's player id. A late arrival who only watches has an id that isn't in `players`. */
+  meId: string
+  /** party_rooms.turn_player_id: whose turn it is, or null when no turn is running. */
+  turnPlayerId: string | null
+  /** party_rooms.deadline in local epoch ms (the Date.now() scale), or null when no turn is running. */
+  deadlineAt: number | null
+  /** party_rooms.turn_seconds: the whole length of this turn, so the fuse burns from full down to nothing. */
+  seconds: number
+  /** party_rooms.lives: the lives everyone started with, so the rail draws the lost ones as empty. */
+  startLives: number
+  /** This round's valid answers (party_answers of the current game_no and round), newest first. */
+  answers: GameAnswer[]
+}
+
+/** The reply to an answer: accepted, or refused with a reason in words ("Too late!", "Vulpix was already said"). */
+export type AnswerResult = { ok: true } | { ok: false; reason: string }
+
 /**
  * What the Party page needs from the room connection. useParty (task 6) implements it against the party Edge Function
  * and Realtime; src/party/mock.ts implements it locally for development and screenshots.
@@ -62,6 +128,11 @@ export function startBlockedReason(view: Pick<LobbyView, 'players' | 'status'>):
 export interface PartyController {
   /** The room this browser is in, or null on the start screen (not in a room, or still reconnecting). */
   lobby: LobbyView | null
+  /**
+   * The running game, or null when there is none (lobby, game over, or a late arrival waiting for the next game). While
+   * it is set, the game screen shows instead of the lobby.
+   */
+  game: GameView | null
   /** A request is on its way (host, join, settings, start, remove or leave): the screens disable their buttons. */
   busy: boolean
   /** The last refusal or network failure, in words for the player ("That room is full."), cleared by the next action. */
@@ -78,4 +149,12 @@ export interface PartyController {
   remove(playerId: string): void
   /** Leave the room (back to the start screen). */
   leave(): void
+  /**
+   * On this player's turn: say `pokemonId` (a dataset entry id). The game screen checks the answer against the category
+   * first (checkAnswer), so a plainly wrong answer never gets here; the server checks again and may still refuse ("Too
+   * late!", or another player's answer arrived first). Resolves with the outcome, never rejects: a refusal's reason
+   * shows under the search box. An accepted answer also arrives as a new first entry of `game.answers`, and the turn
+   * moves on screen when `game.turnPlayerId` changes.
+   */
+  answer(pokemonId: number): Promise<AnswerResult>
 }

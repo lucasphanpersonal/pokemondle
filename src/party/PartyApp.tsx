@@ -3,6 +3,7 @@ import { PartyHeader } from './PartyHeader.tsx'
 import { PartyHelpModal } from './PartyHelpModal.tsx'
 import { useMockParty, mockEnabled } from './mock.ts'
 import { hashFor, parseHash, type PartyRoute } from './route.ts'
+import { GameScreen } from './screens/GameScreen.tsx'
 import { LobbyScreen } from './screens/LobbyScreen.tsx'
 import { StartScreen } from './screens/StartScreen.tsx'
 import type { PartyController } from './types.ts'
@@ -62,7 +63,7 @@ export function PartyApp() {
 
   // On a screen change (not the first load), move focus to the new screen's heading so keyboard and screen-reader
   // users land on it, and name the room in the tab title.
-  const screenKey = `${title}|${inLobby}`
+  const screenKey = `${title}|${inLobby}|${!!party.game}`
   useEffect(() => {
     document.title = title
     if (shownTitle.current !== null && shownTitle.current !== screenKey) headingRef.current?.focus()
@@ -80,14 +81,26 @@ export function PartyApp() {
   return (
     <div className="flex min-h-dvh flex-col">
       <PartyHeader onHelp={() => setShowHelp(true)} />
-      <main className={`mx-auto flex w-full flex-col gap-4 px-3 py-4 sm:px-5 sm:py-6 ${inLobby ? 'max-w-md md:max-w-3xl' : 'max-w-md'}`}>
-        {inLobby && party.inGame ? (
-          // PLACEHOLDER for task 10 (the game screen).
+      <main className={`mx-auto flex w-full flex-col gap-4 px-3 py-4 sm:px-5 sm:py-6 ${inLobby && party.game ? 'max-w-md md:max-w-3xl lg:max-w-5xl' : inLobby ? 'max-w-md md:max-w-3xl' : 'max-w-md'}`}>
+        {inLobby && party.inGame && party.game ? (
+          <GameScreen
+            view={party.game}
+            busy={party.busy}
+            error={party.error}
+            headingRef={headingRef}
+            onAnswer={party.answer}
+            onLeave={() => {
+              party.leave()
+              navigate({ screen: 'start' })
+            }}
+          />
+        ) : inLobby && party.inGame ? (
+          // PLACEHOLDER for task 11 (game over), and the moment before a new game's first category arrives.
           <section className="ds-box flex flex-col gap-3 px-4 py-4 tx-10 leading-5 sm:px-5" aria-labelledby="party-game-title" data-screen="game">
             <h2 id="party-game-title" ref={headingRef} tabIndex={-1} className="tx-11 leading-5 outline-none">
               Room {lobby.code}
             </h2>
-            <p>The game screen is on the way.</p>
+            <p>{lobby.status === 'over' ? 'This game is over. The results screen is on the way.' : 'Dealing the next category…'}</p>
             <button type="button" onClick={() => { party.leave(); navigate({ screen: 'start' }) }} className="ds-button bevel-paper h-11 px-4 text-[10px] text-ds-ink">
               Leave
             </button>
