@@ -51,6 +51,38 @@ html.big-text {
   --ts: 1.25;
 }
 
+/*
+ * The Type tracker's side tab (TypeTracker.tsx) is fixed to the screen's right edge. Wherever the screen has too little
+ * margin of its own beside the page, the page keeps a gutter as wide as the tab plus a small gap, so the board never
+ * runs under the tab. The gutter is on both sides, so the page stays centred, except under 360 px, where the left side
+ * keeps the usual 12 px: two gutters there would leave the guess cards and search box too narrow. --tab-w is the tab's
+ * width, --page-pad the usual side padding. Percent padding is measured against the body (no scrollbar), and 80rem is
+ * the page's widest size.
+ */
+:root {
+  --tab-w: 28px;
+  --tab-gap: 2px;
+  --page-pad: 12px;
+}
+@media (min-width: 360px) {
+  :root {
+    --tab-w: 30px;
+    --tab-gap: 4px;
+  }
+}
+@media (min-width: 640px) {
+  :root {
+    --tab-w: 36px;
+    --page-pad: 20px;
+  }
+}
+@utility page-gutter {
+  padding-inline: max(var(--page-pad), calc(var(--tab-w) + var(--tab-gap) - max(0px, (100% - 80rem) / 2)));
+  @media (width < 360px) {
+    padding-left: var(--page-pad);
+  }
+}
+
 /* big: styles that apply only with Larger text on. */
 @custom-variant big (&:where(.big-text, .big-text *));
 

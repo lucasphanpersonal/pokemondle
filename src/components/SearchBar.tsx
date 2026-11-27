@@ -131,7 +131,7 @@ export function SearchBar({ pokedex, guessedIds, onGuess, disabled, doneText = '
           onBlur={() => setOpen(false)}
           onKeyDown={onKeyDown}
           // 16px on phones stops iOS Safari zooming into the field.
-          className={`${done && doneWide ? 'max-sm:hidden ' : ''}min-h-11 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[11px] placeholder:text-ds-frame max-[360px]:placeholder:text-[9px] sm:text-xs`}
+          className={`${done && doneWide ? 'max-sm:hidden ' : ''}min-h-11 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[11px] placeholder:text-ds-frame max-[420px]:placeholder:text-[9px] max-[380px]:placeholder:text-[8px] sm:text-xs`}
         />
         {done ? (
           <div className={`flex shrink-0 gap-2 ${doneWide ? 'max-sm:flex-1 max-sm:justify-center' : ''}`}>{doneAction}</div>

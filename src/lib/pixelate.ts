@@ -2,6 +2,7 @@
  * Turns a Pokémon's official artwork into something that sits next to the in-game sprites: shrunk
  * to sprite size, hard-edged, cut to a small palette and outlined in a darker shade, on the same
  * 96x96 frame as a PokéAPI sprite. Only used for the few forms that have no sprite of their own.
+ * Also cuts the empty air off sprites for the board's small sprite slots (croppedSprite).
  */
 
 /** PokéAPI sprites are 96x96 with the Pokémon standing near the bottom. */
@@ -165,6 +166,51 @@ async function pixelate(url: string): Promise<string> {
 }
 
 const cache = new Map<string, Promise<string>>()
+
+/**
+ * Cuts the empty air off a sprite: a square around the Pokémon, centred on it, at least `min` sprite pixels across.
+ * PokéAPI sprites draw a small Pokémon (Ditto, Joltik) in a third of their 96x96 frame, so in a 30px slot it came out
+ * about 9px tall; cut down to a 40px square it fills most of the slot. The minimum keeps small Pokémon a little smaller
+ * than big ones (never blown up past their own size in a 40px slot) instead of all filling it alike.
+ */
+async function crop(url: string, min: number): Promise<string> {
+  const img = await loadImage(url)
+  const [full, fctx] = canvas(img.naturalWidth, img.naturalHeight)
+  fctx.drawImage(img, 0, 0)
+  const { data, width, height } = fctx.getImageData(0, 0, full.width, full.height)
+  let x0 = width
+  let y0 = height
+  let x1 = -1
+  let y1 = -1
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] === 0) continue
+      if (x < x0) x0 = x
+      if (x > x1) x1 = x
+      if (y < y0) y0 = y
+      if (y > y1) y1 = y
+    }
+  }
+  if (x1 < 0) return url
+  const side = Math.max(min, x1 - x0 + 1, y1 - y0 + 1)
+  const [out, octx] = canvas(side, side)
+  octx.drawImage(full, Math.floor((side - (x1 - x0 + 1)) / 2) - x0, Math.floor((side - (y1 - y0 + 1)) / 2) - y0)
+  return out.toDataURL('image/png')
+}
+
+const crops = new Map<string, Promise<string>>()
+
+/** The sprite cut to its Pokémon (see crop) as a PNG data URL, made once per URL and size. Rejects if it can't be read. */
+export function croppedSprite(url: string, min: number): Promise<string> {
+  const key = `${min} ${url}`
+  let made = crops.get(key)
+  if (!made) {
+    made = crop(url, min)
+    made.catch(() => crops.delete(key))
+    crops.set(key, made)
+  }
+  return made
+}
 
 /** The pixel-filtered artwork as a PNG data URL, made once per URL. Rejects if the artwork can't be loaded. */
 export function pixelArtwork(url: string): Promise<string> {

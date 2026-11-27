@@ -106,7 +106,7 @@ export default function App() {
   return (
     <div className="flex min-h-dvh flex-col">
       <Header mode={mode} onModeChange={setMode} onHelp={() => setShowHelp(true)} />
-      <main className="mx-auto flex w-full max-w-5xl lg:max-w-[80rem] big:max-w-[80rem] flex-col gap-4 px-3 py-4 sm:px-5 sm:py-6">
+      <main className="mx-auto flex w-full max-w-5xl lg:max-w-[80rem] big:max-w-[80rem] flex-col gap-4 page-gutter py-4 sm:py-6">
         <div className="flex flex-col items-center gap-2 text-center">
           {/*
             The title sits in its own box (the guess box's look) in both modes. In Endless it names the Gens the game
@@ -217,7 +217,7 @@ export default function App() {
       */}
       {(game.canGiveUp || (revealing && game.guesses.length > 1)) && (
         <footer className="mt-auto border-t-2 border-ds-frame/40">
-          <div className="mx-auto flex w-full max-w-5xl lg:max-w-[80rem] big:max-w-[80rem] items-center justify-between gap-3 px-3 py-3 sm:px-5">
+          <div className="mx-auto flex w-full max-w-5xl lg:max-w-[80rem] big:max-w-[80rem] items-center justify-between gap-3 page-gutter py-3">
             <p className="tx-8 leading-4 text-ds-frame">Stuck? Give up to see the answer.</p>
             <button
               type="button"

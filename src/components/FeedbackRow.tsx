@@ -16,6 +16,13 @@ import { abilityFit, breakable, lineChars, longestPiece, longestWord, type Fit }
 import type { Pokemon } from '../types/pokemon'
 import { ResultMark } from './ResultMark'
 
+/**
+ * The board's sprites are cut to a square around the Pokémon, at least 40 sprite pixels across (SpriteImg's crop), so
+ * small Pokémon (Ditto, Eevee) read at a sensible size: 1:1 in the phone card's 40px slot, three quarters in the
+ * table's 30px slot. Big Pokémon are scaled down to fit, as before.
+ */
+const SPRITE_CROP = 40
+
 interface FeedbackRowProps {
   guess: Pokemon
   feedback: GuessFeedback
@@ -176,7 +183,7 @@ export function GuessCard({ guess, feedback, animate, bigText = false }: Feedbac
         className={`${BG[feedback.pokemon]} ${animate ? 'tile-flip' : ''} px-notch col-span-12 flex min-h-11 items-center gap-2 px-2.5 py-1.5 tx-9 text-white sm:tx-10 ${TILE_EDGE}`}
         data-result={feedback.pokemon}
       >
-        <SpriteImg sources={iconSources(guess)} alt="" width={40} height={40} className="-my-1 h-10 w-10 shrink-0" />
+        <SpriteImg sources={iconSources(guess)} crop={SPRITE_CROP} alt="" width={40} height={40} className="-my-1 h-10 w-10 shrink-0" />
         <span className="min-w-0 [overflow-wrap:anywhere]">{guess.name}</span>
         <span className="ml-auto shrink-0 tx-8 opacity-80 sm:tx-9">{formatDex(guess.dexNumber)}</span>
         <span className="sr-only">, {LABEL[feedback.pokemon]}</span>
@@ -220,7 +227,7 @@ export function FeedbackRow({ guess, feedback, animate, abilityColumn }: Feedbac
           data-result={feedback.pokemon}
         >
           <span className="absolute top-2 right-2.5 tx-7 leading-none opacity-80">{formatDex(guess.dexNumber)}</span>
-          <SpriteImg sources={iconSources(guess)} alt="" width={30} height={30} className="h-[30px] min-h-0 w-[30px] shrink object-contain" />
+          <SpriteImg sources={iconSources(guess)} crop={SPRITE_CROP} alt="" width={30} height={30} className="h-[30px] min-h-0 w-[30px] shrink object-contain" />
           <span className="fit relative line-clamp-3 w-full shrink-0 text-center big:line-clamp-4 big:leading-[11px]">{guess.name}</span>
         </div>
       </th>

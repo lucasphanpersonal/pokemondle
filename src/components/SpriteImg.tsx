@@ -2,7 +2,7 @@ import { useEffect, useState, type ImgHTMLAttributes } from 'react'
 import ballArt from '../../scripts/icons/pokeball.txt?raw'
 import { isArtworkUrl } from '../lib/pokedex'
 import { ballPaths, parseBallArt } from '../lib/pokeballArt'
-import { pixelArtwork } from '../lib/pixelate'
+import { croppedSprite, pixelArtwork } from '../lib/pixelate'
 
 /** The 16x16 pixel Poké Ball in greys: the "no picture" stand-in, like an empty Pokédex slot. */
 const GREY_BALL: Record<string, string> = {
@@ -33,6 +33,11 @@ export const PLACEHOLDER_SPRITE = `data:image/svg+xml,${encodeURIComponent(
 interface SpriteImgProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'onError'> {
   /** Pictures to try in order (see iconSources). If none loads, the grey Poké Ball shows. */
   sources: string[]
+  /**
+   * Cut the picture down to the Pokémon (at least this many sprite pixels square) so a small Pokémon fills a small
+   * slot (see croppedSprite). The uncut picture shows until the cut one is ready, and stays if it can't be made.
+   */
+  crop?: number
 }
 
 /** A blank 1x1 image: holds the slot while artwork is being pixel-filtered (a few milliseconds). */
@@ -43,7 +48,7 @@ const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAA
  * moves on to the next, and the last resort is a grey pixel Poké Ball. Official artwork (for forms
  * with no sprite) goes through the pixel filter first, so it matches the sprites around it.
  */
-export function SpriteImg({ sources, className = '', ...rest }: SpriteImgProps) {
+export function SpriteImg({ sources, crop, className = '', ...rest }: SpriteImgProps) {
   // Failures are counted per list, so a slot that is reused for another Pokémon starts over.
   const key = sources.join(' ')
   const [failed, setFailed] = useState({ key, count: 0 })
@@ -65,7 +70,20 @@ export function SpriteImg({ sources, className = '', ...rest }: SpriteImgProps) 
     }
   }, [artwork, wanted, key, count])
 
-  const src = wanted === undefined ? PLACEHOLDER_SPRITE : artwork ? (pixel?.url === wanted ? pixel.data : BLANK) : wanted
+  const shown = wanted === undefined ? PLACEHOLDER_SPRITE : artwork ? (pixel?.url === wanted ? pixel.data : BLANK) : wanted
+  const [cut, setCut] = useState<{ url: string; data: string } | null>(null)
+  useEffect(() => {
+    if (crop === undefined || shown === BLANK || shown === PLACEHOLDER_SPRITE) return
+    let alive = true
+    croppedSprite(shown, crop).then(
+      (data) => alive && setCut({ url: shown, data }),
+      () => {}, // not loaded yet or unreadable: onError moves on, or the uncut picture stays
+    )
+    return () => {
+      alive = false
+    }
+  }, [crop, shown])
+  const src = cut?.url === shown ? cut.data : shown
   return (
     <img
       {...rest}
