@@ -1,0 +1,51 @@
+import type { TierId } from '../../config/partyConfig.ts'
+
+export type { TierId }
+
+/** Which column of the dataset a part checks. */
+export type PartKind =
+  | 'type' // either slot
+  | 'pure' // one type only
+  | 'pair' // exactly these two types, in either slot
+  | 'gen'
+  | 'color'
+  | 'stage'
+  | 'form'
+  | 'eggGroup'
+  | 'ability'
+  | 'size'
+
+export type FormValue = 'mega' | 'regional' | 'gmax'
+export type SizeValue = 'heavy' | 'tall' | 'tiny'
+
+/** One condition of a category. Plain data, so it can be stored and sent as JSON. */
+export type Part =
+  | { kind: 'type'; value: string }
+  | { kind: 'pure'; value: string }
+  | { kind: 'pair'; value: readonly [string, string] }
+  | { kind: 'gen'; value: number }
+  | { kind: 'color'; value: string }
+  | { kind: 'stage'; value: 1 | 2 | 3 }
+  | { kind: 'form'; value: FormValue }
+  | { kind: 'eggGroup'; value: string }
+  | { kind: 'ability'; value: string }
+  | { kind: 'size'; value: SizeValue }
+
+/** A category is one to three parts, and an answer must fit all of them. */
+export type Category = readonly Part[]
+
+/** The result of checking an answer. `reason` is user-facing text. */
+export type AnswerCheck =
+  | { ok: true }
+  | { ok: false; why: 'part'; part: Part; reason: string }
+  | { ok: false; why: 'used'; reason: string }
+
+/** One dealt category. */
+export interface DeckEntry {
+  /** 1-based round the category is dealt for. */
+  round: number
+  tier: TierId
+  category: Category
+  /** Distinct species that fit. */
+  pool: number
+}
