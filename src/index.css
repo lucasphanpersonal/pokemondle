@@ -53,11 +53,11 @@ html.big-text {
 
 /*
  * The Type tracker's side tab (TypeTracker.tsx) is fixed to the screen's right edge. Wherever the screen has too little
- * margin of its own beside the page, the page keeps a gutter as wide as the tab plus a small gap, so the board never
- * runs under the tab. The gutter is on both sides, so the page stays centred, except under 360 px, where the left side
- * keeps the usual 12 px: two gutters there would leave the guess cards and search box too narrow. --tab-w is the tab's
- * width, --page-pad the usual side padding. Percent padding is measured against the body (no scrollbar), and 80rem is
- * the page's widest size.
+ * margin of its own beside the page, the page's right padding grows to the tab's width plus a small gap, so the board
+ * never runs under the tab. Only the right side grows: the tab itself fills the extra space, so the page still looks
+ * balanced, and the guess board keeps as much width as it can (the desktop table's tile text is sized to its columns).
+ * --tab-w is the tab's width, --page-pad the usual side padding. Percent padding is measured against the body (no
+ * scrollbar), and 80rem is the page's widest size.
  */
 :root {
   --tab-w: 28px;
@@ -72,15 +72,12 @@ html.big-text {
 }
 @media (min-width: 640px) {
   :root {
-    --tab-w: 36px;
     --page-pad: 20px;
   }
 }
 @utility page-gutter {
-  padding-inline: max(var(--page-pad), calc(var(--tab-w) + var(--tab-gap) - max(0px, (100% - 80rem) / 2)));
-  @media (width < 360px) {
-    padding-left: var(--page-pad);
-  }
+  padding-inline: var(--page-pad);
+  padding-right: max(var(--page-pad), calc(var(--tab-w) + var(--tab-gap) - max(0px, (100% - 80rem) / 2)));
 }
 
 /* big: styles that apply only with Larger text on. */
