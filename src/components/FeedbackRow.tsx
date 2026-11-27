@@ -11,7 +11,7 @@ import {
 import { formatDex } from '../lib/dexEntry'
 import { iconSources } from '../lib/pokedex'
 import { SpriteImg } from './SpriteImg'
-import { cardTileSpan, TWO_UP } from '../lib/cardLayout'
+import { cardTileSpan, TWO_UP, type CardLayout } from '../lib/cardLayout'
 import { abilityFit, breakable, lineChars, longestPiece, longestWord, type Fit } from '../lib/tileText'
 import type { Pokemon } from '../types/pokemon'
 import { ResultMark } from './ResultMark'
@@ -30,8 +30,8 @@ interface FeedbackRowProps {
   animate: boolean
   /** Table only: one Shared Ability size for the whole column (see abilityColumnFit), so rows don't jump in size. */
   abilityColumn?: Fit
-  /** Cards only: Larger text is on, so cards go two to a row from 900 px instead of 720 px. */
-  bigText?: boolean
+  /** Cards only: when they go two to a row (TWO_UP in lib/cardLayout.ts): 720 px, 900 px with Larger text, or never. */
+  cards?: CardLayout
 }
 
 type Result = MatchFeedback | NumberFeedback
@@ -147,7 +147,7 @@ function buildTiles(guess: Pokemon, feedback: GuessFeedback, abilityColumn?: Fit
  * tiles, then full-width Egg Group and Shared Ability strips) so nothing scrolls sideways.
  * Tablets and desktops use the table row below.
  */
-export function GuessCard({ guess, feedback, animate, bigText = false }: FeedbackRowProps) {
+export function GuessCard({ guess, feedback, animate, cards = 'normal' }: FeedbackRowProps) {
   const tiles = buildTiles(guess, feedback)
   const egg = tiles[tiles.length - 2]
   const ability = tiles[tiles.length - 1]
@@ -178,7 +178,7 @@ export function GuessCard({ guess, feedback, animate, bigText = false }: Feedbac
     )
   }
   return (
-    <li className={`grid grid-cols-12 content-start gap-1 border-t-2 border-dashed border-ds-frame/30 py-2 first:border-t-0 first:pt-0 last:pb-0 ${TWO_UP[bigText ? 'big' : 'normal'].card}`}>
+    <li className={`grid grid-cols-12 content-start gap-1 border-t-2 border-dashed border-ds-frame/30 py-2 first:border-t-0 first:pt-0 last:pb-0 ${TWO_UP[cards].card}`}>
       <div
         className={`${BG[feedback.pokemon]} ${animate ? 'tile-flip' : ''} px-notch col-span-12 flex min-h-11 items-center gap-2 px-2.5 py-1.5 tx-9 text-white sm:tx-10 ${TILE_EDGE}`}
         data-result={feedback.pokemon}

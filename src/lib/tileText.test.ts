@@ -10,14 +10,15 @@ describe('tile text helpers', () => {
 
   it('measures the unsplittable pieces, counting the hyphen drawn at a break', () => {
     expect(longestPiece('Undiscovered')).toBe(7) // "Undis-" (6), "covered" (7)
-    expect(longestPiece('Human-Like')).toBe(6) // "Human-"
+    expect(longestPiece('Human-Like')).toBe(10) // kept whole: it never breaks at its hyphen
     expect(longestPiece('Fire')).toBe(4)
   })
 
   it('adds a soft hyphen only to known long words', () => {
     expect(breakable('Undiscovered')).toBe('Undis\u00ADcovered')
     expect(breakable('Fire')).toBe('Fire')
-    expect(breakable('Human-Like, Electric')).toBe('Human-Like, Elec\u00ADtric')
+    expect(breakable('Human-Like, Electric')).toBe('Human-\u2060Like, Elec\u00ADtric')
+    expect(longestWord(breakable('Ground, Human-Like'))).toBe(10)
   })
 
   it('finds the narrowest line that keeps a name within a number of lines', () => {

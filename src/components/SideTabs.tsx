@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { setSidePanelOpen } from '../lib/sidePanel'
 import { ResultMark } from './ResultMark'
 
 export interface SideTab {
@@ -22,8 +23,9 @@ export interface SideTab {
  * The side tabs: narrow tabs stacked on the screen's right edge (every screen size, vertically centred) that each slide
  * out a panel to their left: the Type tracker and the Gen hint. They live off to the side so they never crowd the game.
  * One panel is open at a time. The tabs stay put while a panel is open; the open one is pressed in (design rule 2), and
- * tapping it again, the panel's close button or Esc puts the panel away. A panel isn't a dialog: the page stays usable
- * behind it, so a player can keep guessing with it open.
+ * tapping it again, the panel's close button or Esc puts the panel away. A panel isn't a dialog: the page stays usable,
+ * so a player can keep guessing with it open. From 1024 px up the page moves over to make room, so the panel sits beside
+ * the board (18.5rem wide); on phones and portrait tablets it slides over the board.
  */
 export function SideTabs({ tabs }: { tabs: readonly SideTab[] }) {
   const [openId, setOpenId] = useState<string | null>(null)
@@ -47,6 +49,12 @@ export function SideTabs({ tabs }: { tabs: readonly SideTab[] }) {
     setOpenId(id)
   }
 
+  // Tell the page, so from 1024 px up it makes room for the panel beside the board (lib/sidePanel.ts).
+  useEffect(() => {
+    setSidePanelOpen(openId !== null)
+    return () => setSidePanelOpen(false)
+  }, [openId])
+
   useEffect(() => {
     if (!openId) return
     const onKey = (e: KeyboardEvent) => {
@@ -65,7 +73,7 @@ export function SideTabs({ tabs }: { tabs: readonly SideTab[] }) {
         <section
           id={`side-panel-${open.id}`}
           aria-labelledby={`side-panel-${open.id}-title`}
-          className="ds-box pop-in max-h-[85dvh] w-[min(22rem,calc(100vw-var(--tab-w)-var(--tab-gap)-0.5rem))] overflow-y-auto p-3 max-[360px]:p-2.5"
+          className="ds-box pop-in max-h-[85dvh] w-[var(--panel-w,min(22rem,calc(100vw-var(--tab-w)-var(--tab-gap)-0.5rem)))] overflow-y-auto p-3 max-[360px]:p-2.5"
         >
           <div className="mb-2 flex items-center gap-2 max-[360px]:gap-1.5">
             <h2 id={`side-panel-${open.id}-title`} className="min-w-0 flex-1 tx-10 leading-5 font-normal max-[360px]:tx-9">
