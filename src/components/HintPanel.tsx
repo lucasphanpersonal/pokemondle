@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { HINT_AFTER_GUESSES } from '../lib/game'
 import { playSound } from '../lib/sound'
 import { HINT_GUARD_MS } from './HintPrompt'
@@ -31,9 +31,16 @@ export function HintPanel({ state, gen, guessesLeft, onTake }: HintPanelProps) {
     return () => window.clearTimeout(id)
   }, [state])
 
+  // Taking the hint removes the focused Show hint button, so focus moves to the answer (which reads it out).
+  const took = useRef(false)
+  const answerRef = useRef<HTMLParagraphElement>(null)
+  useEffect(() => {
+    if (state === 'taken' && took.current) answerRef.current?.focus()
+  }, [state])
+
   if (state === 'taken') {
     return (
-      <p className="tx-10 leading-6" aria-live="polite">
+      <p ref={answerRef} tabIndex={-1} className="tx-10 leading-6 outline-none">
         This Pokémon is from <strong className="font-normal">Gen {gen}</strong>!
       </p>
     )
@@ -57,6 +64,7 @@ export function HintPanel({ state, gen, guessesLeft, onTake }: HintPanelProps) {
         onClick={() => {
           if (guarded) return
           playSound('select')
+          took.current = true
           onTake()
         }}
         aria-disabled={guarded || undefined}

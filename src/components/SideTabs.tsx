@@ -28,6 +28,9 @@ export interface SideTab {
 export function SideTabs({ tabs }: { tabs: readonly SideTab[] }) {
   const [openId, setOpenId] = useState<string | null>(null)
   const open = tabs.find((t) => t.id === openId) ?? null
+  // A tab can go away while its panel is open (the Gen hint in a single-Gen Endless game): forget it, so it can't
+  // pop back open on its own later.
+  if (openId && !open) setOpenId(null)
   const tabRefs = useRef(new Map<string, HTMLButtonElement>())
   const closeRef = useRef<HTMLButtonElement>(null)
   // Focus follows the open/close, but not on first render (a tab must not steal focus from the guess box).

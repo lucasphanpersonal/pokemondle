@@ -270,7 +270,7 @@ export default function App() {
           {
             id: 'types',
             letters: 'TYPES',
-            label: 'Types: open the type tracker',
+            label: 'Types: the type tracker',
             title: 'Type tracker',
             heading: 'Type tracker',
             closeLabel: 'Close the type tracker',
