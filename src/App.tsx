@@ -6,17 +6,19 @@ import { GiveUpModal } from './components/GiveUpModal'
 import { GuessGrid } from './components/GuessGrid'
 import { Header } from './components/Header'
 import { HelpModal } from './components/HelpModal'
+import { HintPanel, type HintState } from './components/HintPanel'
 import { HintPrompt } from './components/HintPrompt'
 import { HistoryModal } from './components/HistoryModal'
-import { PixelBulb } from './components/PixelBulb'
 import { PixelGear } from './components/PixelGear'
 import { ResultModal } from './components/ResultModal'
 import { SearchBar } from './components/SearchBar'
-import { TypeTrackerDrawer } from './components/TypeTracker'
+import { SideTabs } from './components/SideTabs'
+import { TypeTrackerBody, TypeTrackerClear } from './components/TypeTracker'
 import { useAnalytics } from './hooks/useAnalytics'
 import { useRevealEffects } from './hooks/useRevealEffects'
 import { useTypeNotes } from './hooks/useTypeNotes'
 import { usePokemondle, type GameMode, type GuessResult } from './hooks/usePokemondle'
+import { HINT_AFTER_GUESSES } from './lib/game'
 import { ALL_GENS, gensLabel } from './lib/gens'
 import { computeStats } from './lib/history'
 import { POKEDEX } from './lib/pokedex'
@@ -73,7 +75,7 @@ export default function App() {
   const hintUseful = game.gameGens.length > 1
   const canHint = game.canTakeHint && hintUseful
   const showHint = game.hinted && hintUseful
-  // It pops up once per game, after the guess that makes it available has flipped in; after that it is a button.
+  // It pops up once per game, after the guess that makes it available has flipped in; after that it is in the HINT side tab.
   // Remembered per mode (the game it was last offered in), so switching modes doesn't offer it again.
   const [hintOffered, setHintOffered] = useState<Record<string, unknown>>(() => {
     const raw = loadJson('hint-offered')
@@ -88,14 +90,17 @@ export default function App() {
     setHintOffered(next)
     saveJson('hint-offered', next)
   }
-  // Opened from the Gen hint button, or kept open (for its "from Gen N" reply) once the hint is taken.
+  // Kept open (for its "from Gen N" reply) once the hint is taken from it.
   const hintPromptShown = showHintPrompt || hintPromptOpen === gameId
   const takeHint = () => {
     setHintPromptOpen(gameId)
     game.takeHint()
   }
 
-  // The type tracker: the player's own notes of ruled-out types, kept per game, in a drawer at the side of the page.
+  // The Gen hint's side tab: locked until the hint unlocks, then a Show hint button, then the Gen itself.
+  const hintState: HintState = showHint ? 'taken' : canHint ? 'ready' : finished ? 'over' : 'locked'
+
+  // The type tracker: the player's own notes of ruled-out types, kept per game, in a side tab.
   const typeNotes = useTypeNotes(mode, game.gameKey)
 
   const closeHelp = () => {
@@ -114,8 +119,7 @@ export default function App() {
             the game keeps its Gens. The gear's tap area is the full 44px but its negative margins keep the box as
             short as the Daily one, so both titles match.
           */}
-          {/* The title box and the Gen hint button share one width (the wider of the two), so they stack as a neat column. */}
-          <div className="flex max-w-full flex-col items-stretch gap-2">
+          <div className="flex max-w-full flex-col items-stretch">
             {/*
               Both titles are always rendered in one grid cell and the other mode's is hidden (visibility, so it keeps
               its size but can't be seen, read or focused). The box is therefore as wide as the longer title in either
@@ -144,33 +148,6 @@ export default function App() {
                 </button>
               </div>
             </div>
-            {/*
-              Game menu: the Gen hint (Endless's Gens settings are the gear in the title box). Give up lives in the page
-              footer, as far from the guess box as it can be. History and the streak are not here: they belong to the end
-              of a game, so they live on the result screen.
-            */}
-            {(canHint || showHint) && (
-              <div className="flex flex-col items-stretch">
-                {canHint && (
-                  <button
-                    type="button"
-                    onClick={() => setHintPromptOpen(gameId)}
-                    className="ds-button bevel-paper inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap px-3 text-[9px] sm:px-4 sm:text-[10px]"
-                  >
-                    <PixelBulb />
-                    Gen hint
-                  </button>
-                )}
-                {/* Once taken, the hint button stays in its place pressed in (the "on" look) and shows the Gen. */}
-                {showHint && (
-                  <p className="ds-button bevel-paper bevel-pressed inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap px-3 text-[9px] sm:px-4 sm:text-[10px]">
-                    <PixelBulb />
-                    <span aria-hidden="true">Hint · Gen {game.targetPokemon.generation}</span>
-                    <span className="sr-only">Hint: the answer is from Gen {game.targetPokemon.generation}</span>
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
@@ -287,7 +264,43 @@ export default function App() {
           onClose={closeHintPrompt}
         />
       )}
-      <TypeTrackerDrawer ruledOut={typeNotes.ruledOut} onToggle={typeNotes.toggle} onClear={typeNotes.clear} />
+      {/* The side tabs on the right edge: the Type tracker, and the Gen hint (left out when the game has only one Gen). */}
+      <SideTabs
+        tabs={[
+          {
+            id: 'types',
+            letters: 'TYPES',
+            label: 'Types: open the type tracker',
+            title: 'Type tracker',
+            heading: 'Type tracker',
+            closeLabel: 'Close the type tracker',
+            actions: <TypeTrackerClear ruledOut={typeNotes.ruledOut} onClear={typeNotes.clear} />,
+            body: <TypeTrackerBody ruledOut={typeNotes.ruledOut} onToggle={typeNotes.toggle} />,
+          },
+          ...(hintUseful
+            ? [
+                {
+                  id: 'hint',
+                  // Once taken, the tab itself shows the Gen (GEN4), so it can be read without opening the panel.
+                  letters: showHint ? `GEN${game.targetPokemon.generation}` : 'HINT',
+                  label: showHint ? `Gen hint: the answer is from Gen ${game.targetPokemon.generation}` : 'Gen hint',
+                  title: 'Gen hint',
+                  heading: 'Gen hint',
+                  closeLabel: 'Close the Gen hint',
+                  body: (
+                    <HintPanel
+                      key={gameId}
+                      state={hintState}
+                      gen={game.targetPokemon.generation}
+                      guessesLeft={Math.max(0, HINT_AFTER_GUESSES - game.guesses.length)}
+                      onTake={game.takeHint}
+                    />
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
       {showHelp && <HelpModal onClose={closeHelp} />}
     </div>
   )

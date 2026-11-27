@@ -52,7 +52,7 @@ html.big-text {
 }
 
 /*
- * The Type tracker's side tab (TypeTracker.tsx) is fixed to the screen's right edge. Wherever the screen has too little
+ * The side tabs (SideTabs.tsx: Type tracker, Gen hint) are fixed to the screen's right edge. Wherever the screen has too little
  * margin of its own beside the page, the page's right padding grows to the tab's width plus a small gap, so the board
  * never runs under the tab. Only the right side grows: the tab itself fills the extra space, so the page still looks
  * balanced, and the guess board keeps as much width as it can (the desktop table's tile text is sized to its columns).
