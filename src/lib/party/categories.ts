@@ -72,9 +72,12 @@ export function partKey(part: Part): string {
   return part.kind === 'pair' ? `pair:${[...part.value].sort().join('+')}` : `${part.kind}:${part.value}`
 }
 
+/** Plain code-unit comparison, so the order is the same in every runtime (localeCompare is not). */
+const compareText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
+
 /** Parts in display order. */
 const sortParts = (parts: readonly Part[]): Part[] =>
-  [...parts].sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || partKey(a).localeCompare(partKey(b)))
+  [...parts].sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || compareText(partKey(a), partKey(b)))
 
 /** Stable identity of a category (order-free), used to avoid repeats. */
 export const categoryKey = (category: Category): string =>
@@ -84,7 +87,8 @@ export const categoryKey = (category: Category): string =>
     .join('|')
 
 /** Whether one entry fits every part (ignoring which species were already used). */
-export const fitsCategory = (category: Category, p: Pokemon): boolean => category.every((part) => partFits(part, p))
+export const fitsCategory = (category: Category, p: Pokemon): boolean =>
+  category.length > 0 && category.every((part) => partFits(part, p))
 
 // ---------------------------------------------------------------------------------------------------------------
 // Labels
@@ -328,7 +332,7 @@ function buildCatalog(dataset: readonly Pokemon[]): Part[] {
   const parts: Part[] = [
     ...asc(types).map((value): Part => ({ kind: 'type', value })),
     ...asc(types).map((value): Part => ({ kind: 'pure', value })),
-    ...[...pairs.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]): Part => ({ kind: 'pair', value })),
+    ...[...pairs.entries()].sort(([a], [b]) => compareText(a, b)).map(([, value]): Part => ({ kind: 'pair', value })),
     ...[...lists.gen].sort((a, b) => a - b).map((value): Part => ({ kind: 'gen', value })),
     ...asc(lists.color).map((value): Part => ({ kind: 'color', value })),
     ...([1, 2, 3] as const).map((value): Part => ({ kind: 'stage', value })),
@@ -369,15 +373,16 @@ export interface DealOptions {
 }
 
 /** Draws one random category of `columns` columns, or null if the draw got stuck. */
-function drawCategory(byKind: Map<PartKind, Part[]>, columns: number, rng: () => number): Part[] | null {
+export function drawCategory(byKind: Map<PartKind, Part[]>, columns: number, rng: () => number): Part[] | null {
   const parts: Part[] = []
   let used = 0
+  let guard = 0
   while (used < columns) {
     const kinds = [...byKind.keys()].filter((k) => used + (k === 'pair' ? 2 : 1) <= columns)
     if (!kinds.length) return null
     const part = pick(byKind.get(pick(kinds, rng))!, rng)
     if (parts.some((q) => partFamily(q) === partFamily(part))) {
-      if (parts.length > 4) return null
+      if (++guard > 50) return null
       continue
     }
     parts.push(part)

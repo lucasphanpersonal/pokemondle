@@ -10,6 +10,8 @@ import {
   categorySentence,
   checkAnswer,
   dealDeck,
+  drawCategory,
+  fitsCategory,
   fittingEntries,
   partCatalog,
   partFits,
@@ -213,6 +215,21 @@ describe('labels', () => {
     expect(categoryParts([{ kind: 'size', value: 'tiny' }])).toEqual(['Under 0.5 m'])
     expect(categoryParts([{ kind: 'form', value: 'gmax' }])).toEqual(['G-Max'])
     expect(categoryParts([{ kind: 'eggGroup', value: 'Water 1' }])).toEqual(['Water 1 egg group'])
+  })
+})
+
+describe('edge cases', () => {
+  it('an empty category fits nothing and has an empty pool', () => {
+    expect(fitsCategory([], byName('Charmander'))).toBe(false)
+    expect(poolOf([], dex)).toBe(0)
+  })
+  it('drawCategory gives up (null) instead of spinning when no category fits together', () => {
+    const rng = () => 0.5
+    expect(drawCategory(new Map(), 2, rng)).toBeNull()
+    // Only typing parts exist, and two columns would need two different families.
+    const typesOnly = new Map<Part['kind'], Part[]>([['type', [{ kind: 'type', value: 'Fire' }]]])
+    expect(drawCategory(typesOnly, 2, rng)).toBeNull()
+    expect(drawCategory(typesOnly, 1, rng)).toEqual([{ kind: 'type', value: 'Fire' }])
   })
 })
 
