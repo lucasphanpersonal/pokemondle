@@ -38,3 +38,7 @@ export function parseHash(hash: string): PartyRoute {
 export function hashFor(route: PartyRoute): string {
   return route.screen === 'room' ? `#${route.code}` : ''
 }
+
+/** The invite link for a room: this page's address with the code as its hash (any ?query is dropped). */
+export const inviteLink = (code: string, loc: Pick<Location, 'origin' | 'pathname'> = location): string =>
+  `${loc.origin}${loc.pathname}#${code}`
