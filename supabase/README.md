@@ -126,3 +126,36 @@ than 400 days or more than 1 day ahead.
 - Per-IP rate limit: 20000 events per IP (salted hash) per UTC day by default, so a school or office behind one IP still
   fits. Override with `npx supabase secrets set MAX_EVENTS_PER_IP_PER_DAY=<n>`. Rejections are logged as `rate_limited_ip`.
 - Tests for the validation logic: `npm test`.
+
+## Party backend (spike results)
+
+Measured in a throwaway CI job on a local Supabase stack (CLI 3.1.0, Postgres 17.11, Realtime v2.154.0) before the Party mode was built.
+The spike objects are gone; the numbers are kept here. Local numbers have no internet round trip, so add roughly 50 to 150 ms
+for a browser talking to the hosted project.
+
+- **pg_cron every second: works.** `cron.schedule('x', '1 seconds', ...)` ran 61 times in 62 s, all `succeeded`. Gap between runs:
+  mean 1005 ms, min 1004, p95 1006, max 1007 (worst deviation from 1000 ms: 7 ms). pg_cron 1.6.4 locally; Supabase's docs say
+  the hosted version is 1.6.4 too. The docs also advise at most 8 concurrent jobs (hard limit 32), and jobs under 10 minutes. The
+  once-a-second timeout job is one cheap job, so it is well inside that. Not measured on the hosted project (not allowed from a PR).
+- **Postgres Changes to an anon client: works, fast enough.** A table with row-level security on and a select-only policy for
+  `anon` streamed all 50 of 50 inserts (made with the service role, as the Edge Function will) to a supabase-js client using only the
+  anon key. Insert to receive: p50 255 ms, p95 486 ms, max 515 ms, min 19 ms (mean 259 ms). **That is comfortably fast enough for a 12 s turn**
+  (worst case about 4% of it), so Party stays on Supabase and does not need Durable Objects. The anon client could read (3 rows
+  returned) but its insert was refused (401, code 42501, row-level security), and its update and delete changed 0 rows.
+  Remember to add each Party table to the `supabase_realtime` publication and grant `select` to `anon`.
+- **Edge Function importing from `supabase/functions/_shared/`: works.** `supabase functions serve` served a function that does
+  `import { hello } from '../_shared/hello.ts'` and curl returned `hello party from _shared`. `_shared` is not a function, so
+  the deploy action's by-name `functions deploy` never deploys it on its own. The CLI deploy bundles a function's imports,
+  including relative files outside its folder (Supabase's docs: shared code lives in an underscore-prefixed folder; `deploy` has
+  `--use-api` for server-side bundling and no Docker). The deploy itself was not run, since a PR must not touch the live project:
+  the first Party function that imports `_shared` proves it for real on merge, and `supabase functions serve` in CI is the guard before that.
+- **Free-plan Realtime limits** (Supabase docs, Nov 2026): 200 concurrent connections, 100 messages per second, 100 channel joins per second,
+  100 channels per connection, 2 million messages a month, and a Postgres Changes payload up to 1,024 KB. Postgres Changes messages are counted
+  once per client listening to each change (5 listeners, 1 change = 5 messages). There is no overage charge on Free; the Pro plan starts at $25 a month.
+
+### CI: local Supabase and SQL tests
+
+`.github/workflows/supabase-test.yml` runs only when something under `supabase/` changes: it starts a local stack
+(`supabase start`, CLI pinned like the deploy workflow) and runs `supabase test db`, which executes the pgTAP files in
+`supabase/tests/database/`. Add new SQL tests there (`*.test.sql`). The placeholder `00_placeholder.test.sql` only checks that
+the migrations applied and pg_cron is installed. Run the same thing locally with Docker: `npx supabase start` then `npx supabase test db`.
