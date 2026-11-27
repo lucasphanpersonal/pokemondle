@@ -2,7 +2,7 @@
  * Party mode's category engine: parts, answer pools, answer checks, labels and the seeded deck dealer.
  *
  * Pure TypeScript (no React, DOM or Node APIs) so the same file can run in the browser and in the Edge Function.
- * It imports only relative files (types, partyConfig, and the seeded RNG in ../daily). The dataset is always
+ * It imports only relative files (types, partyConfig, and the seeded RNG in ../rng). The dataset is always
  * passed in, so there is one place (the caller) to swap it.
  *
  * Species: a Pokémon entry's species is its `dexNumber` (forms share it). A category's pool counts distinct
@@ -17,7 +17,7 @@ import {
   type TierId,
 } from '../../config/partyConfig.ts'
 import type { Pokemon } from '../../types/pokemon.ts'
-import { hashString, mulberry32 } from '../daily.ts'
+import { hashString, mulberry32 } from '../rng.ts'
 import type { AnswerCheck, Category, DeckEntry, FormValue, Part, PartKind, SizeValue } from './types.ts'
 
 /** Order parts are shown in: typing first, so the sentence reads "a Fire type, Stage 2". */
