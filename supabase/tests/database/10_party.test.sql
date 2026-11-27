@@ -231,6 +231,96 @@ select ok(public.party_cleanup() >= 1, 'idle room deleted');
 select is((select count(*)::int from public.party_players where room_id = (select id from r4)), 0, 'its players went with it');
 select is((select count(*)::int from public.party_rooms where id = (select id from r1)), 1, 'active rooms kept');
 
+-- -------------------------------------------------------------- deck wrap ----
+select is(public.party__deck_no(40, 1), 1, 'round 1 plays deck entry 1');
+select is(public.party__deck_no(40, 40), 40, 'round 40 plays the last entry');
+select is(public.party__deck_no(40, 41), 31, 'round 41 wraps to the last 10 entries');
+select is(public.party__deck_no(40, 50), 40, 'round 50 is the end of the loop');
+select is(public.party__deck_no(40, 51), 31, 'round 51 loops again');
+select is(public.party__deck_no(6, 7), 1, 'a deck under 10 entries loops all of it');
+select is(public.party__deck_no(6, 13), 1, 'and keeps looping');
+
+-- ------------------------------------------------------- non-turn leaving ----
+create temp table r5 as select pg_temp.mkroom(array['Red', 'Blue', 'Green', 'Yellow']) as id;
+create temp table s5 as select pg_temp.at_seat((select id from r5), 0) as t, pg_temp.at_seat((select id from r5), 1) as b,
+  pg_temp.at_seat((select id from r5), 2) as c, pg_temp.at_seat((select id from r5), 3) as d;
+create temp table dl5 as select deadline as dl from public.party_rooms where id = (select id from r5);
+select is((public.party_leave((select id from r5), (select b from s5), pg_temp.tok((select b from s5)))->>'ok')::boolean, true,
+  'a non-turn player leaves');
+select is((select gone_reason from public.party_players where id = (select b from s5)), 'left', 'marked left');
+select is(pg_temp.lives((select b from s5)), 3, 'leaving off-turn costs no life');
+select is(pg_temp.turn((select id from r5)), (select t from s5), 'turn unchanged');
+select is((pg_temp.room((select id from r5))).deadline, (select dl from dl5), 'deadline unchanged');
+select is((pg_temp.room((select id from r5))).status, 'playing', 'game goes on with three');
+select is((pg_temp.room((select id from r5))).last_event->>'kind', 'gone', 'last_event says gone');
+select is((pg_temp.ans((select id from r5), (select t from s5), 40)->>'result'), 'passed', 'turn player passes');
+select is(pg_temp.turn((select id from r5)), (select c from s5), 'the player who left is skipped');
+select is((public.party_heartbeat((select b from s5), pg_temp.tok((select b from s5)))->>'error'), 'bad_token',
+  'leaver token is dead');
+
+-- ------------------------------------------------------------------ remove ----
+create temp table h5 as select host_id as h from public.party_rooms where id = (select id from r5);
+-- Someone still in the turn order who is neither the host nor on turn.
+create temp table v5 as select p.id as v from public.party_players p
+  where p.room_id = (select id from r5) and p.gone_at is null and p.id <> (select h from h5)
+    and p.id <> pg_temp.turn((select id from r5))
+  order by p.seat limit 1;
+create temp table nh5 as select p.id as n from public.party_players p
+  where p.room_id = (select id from r5) and p.gone_at is null and p.id <> (select h from h5) order by p.seat limit 1;
+select is((public.party_remove((select id from r5), (select n from nh5), pg_temp.tok((select n from nh5)), (select h from h5))->>'error'),
+  'not_host', 'only the host can remove');
+select is((public.party_remove((select id from r5), (select h from h5), pg_temp.tok((select h from h5)), (select h from h5))->>'error'),
+  'no_player', 'the host cannot remove themself');
+select is((public.party_remove((select id from r5), (select h from h5), pg_temp.tok((select h from h5)), gen_random_uuid())->>'error'),
+  'no_player', 'unknown player');
+select is((public.party_remove((select id from r5), (select h from h5), pg_temp.tok((select h from h5)), (select v from v5))->>'ok')::boolean,
+  true, 'host removes a player');
+select is((select gone_reason from public.party_players where id = (select v from v5)), 'removed', 'marked removed');
+select is((public.party_heartbeat((select v from v5), pg_temp.tok((select v from v5)))->>'error'), 'bad_token',
+  'removed player token is dead');
+select is((public.party_remove((select id from r5), (select h from h5), pg_temp.tok((select h from h5)), (select v from v5))->>'error'),
+  'no_player', 'already removed');
+select is(public.party__active_count((select id from r5)), 2, 'two left in the turn order');
+
+-- -------------------------------------------------------------- room full ----
+create temp table r6j as select public.party_create('Oak', 2, 'easy') as j;
+create temp table r6 as select ((select j from r6j)->>'room_id')::uuid as id, ((select j from r6j)->>'player_id')::uuid as host,
+  (select j from r6j)->>'token' as tok, (select j from r6j)->>'code' as code;
+select is((select count(*)::int from generate_series(2, 8) n
+           where (public.party_join((select code from r6), 'Guest' || n)->>'ok')::boolean), 7, 'seven join (eight in the room)');
+select is((public.party_join((select code from r6), 'Guest9')->>'error'), 'room_full', 'the ninth is refused: room_full');
+select is((select count(*)::int from public.party_players where room_id = (select id from r6)), 8, 'still eight');
+
+-- --------------------------------------------------------------- settings ----
+select is((public.party_settings((select id from r6), (select host from r6), (select tok from r6), 5, 'hard')->>'ok')::boolean, true,
+  'host changes the settings');
+select is((select lives from public.party_rooms where id = (select id from r6)), 5::smallint, 'lives stored');
+select is((select start_tier from public.party_rooms where id = (select id from r6)), 'hard', 'start tier stored');
+select is((select min(lives)::int from public.party_players where room_id = (select id from r6)), 5, 'players get the new lives');
+select is((public.party_settings((select id from r6), (select host from r6), (select tok from r6), 6, 'hard')->>'error'),
+  'bad_settings', 'lives over 5 refused');
+select is((public.party_settings((select id from r6), (select host from r6), (select tok from r6), 3, 'insane')->>'error'),
+  'bad_settings', 'unknown tier refused');
+select is((public.party_settings((select id from r1), pg_temp.at_seat((select id from r3), 1), pg_temp.tok(pg_temp.at_seat((select id from r3), 1)), 3, 'easy')->>'error'),
+  'bad_token', 'a player from another room is refused');
+select is((public.party_settings((select id from r5), (select h from h5), pg_temp.tok((select h from h5)), 3, 'easy')->>'error'),
+  'not_lobby', 'settings refused during a game');
+create temp table nh6 as select p.id as n from public.party_players p
+  where p.room_id = (select id from r1) and p.gone_at is null and p.id <> (select host_id from public.party_rooms where id = (select id from r1))
+    and p.id in (select pid from ctx) limit 1;
+select is((public.party_settings((select id from r1), (select n from nh6), pg_temp.tok((select n from nh6)), 3, 'easy')->>'error'),
+  'not_host', 'settings refused for a non-host');
+
+-- ----------------------------------------------------------------- rejoin ----
+create temp table rj as select public.party_rejoin((select host from r6), (select tok from r6)) as j;
+select is(((select j from rj)->>'ok')::boolean, true, 'rejoin with the right token');
+select is(((select j from rj)->>'room_id')::uuid, (select id from r6), 'rejoin returns the room');
+select is(((select j from rj)->>'code'), (select code from r6), 'rejoin returns the code');
+select ok(not ((select j from rj) ? 'token'), 'rejoin never returns the token');
+select ok(((select j from rj)->>'server_time')::bigint > 0, 'rejoin returns the server time');
+select is((public.party_rejoin((select host from r6), repeat('f', 64))->>'error'), 'bad_token', 'rejoin with a wrong token refused');
+select is((public.party_rejoin(gen_random_uuid(), (select tok from r6))->>'error'), 'bad_token', 'rejoin as another player refused');
+
 -- -------------------------------------------------------- network caps ----
 select is(public.party_network_hit(repeat('ab', 32), 'create', 2, interval '1 hour'), true, 'first create under the cap');
 select is(public.party_network_hit(repeat('ab', 32), 'create', 2, interval '1 hour'), true, 'second create under the cap');
@@ -248,6 +338,22 @@ select ok(not has_function_privilege('anon', 'public.party_apply_answer(uuid, uu
   'anon cannot call party_apply_answer');
 select ok(not has_function_privilege('anon', 'public.party_start(uuid, uuid, text, jsonb)', 'execute'),
   'anon cannot call party_start');
+select ok(not has_function_privilege('anon', 'public.party_sweep()', 'execute'), 'anon cannot call party_sweep');
+select ok(not has_function_privilege('anon', 'public.party_cleanup(interval)', 'execute'), 'anon cannot call party_cleanup');
+select ok(not has_function_privilege('authenticated', 'public.party_sweep()', 'execute'), 'authenticated cannot call party_sweep');
+select ok(not has_function_privilege('service_role', 'public.party_cleanup(interval)', 'execute'),
+  'service_role cannot call party_cleanup (cron only)');
+select ok((select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public' and p.proname like 'party\_\_%') >= 20, 'the party__ helpers exist');
+select is((select string_agg(p.proname || '/' || r, ', ' order by p.proname, r)
+           from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           cross join unnest(array['anon', 'authenticated', 'service_role']) r
+           where n.nspname = 'public' and p.proname like 'party\_\_%' and has_function_privilege(r, p.oid, 'execute')),
+  null::text, 'no role but the owner can execute any party__ helper');
+-- Only these party_ functions are callable by anon at all.
+select is((select string_agg(p.proname, ', ' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public' and p.proname like 'party\_%' and has_function_privilege('anon', p.oid, 'execute')),
+  'party_heartbeat, party_timeout', 'anon can execute exactly party_heartbeat and party_timeout');
 select ok(has_function_privilege('anon', 'public.party_timeout(uuid, bigint)', 'execute'), 'anon can call party_timeout');
 select ok(has_function_privilege('anon', 'public.party_heartbeat(uuid, text)', 'execute'), 'anon can call party_heartbeat');
 
@@ -276,6 +382,10 @@ select throws_ok($$delete from public.party_categories$$, '42501', null, 'anon c
 select throws_ok($$update public.party_tokens set last_seen = now()$$, '42501', null, 'anon cannot update party_tokens');
 select throws_ok($$select public.party_apply_answer(gen_random_uuid(), gen_random_uuid(), '', 1, 1)$$, '42501', null,
   'anon cannot execute party_apply_answer');
+select throws_ok($$select public.party_sweep()$$, '42501', null, 'anon cannot execute party_sweep');
+select throws_ok($$select public.party_cleanup()$$, '42501', null, 'anon cannot execute party_cleanup');
+select throws_ok($$select public.party__fail(gen_random_uuid(), gen_random_uuid())$$, '42501', null,
+  'anon cannot execute a party__ helper');
 select is((public.party_heartbeat(current_setting('party.test_pid')::uuid, current_setting('party.test_tok'))->>'ok')::boolean,
   true, 'anon heartbeat with the right token works');
 select is((public.party_heartbeat(current_setting('party.test_pid')::uuid, repeat('a', 64))->>'error'), 'bad_token',

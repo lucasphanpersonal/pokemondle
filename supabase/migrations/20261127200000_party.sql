@@ -860,14 +860,18 @@ as $$
 declare
   v_p public.party_players;
 begin
-  if p_token is null or p_token !~ '^[0-9a-f]{64}$' then return public.party__err('bad_token'); end if;
-  update public.party_tokens set last_seen = now()
-  where player_id = p_player_id and token_hash = public.party__hash(p_token);
-  if not found then return public.party__err('bad_token'); end if;
+  v_p := public.party__auth(null, p_player_id, p_token);
+  if v_p.id is null then return public.party__err('bad_token'); end if;
 
-  select * into v_p from public.party_players where id = p_player_id;
+  -- Same lock order as the room functions (room row first, then player/token rows), so a comeback can't deadlock
+  -- with party_leave / party_remove / the sweep. The common case (not dropped) takes no room lock.
   if v_p.gone_reason = 'dropped' then
     perform 1 from public.party_rooms where id = v_p.room_id for update;
+  end if;
+  update public.party_tokens set last_seen = now() where player_id = p_player_id;
+  if not found then return public.party__err('bad_token'); end if;  -- token deleted meanwhile (left / removed)
+
+  if v_p.gone_reason = 'dropped' then
     select * into v_p from public.party_players where id = p_player_id;
     if v_p.gone_reason = 'dropped' and (
       v_p.seat is null or (select status from public.party_rooms where id = v_p.room_id) <> 'playing'
@@ -982,13 +986,9 @@ grant execute on function
   public.party_heartbeat(uuid, text)
   to anon, authenticated, service_role;
 
--- Schedule the jobs if pg_cron is available; never fail the migration. cron.schedule with an existing name updates it.
-do $$
-begin
-  create extension if not exists pg_cron;
-  perform cron.schedule('party-sweep', '1 seconds', 'select public.party_sweep()');
-  perform cron.schedule('party-cleanup', '7 * * * *', 'select public.party_cleanup()');
-exception when others then
-  raise notice 'pg_cron unavailable (%); schedule public.party_sweep() every second and public.party_cleanup() hourly by hand', sqlerrm;
-end;
-$$;
+-- Schedule the jobs. Unlike the analytics roll-up, Party can't work without the sweep (turns would only end when a
+-- client calls party_timeout), so a failure here fails the migration and the deploy goes red instead of leaving the
+-- live project without it. cron.schedule upserts by job name, so re-running is safe.
+create extension if not exists pg_cron;
+select cron.schedule('party-sweep', '1 seconds', 'select public.party_sweep()');
+select cron.schedule('party-cleanup', '7 * * * *', 'select public.party_cleanup()');

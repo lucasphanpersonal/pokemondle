@@ -270,6 +270,8 @@ past the end of the deck replay its last 10 entries in a loop.
   two index lookups on empty tables.
 - `party-cleanup`, hourly at :07: `party_cleanup()` deletes rooms with no action (`last_activity`) and no heartbeat for 2 hours,
   network hits older than a day, and `cron.job_run_details` rows of `party-sweep` older than an hour (otherwise 86,400 log rows a day).
+- Unlike the analytics roll-up, scheduling these is not optional: if pg_cron is missing the migration fails, so the Deploy Supabase
+  run goes red rather than leaving the live project without a sweep. `cron.schedule` upserts by job name, so re-running is safe.
 
 ### Contract for the `party` Edge Function
 
@@ -296,3 +298,8 @@ What the function must do, and what it can rely on SQL for:
    `bad_settings`, `bad_deck`, `bad_answer` 400. A thrown SQL error is a 500.
 6. **Not the function's job:** timeouts (clients call `party_timeout` at zero, cron backs them up), heartbeats (clients call
    `party_heartbeat` every 4 s; it returns `server_time` for the clock offset), and Realtime (clients subscribe to the tables).
+
+**For the client (task 6):** a `party_timeout` call made exactly when the countdown hits zero lands inside the 300 ms grace and
+returns `acted: false`. That is expected, not an error. Call it again about 400 ms after zero (pass `p_turn_no` so a late retry
+can't hit the next turn); the every-second sweep also times the turn out within about 1 s if no client does. Treat the room row
+arriving over Realtime as the result, not the call's reply.
