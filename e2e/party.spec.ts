@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test'
 // code in the address. Runs at 390px (phone) and 1280px (desktop); see playwright.config.ts.
 
 test.beforeEach(async ({ page }) => {
-  // Nothing on this page may reach the network yet (task 6 adds the room connection).
+  // Offline-safe: these tests never reach the real party server (real two-browser tests come later).
   await page.route(/supabase\.co|pokeapi\.co|raw\.githubusercontent\.com/, (r) => r.abort())
 })
 
@@ -88,7 +88,7 @@ test('the nickname is checked before hosting', async ({ page }) => {
   await name.fill('Pokémon')
   await expect(page.getByText('Use only letters, digits and spaces.')).toBeVisible()
   await name.fill('Ash')
-  // Rooms need the server (a later step): until then Host says so instead of doing nothing.
+  // Offline (server requests are blocked): Host says so instead of doing nothing.
   await page.getByRole('button', { name: 'Host a room' }).click()
   await expect(page.getByTestId('party-start-error')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
@@ -100,4 +100,22 @@ test('a code that is not one falls back to the start screen with a note', async 
   await expect(page.getByTestId('party-bad-code')).toContainText('“AEIO” isn\'t a room code')
   await expect(page.locator('[data-screen="lobby"]')).toHaveCount(0)
   await expect.poll(() => page.evaluate(() => location.hash)).toBe('')
+})
+
+test('hosting while the server is unreachable says so and stays on the start screen', async ({ page }) => {
+  await page.goto('/party/')
+  await page.getByLabel('Your name').fill('Ash')
+  await page.getByRole('button', { name: 'Host a room' }).click()
+  await expect(page.getByTestId('party-start-error')).toContainText("Can't reach the party server right now.")
+  await expect(page.locator('[data-screen="start"]')).toBeVisible()
+  expect(await page.evaluate(() => location.hash)).toBe('')
+})
+
+test('an invite link with no saved seat fills the code and joining while offline says so', async ({ page }) => {
+  await page.goto('/party/#KPZW')
+  const boxes = page.getByTestId('party-code-boxes').locator('input')
+  for (const [i, letter] of ['K', 'P', 'Z', 'W'].entries()) await expect(boxes.nth(i)).toHaveValue(letter)
+  await page.getByLabel('Your name').fill('Misty')
+  await page.getByRole('button', { name: 'Join' }).click()
+  await expect(page.getByTestId('party-start-error')).toContainText("Can't reach the party server right now.")
 })

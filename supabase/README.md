@@ -31,7 +31,7 @@ returns anything about the answer. Raw events are rolled up into `daily_totals` 
 3. The function URL is `https://<project-ref>.supabase.co/functions/v1/track`. That is the only
    value the client will need (e.g. as `VITE_TRACK_URL`). Party mode also needs `VITE_SUPABASE_URL`
    (the project URL) and `VITE_SUPABASE_ANON_KEY` (the publishable key from Project Settings → API Keys);
-   both are public and go in `.env.production` and `.env.example`. The key is still empty there until Party ships.
+   both are public and go in `.env.production` (filled in) and `.env.example` (left empty, so a local build shows Party as unavailable until you copy them).
 
 Quick smoke test (should print `204`):
 ```sh

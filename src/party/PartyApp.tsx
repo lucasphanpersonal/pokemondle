@@ -6,6 +6,7 @@ import { hashFor, parseHash, type PartyRoute } from './route.ts'
 import { LobbyScreen } from './screens/LobbyScreen.tsx'
 import { StartScreen } from './screens/StartScreen.tsx'
 import type { PartyController } from './types.ts'
+import { usePartyController } from './usePartyController.ts'
 
 /** The address for a route: this page's own path plus the room hash (none on the start screen). */
 const urlFor = (route: PartyRoute) => location.pathname + location.search + hashFor(route)
@@ -42,37 +43,19 @@ function usePartyRoute() {
   return [route, navigate] as const
 }
 
-/**
- * PLACEHOLDER for task 6 (the room connection): useParty replaces this, talking to the party Edge Function and Realtime.
- * Until then hosting and joining only say they are on the way.
- */
-function usePlaceholderParty(_route: PartyRoute): PartyController {
-  const [error, setError] = useState<string>()
-  const soon = () => setError("Rooms aren't open yet. Party is still being built.")
-  return {
-    lobby: null,
-    busy: false,
-    error,
-    host: soon,
-    join: soon,
-    changeSettings: () => {},
-    start: () => {},
-    remove: () => {},
-    leave: () => {},
-  }
-}
-
-// TEMPORARY (task 6 removes it with mock.ts): ?mock in the dev server swaps in a pretend room. Picked once, so the same
-// hook runs on every render; production builds drop the mock (import.meta.env.DEV is false there).
-const useParty: (route: PartyRoute) => PartyController =
-  import.meta.env.DEV && mockEnabled() ? useMockParty : usePlaceholderParty
+// ?mock in the dev server swaps in a pretend room (src/party/mock.ts). Picked once, so the same hook runs on every
+// render; production builds drop the mock (import.meta.env.DEV is false there).
+const useController: (route: PartyRoute) => PartyController & { inGame?: boolean } =
+  import.meta.env.DEV && mockEnabled()
+    ? useMockParty
+    : (route) => usePartyController(route.screen === 'room' ? route.code : null)
 
 export function PartyApp() {
   const [route, navigate] = usePartyRoute()
   const [showHelp, setShowHelp] = useState(false)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const shownTitle = useRef<string | null>(null)
-  const party = useParty(route)
+  const party = useController(route)
   const lobby = party.lobby
   const inLobby = lobby !== null && route.screen === 'room' && route.code === lobby.code
   const title = route.screen === 'room' ? `Room ${route.code} · Pokémondle Party` : 'Pokémondle Party'
@@ -98,7 +81,18 @@ export function PartyApp() {
     <div className="flex min-h-dvh flex-col">
       <PartyHeader onHelp={() => setShowHelp(true)} />
       <main className={`mx-auto flex w-full flex-col gap-4 px-3 py-4 sm:px-5 sm:py-6 ${inLobby ? 'max-w-md md:max-w-3xl' : 'max-w-md'}`}>
-        {inLobby ? (
+        {inLobby && party.inGame ? (
+          // PLACEHOLDER for task 10 (the game screen).
+          <section className="ds-box flex flex-col gap-3 px-4 py-4 tx-10 leading-5 sm:px-5" aria-labelledby="party-game-title" data-screen="game">
+            <h2 id="party-game-title" ref={headingRef} tabIndex={-1} className="tx-11 leading-5 outline-none">
+              Room {lobby.code}
+            </h2>
+            <p>The game screen is on the way.</p>
+            <button type="button" onClick={() => { party.leave(); navigate({ screen: 'start' }) }} className="ds-button bevel-paper h-11 px-4 text-[10px] text-ds-ink">
+              Leave
+            </button>
+          </section>
+        ) : inLobby ? (
           <LobbyScreen
             view={lobby}
             busy={party.busy}
