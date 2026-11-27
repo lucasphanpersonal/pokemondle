@@ -25,11 +25,20 @@ npm run font       # rebuild the ♀/♂ pixel font (needs Python 3: pip install
 Party, the multiplayer mode, is being built on its own page at `/party/` (`party/index.html`, a second Vite entry). For
 now nothing in the main game links to it, and it carries `noindex`, so only people with the address reach it. To work
 on it locally, run `npm run dev` and open http://localhost:5173/party/ (or `npm run build && npm run preview`, then
-http://localhost:4173/party/). A room code rides in the address: `/party/#KPZW` opens room KPZW (4 letters from 20, no
+http://localhost:4173/party/). A room code rides in the address: `/party/#KPZW` is room KPZW (4 letters from 20, no
 vowels and no L; lower case is accepted), and anything else falls back to the start screen with a note. The page has its
-own small header (the Pokémondle title links home, a Party label and its own Help). Its start and room screens are
-still plain working placeholders (host or join, a player list, Start); the designed screens and the game come in later
-pull requests.
+own small header (the Pokémondle title links home, a Party label and its own Help).
+
+The **start screen** has a nickname box (1 to 12 letters, digits and spaces, remembered in
+`localStorage['pokemondle:party-name']`), a red Host a room, and four letter boxes for a code with Join (only the 20 code
+letters go in; typing moves on, Backspace goes back, and pasting a code or a whole invite link fills all four). An invite
+link (`/party/#KPZW`) fills the boxes and makes Join the red action instead. The **lobby** shows the code big, Copy invite
+link, the players in join order (starter sprite, name, host crown, online or away, a remove button for the host), the host's
+settings (starting lives 1 to 5, starting tier) and Start (host only, from 2 players) and Leave. Both screens are
+presentational (`src/party/screens/`, driven by the view model in `src/party/types.ts`) and `usePartyController.ts` feeds them from the room connection. In the dev server, `?mock` swaps in a pretend room so the screens can be
+tried: `/party/?mock` (Host or Join make a room), `/party/?mock=lobby&players=8#KPZW` (straight to a lobby; also
+`&as=guest`, `&status=playing`, `&away=1`, `&error=...`, `&busy=1`; see `src/party/mock.ts`). Production builds leave the
+mock out. The game screen itself comes in a later pull request (while a game runs the page shows a placeholder).
 
 **How the page connects to a room** (`src/party/`). Actions (host, join, rejoin, settings, start, answer, remove, leave,
 play again) are `POST`s to the `party` Edge Function (`api.ts`). The room's state comes from Supabase Realtime: when a
@@ -48,9 +57,9 @@ once more about 400 ms later (the first call usually lands inside the server's 3
 
 ```
 e2e/smoke.spec.ts             Playwright browser smoke test (load, guess, win, mode switch, Endless Gens at 390px and 1280px)
-e2e/party.spec.ts             Playwright smoke test of the Party page (noindex, header, Help, #CODE routing, Leave and Back)
+e2e/party.spec.ts             Playwright smoke test of the Party page (noindex, header, Help, #CODE routing, code boxes, nickname check)
 party/index.html              the Party page (second Vite entry, served at /party/, noindex)
-src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (screens; start and room are plain placeholders for now), PartyHeader, PartyHelpModal, route.ts (the #CODE route), and the room connection: api.ts (Edge Function and RPC wrappers), client.ts (lazy supabase-js, snapshot, Realtime), state.ts (room reducer and selectors), clock.ts (server clock offset), session.ts (the saved seat), useParty.ts (the hook); all tested except the hook and client
+src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (picks the screen), screens/ (StartScreen, LobbyScreen), types.ts (lobby view model and the PartyController the room connection implements), codeBoxes.ts and nickname.ts (tested), mock.ts (dev-only pretend room), usePartyController.ts (maps the room connection to the screens), and the room connection: api.ts (Edge Function and RPC wrappers), client.ts (lazy supabase-js, snapshot, Realtime), state.ts (room reducer and selectors), clock.ts (server clock offset), session.ts (the saved seat), useParty.ts (the hook), PartyHeader, PartyHelpModal, route.ts (the #CODE route and invite link, tested)
 scripts/fetchPokemonData.ts   builds the local Pokémon dataset from PokéAPI
 scripts/makeIcons.ts          builds the tab icon, home-screen icons and manifest icons from the pixel Poké Ball
 scripts/icons/pokeball.txt    the hand-drawn Poké Ball (16x16 and 32x32 grids, one letter per colour); its 16x16 grid is also drawn in-game, at 1x, by CaptureScene and PixelBall (the board's guess count)
@@ -377,7 +386,7 @@ Set any of them to `false` in `src/config/gameConfig.ts` to remove them from the
 The app is a fully static site. The build uses relative asset paths (Vite `base: './'`), so the same
 `dist/` works at a domain root and under a sub-path. It has two pages: `dist/index.html` (the game) and
 `dist/party/index.html` (Party, at `/party/`). Each has its own entry script in `dist/assets/`; what both use (React, the
-styles, the dialog) is in one `shared-*` chunk, so Party code never adds to the game's download.
+styles, the dialog, the Pokémon dataset and sprites) is in one `shared-*` chunk, so Party code never adds to the game's download.
 
 ### pokemondle.io (main site)
 

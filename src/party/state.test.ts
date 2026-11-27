@@ -309,3 +309,13 @@ describe('selectors', () => {
     expect(secondsLeft(room(), 0, 0)).toBeNull()
   })
 })
+
+describe("snapshot vs newer events", () => {
+  it("keeps a newer room row that arrived before an older snapshot", () => {
+    const old = playingRoom({ turn_no: 5, last_activity: "2026-11-27T10:00:00.000Z" })
+    let s = run(initialPartyState(ROOM), snap({ room: old }))
+    s = run(s, change("party_rooms", "UPDATE", playingRoom({ turn_no: 6, last_activity: "2026-11-27T10:00:09.000Z" })))
+    s = run(s, snap({ room: old }))
+    expect(s.room?.turn_no).toBe(6)
+  })
+})

@@ -167,7 +167,9 @@ export function partyReducer(state: PartyState, action: PartyAction): PartyState
       for (const c of action.categories) if (c.room_id === action.roomId) categories[categoryKey(c)] = c
       const answers: Record<string, AnswerRow> = {}
       for (const a of action.answers) if (a.room_id === action.roomId) answers[String(a.id)] = a
-      return prune({ roomId: action.roomId, room: action.room, players, categories, answers })
+      // A room event that already arrived may be newer than a snapshot read just before it.
+      const room = state.roomId === action.roomId && state.room && action.room && isStaleRoom(state.room, action.room) ? state.room : action.room
+      return prune({ roomId: action.roomId, room, players, categories, answers })
     }
     case 'change':
       return applyChange(state, action)

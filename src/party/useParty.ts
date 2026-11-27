@@ -79,7 +79,7 @@ export function useParty(routeCode: string | null) {
   }, [setSession])
 
   // The seat that matches the room in the address (a seat for another room is kept but not used).
-  const active = session && routeCode !== null && session.code === routeCode ? session : null
+  const active = session && (routeCode === null || session.code === routeCode) ? session : null
 
   // 1. On load (or when the address changes to a room we hold a stored seat for), rejoin with the stored token.
   useEffect(() => {
@@ -197,7 +197,7 @@ export function useParty(routeCode: string | null) {
         retry = setTimeout(() => {
           const r = stateRef.current.room
           if (r?.status === 'playing' && r.turn_no === turnNo) ask()
-        }, TIMEOUT_RETRY_MS)
+        }, TIMEOUT_RETRY_MS + Math.random() * 50)
       },
       Math.max(0, at - Date.now()),
     )
@@ -210,12 +210,6 @@ export function useParty(routeCode: string | null) {
   // ------------------------------------------------------------------------------------------ actions ----
 
   const unavailable = useCallback(async (): Promise<ApiResult<never>> => ({ ok: false, error: 'network', status: 0 }), [])
-
-  /** Best-effort leave of a seat we are replacing. */
-  const dropOldSeat = useCallback(() => {
-    const old = sessionRef.current
-    if (old && api) void api.leave(old)
-  }, [api])
 
   const adopt = useCallback(
     (res: ApiResult<JoinedReply>) => {
@@ -233,10 +227,13 @@ export function useParty(routeCode: string | null) {
   const host = useCallback(
     async (nickname: string, options: HostOptions = {}) => {
       if (!api) return unavailable()
-      dropOldSeat()
-      return adopt(await api.create({ nickname, ...options }))
+      const old = sessionRef.current
+      const res = await api.create({ nickname, ...options })
+      // Free the seat we are replacing only once the new one exists (a failed create must not cost the old seat).
+      if (res.ok && old) void api.leave(old)
+      return adopt(res)
     },
-    [api, adopt, dropOldSeat, unavailable],
+    [api, adopt, unavailable],
   )
 
   const join = useCallback(
@@ -244,7 +241,8 @@ export function useParty(routeCode: string | null) {
       if (!api) return unavailable()
       const old = sessionRef.current
       const res = await api.join({ code, nickname })
-      if (res.ok && old && old.room_id !== res.room_id) void api.leave(old)
+      // Joining the same room again makes a new player, so the old one would be a ghost: leave it too.
+      if (res.ok && old) void api.leave(old)
       return adopt(res)
     },
     [api, adopt, unavailable],
