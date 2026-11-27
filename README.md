@@ -20,16 +20,29 @@ npm run icons      # rebuild the site icons in public/ from scripts/icons/pokeba
 npm run font       # rebuild the ♀/♂ pixel font (needs Python 3: pip install fonttools brotli)
 ```
 
+### The Party page (in progress)
+
+Party, the multiplayer mode, is being built on its own page at `/party/` (`party/index.html`, a second Vite entry). For
+now nothing in the main game links to it, and it carries `noindex`, so only people with the address reach it. To work
+on it locally, run `npm run dev` and open http://localhost:5173/party/ (or `npm run build && npm run preview`, then
+http://localhost:4173/party/). A room code rides in the address: `/party/#KPZW` opens room KPZW (4 letters from 20, no
+vowels and no L; lower case is accepted), and anything else falls back to the start screen with a note. The page has its
+own small header (the Pokémondle title links home, a Party label and its own Help), and so far only placeholder start
+and room screens: hosting, joining and the game itself come in later pull requests.
+
 ## Project layout
 
 ```
 e2e/smoke.spec.ts             Playwright browser smoke test (load, guess, win, mode switch, Endless Gens at 390px and 1280px)
+e2e/party.spec.ts             Playwright smoke test of the Party page (noindex, header, Help, #CODE routing, Leave and Back)
+party/index.html              the Party page (second Vite entry, served at /party/, noindex)
+src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (screens; start and room are placeholders for now), PartyHeader, PartyHelpModal, route.ts (the #CODE route, tested)
 scripts/fetchPokemonData.ts   builds the local Pokémon dataset from PokéAPI
 scripts/makeIcons.ts          builds the tab icon, home-screen icons and manifest icons from the pixel Poké Ball
 scripts/icons/pokeball.txt    the hand-drawn Poké Ball (16x16 and 32x32 grids, one letter per colour); its 16x16 grid is also drawn in-game, at 1x, by CaptureScene and PixelBall (the board's guess count)
 src/lib/pokeballArt.ts        its palette and parser, shared by makeIcons.ts, the catch/escape scene and PixelBall (plus the pixel star)
 public/                       favicon.ico, apple-touch-icon.png, manifest.json and its icons (generated, committed)
-src/components/               Header, SearchBar, GuessGrid, FeedbackRow, ResultModal, HistoryModal, HelpModal, GiveUpModal, GensModal, HintPrompt, SideTabs (TypeTracker, HintPanel), Modal, and pixel icons (PixelBall, PixelBulb, PixelGear)
+src/components/               Header, SearchBar, GuessGrid, FeedbackRow, ResultModal, HistoryModal, HelpModal (its Display & sound section and fan-project note are in HelpSections, shared with Party's Help), GiveUpModal, GensModal, HintPrompt, SideTabs (TypeTracker, HintPanel), Modal, and pixel icons (PixelBall, PixelBulb, PixelGear)
 src/hooks/usePokemondle.ts    game state (target, guesses, status), saved to localStorage (answer id scrambled, see below)
 src/lib/history.ts            Daily history (solved and given up), streak maths, Endless stats and recent Endless games (pure, tested)
 src/hooks/useAnalytics.ts     wraps guesses with anonymous analytics
@@ -40,7 +53,7 @@ src/hooks/useTypeNotes.ts     the Type tracker's marks for the game on screen; t
 src/lib/                      dataset + search, Pokédex entry fetch (dexEntry.ts), comparison, daily seed, game rules, Endless Gen filter (gens.ts), sound, storage, display settings (display.ts: CRT, Larger text), tile text fitting (tileText.ts), phone card layout (cardLayout.ts), side panel open state (sidePanel.ts)
 src/config/gameConfig.ts      game settings, including which form categories are enabled
 src/config/uiConfig.ts        tile animation timing
-src/config/partyConfig.ts     Party mode numbers: tiers, seconds per turn, lives, pool rules, grace, deck size
+src/config/partyConfig.ts     Party mode numbers: tiers, seconds per turn, lives, pool rules, grace, deck size, room code letters
 src/lib/party/categories.ts   Party category engine (pure, shared with the Edge Function later): parts, species pools, answer check, labels, seeded deck dealer; tested in categories.test.ts
 src/lib/rng.ts                 seeded hash and PRNG (hashString, mulberry32), used by daily.ts and the Party engine
 scripts/syncPartyShared.ts     npm run party:sync: copies the engine (src/lib/party, src/lib/rng.ts, src/config/partyConfig.ts, src/types/pokemon.ts) and a slim dataset into supabase/functions/_shared/party/; scripts/lib/partyShared.ts builds the copies (pure, tested via src/lib/party/sharedDrift.test.ts)
@@ -345,7 +358,9 @@ Set any of them to `false` in `src/config/gameConfig.ts` to remove them from the
 ## Deploying
 
 The app is a fully static site. The build uses relative asset paths (Vite `base: './'`), so the same
-`dist/` works at a domain root and under a sub-path.
+`dist/` works at a domain root and under a sub-path. It has two pages: `dist/index.html` (the game) and
+`dist/party/index.html` (Party, at `/party/`). Each has its own entry script in `dist/assets/`; what both use (React, the
+styles, the dialog) is in one `shared-*` chunk, so Party code never adds to the game's download.
 
 ### pokemondle.io (main site)
 
@@ -363,6 +378,7 @@ home IP stays hidden. Everything lives in `deploy/`:
 Merging to `main` is all a release takes. `deploy.yml` publishes the build, once lint and tests have passed, as `site.zip` on the
 rolling `site-latest` GitHub release, and the PC picks it up within 5 minutes, checking the file's SHA-256 before switching over.
 The PC never runs `npm` or builds anything. Logs are in `C:\ProgramData\Pokemondle\logs`.
+Caddy's `file_server` serves `party/index.html` at `/party/` and redirects `/party` to `/party/`; the Caddyfile marks both pages `no-cache`, like the main page.
 After changing `deploy/Caddyfile` or `deploy/cloudflared.yml`, run `install.ps1` again to apply them, because merges only deliver the site.
 The Caddyfile's CSP `connect-src` allows the Supabase project's `https://` and `wss://` origins (Party uses Realtime over `wss://`). **After the Party security-header PR merges, rerun `deploy/windows/install.ps1` on the Basement PC once**, or the new header never goes live.
 
@@ -377,6 +393,7 @@ in `cloudflared.yml` and `install.ps1` and those two records, then run the insta
 `.github/workflows/deploy.yml` also publishes `dist/` to GitHub Pages on every push to `main`
 (or manually from the Actions tab), at https://lucasphanpersonal.github.io/pokemondle/. Saved games and stats are stored per site,
 so progress on this address does not carry over to pokemondle.io. GitHub Pages cannot set the security headers above.
+Party is at https://lucasphanpersonal.github.io/pokemondle/party/ there (GitHub Pages also serves a folder's `index.html`).
 
 One-time setup: in the repo's **Settings → Pages → Build and deployment**, set **Source** to
 **GitHub Actions**. GitHub Pages needs the repository to be public on a free plan.

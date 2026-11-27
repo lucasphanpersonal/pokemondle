@@ -31,6 +31,12 @@ export const PARTY_TIERS: readonly TierConfig[] = [
 ]
 
 export const PARTY_CONFIG = {
+  /**
+   * Room codes: 4 letters from these 20 (no vowels, so a code can't spell a word, and no L, which reads like 1),
+   * about 160,000 codes. The code rides in the page address (pokemondle.io/party/#KPZW).
+   */
+  roomCodeAlphabet: 'BCDFGHJKMNPQRSTVWXYZ',
+  roomCodeLength: 4,
   /** Room size. */
   minPlayers: 2,
   maxPlayers: 8,
