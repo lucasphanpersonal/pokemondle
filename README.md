@@ -302,6 +302,9 @@ Merging to `main` is all a release takes. `deploy.yml` publishes the build, once
 rolling `site-latest` GitHub release, and the PC picks it up within 5 minutes, checking the file's SHA-256 before switching over.
 The PC never runs `npm` or builds anything. Logs are in `C:\ProgramData\Pokemondle\logs`.
 After changing `deploy/Caddyfile` or `deploy/cloudflared.yml`, run `install.ps1` again to apply them, because merges only deliver the site.
+The Caddyfile's CSP `connect-src` allows the Supabase project's `https://` and `wss://` origins (Party uses Realtime over `wss://`). **After the Party security-header PR merges, rerun `deploy/windows/install.ps1` on the Basement PC once**, or the new header never goes live.
+
+Build-time public config lives in `.env.production` (copied from `.env.example` for local work): `VITE_TRACK_URL` (analytics), `VITE_SUPABASE_URL` (the project URL) and `VITE_SUPABASE_ANON_KEY` (the Supabase publishable key, public by design, from Project Settings → API Keys). The anon key is left empty until Party ships, so fill it in before then.
 
 The Cloudflare side is two proxied CNAME records, `@` and `www`, pointing at `<tunnel-id>.cfargotunnel.com`, plus
 Web Analytics switched on for the site. To move to another machine, run `cloudflared tunnel create`, update the tunnel id
