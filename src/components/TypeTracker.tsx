@@ -121,8 +121,10 @@ export function TypeTrackerDrawer({ ruledOut, onToggle, onClear }: TypeTrackerPr
           aria-label="Types: open the type tracker"
           aria-expanded="false"
           title="Type tracker"
-          // A narrow tab (36 px wide) so it barely covers the board's right edge; the letters are stacked, upright.
-          className="ds-button bevel-paper flex w-9 flex-col items-center justify-center gap-1.5 py-3 text-[9px] leading-none text-ds-ink"
+          // A narrow tab (--tab-w: 30 px, 28 px under 360 px) with the letters stacked, upright, keeping design rule 4's
+          // 10 px from the tab's edges (6 px bevel + 4 px air). The page's right padding makes room for it
+          // (.page-gutter in index.css), so the tab never covers the board.
+          className="ds-button bevel-paper flex w-[var(--tab-w)] flex-col items-center justify-center gap-1.5 py-3 text-[9px] max-[360px]:text-[8px] leading-none text-ds-ink"
         >
           <span aria-hidden="true">◀</span>
           {'TYPES'.split('').map((letter, i) => (

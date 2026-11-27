@@ -120,9 +120,14 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   is struck through (a drawn line through the middle of the capitals, `.type-struck`, since CSS line-through sits low in
   the pixel font), so it never relies on colour alone.
   It sits off to the side so it never crowds the game: on every screen size a narrow **◀ TYPES** tab on the right edge
-  of the screen (36 px wide, vertically centred) slides out a panel with the 18 types in three columns, **Clear** and a
+  of the screen (vertically centred; 30 px wide, 28 px with 8 px letters under 360 px, so its letters keep design rule 4's 10 px from its edges) slides out a panel with the 18 types in three columns, **Clear** and a
   close button (Esc also closes it). The panel isn't a dialog: on wider screens the page stays usable beside it (on phones it covers the page until closed).
-  Closed, the tab overlaps the right edge of the board by up to 24 px at mid-height; the page scrolls under it. Marks belong to one game: they are saved per mode with that game's
+  Closed, the tab never covers the board: wherever the screen has no spare margin beside the page, the page's right
+  padding grows to the tab's width plus a 4 px gap (2 px under 360 px), `.page-gutter` and `--tab-w` in
+  `src/index.css`, used by the page and the Give up footer. Only the right side grows: the tab fills that space, so the
+  page still looks balanced, and the board keeps as much width as it can. From about 1310 px the screen's own margin
+  is wide enough and the padding is the usual 20 px again. The search box's placeholder drops to 9 px under 420 px and
+  8 px under 380 px so it still fits. Marks belong to one game: they are saved per mode with that game's
   key in `localStorage['pokemondle:type-notes']` (`{ daily: { key, out }, endless: { key, out } }`), so a refresh keeps
   them and a new Daily or a new Endless Pokémon starts with none.
 - **Pokédex numbers**: every guess shows its National Dex number (`#025`) as a display-only label (beside the name on phone cards, in the top-right corner of the table's Pokémon tile),
@@ -222,7 +227,12 @@ Older plain saves are still read.
 
 ### Layout on different devices
 
-- Desktop and large tablet (≥ 1024 px, or ≥ 1280 px with Larger text): all ten columns fit on screen. From 1024 px the page fills the screen, up to 1280 px wide (an iPad in landscape at 1180 px gets the full 1180 px), so desktop tiles get the room to keep their text at full size. The Pokémon tile centres its sprite above the name (the pair centred in the tile, like the text in the other tiles), with the Pokédex number in the top-right corner where the other tiles show their result mark.
+- Desktop and large tablet (≥ 1024 px, or ≥ 1280 px with Larger text): all ten columns fit on screen. From 1024 px the page fills the screen, up to 1280 px wide (an iPad in landscape at 1180 px gets all of it but the Type tracker tab's 34 px on the right), so desktop tiles get the room to keep their text at full size. The Pokémon tile centres its sprite above the name (the pair centred in the tile, like the text in the other tiles), with the Pokédex number in the top-right corner where the other tiles show their result mark.
+- **Sprites on the board** are cut to a square around the Pokémon, at least 40 sprite pixels across, before they are
+  scaled (`croppedSprite` in `src/lib/pixelate.ts`, the `crop` option of `SpriteImg`). PokéAPI sprites draw a small
+  Pokémon such as Ditto or Joltik in a third of their 96x96 frame, so it used to come out about 9 px tall in the
+  table's 30 px slot; now it fills most of it. Big Pokémon still scale down to fit, small ones stay a little smaller
+  than big ones, and in the phone card's 40 px slot a small Pokémon is drawn at exactly 1:1.
 - Phones and tablets under 1024 px (1280 px with Larger text): no sideways scrolling. Each guess is a compact card: sprite and name on top, then the
   comparison tiles in two rows (three wider tiles: Type 1, Type 2, Height; then four: Weight, Color, Evolution, Form) and full-width Egg Group and Shared Ability strips,
   with a small key above the list laid out in the same two rows as the tiles (rows of three under 640 px with Larger text, where the Form tile gets a full-width row of its own and labels itself "Form: Base" like the strips, so the key leaves it out; `cardTileSpan` in `src/lib/cardLayout.ts` sets the spans for both). The Egg Group and Ability strips keep 18 px of padding on each side so their text never runs into the ✓/✗ corner mark. The search box uses 16 px text so iOS doesn't
@@ -253,7 +263,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
 
 1. **One bevel for everything.** Every button, toggle and guess tile uses the shared `.bevel` style in
    `src/index.css` (`.ds-button` includes it): 2px dark outline, 6px light top edge, 6px dark bottom edge, 4px shaded
-   sides. Pick the face colour with `.bevel-paper` (white), `.bevel-red`, `.bevel-green`, or `data-result` on tiles (the Type tracker's toggles set `--face` to their type colour; its side tab is 36 px wide, not 44, so it covers less of the board).
+   sides. Pick the face colour with `.bevel-paper` (white), `.bevel-red`, `.bevel-green`, or `data-result` on tiles (the Type tracker's toggles set `--face` to their type colour; its side tab is 30 px wide, not 44, so the room the page leaves for it stays small).
    Never hand-roll a `box-shadow` or `border` bevel on a single control. A dialog's close button is a 44px
    `.ds-button bevel-paper` square holding the pixel-art cross (`ResultMark` drawn at 2px per art pixel), like the
    header's ? button. The exceptions are the small on/off switch graphics in Help, which are not menu buttons, and the Endless
@@ -268,7 +278,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    4px of air). Guess tiles shrink long words to fit (`.tile-fit`, down to 7px, or 9px with Larger text); only a word that
    can't fit on one line even at 7px wraps at a soft hyphen (`src/lib/tileText.ts`), rather than run edge to edge. The
    table's columns leave room for every common word on one line ("Regional", "Undiscovered"), and the Form tile says
-   "G-Max" for Gigantamax, so a hyphen split is now rare (on phones narrower than about 385px, "Regional" and "Cosmetic" still split, and in a 1024 px table the abilities "Proto-synthesis" and "Electro-morphosis"). Multi-line tiles are also sized by
+   "G-Max" for Gigantamax, so a hyphen split is now rare (on phones narrower than about 405px, "Regional" and "Cosmetic" still split, and in a 1024 px table the abilities "Proto-synthesis" and "Electro-morphosis"). Multi-line tiles are also sized by
    line count so nothing is cut off: the table's Pokémon name gets up to 3 lines under its centred sprite
    (the sprite shrinks, from 30px, to the room the name leaves, so it never crosses the bevel), and Shared Ability up to
    4 lines at 9px or 5 at 8px (`lineChars` in `tileText.ts`). The table's Shared Ability column uses one size for every
