@@ -15,6 +15,7 @@ npm run test       # unit tests
 npm run test:e2e   # browser smoke test (Playwright; first run: npx playwright install chromium)
 npm run fetch-data # rebuild src/data/pokemon.json from PokéAPI
 npm run party-stats # print the Party category pool numbers (developer tool)
+npm run party:sync # copy the Party category engine and a slim dataset into supabase/functions/_shared/party/ (run after editing them; the test fails until you do)
 npm run icons      # rebuild the site icons in public/ from scripts/icons/pokeball.txt
 npm run font       # rebuild the ♀/♂ pixel font (needs Python 3: pip install fonttools brotli)
 ```
@@ -41,6 +42,9 @@ src/config/gameConfig.ts      game settings, including which form categories are
 src/config/uiConfig.ts        tile animation timing
 src/config/partyConfig.ts     Party mode numbers: tiers, seconds per turn, lives, pool rules, grace, deck size
 src/lib/party/categories.ts   Party category engine (pure, shared with the Edge Function later): parts, species pools, answer check, labels, seeded deck dealer; tested in categories.test.ts
+src/lib/rng.ts                 seeded hash and PRNG (hashString, mulberry32), used by daily.ts and the Party engine
+scripts/syncPartyShared.ts     npm run party:sync: copies the engine (src/lib/party, src/lib/rng.ts, src/config/partyConfig.ts, src/types/pokemon.ts) and a slim dataset into supabase/functions/_shared/party/; scripts/lib/partyShared.ts builds the copies (pure, tested via src/lib/party/sharedDrift.test.ts)
+supabase/functions/_shared/party/  generated server copy of the Party engine and pokemon.json (do not edit; run npm run party:sync)
 src/data/pokemon.json         generated dataset (committed, so the app needs no API at runtime)
 ```
 

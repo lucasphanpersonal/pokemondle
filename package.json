@@ -13,6 +13,7 @@
     "test:e2e": "npm run build && playwright test",
     "icons": "tsx scripts/makeIcons.ts",
     "party-stats": "tsx scripts/partyStats.ts",
+    "party:sync": "tsx scripts/syncPartyShared.ts",
     "font": "python3 scripts/makeSymbolFont.py"
   },
   "dependencies": {
