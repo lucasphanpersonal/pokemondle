@@ -54,3 +54,4 @@ jobs:
       - run: supabase secrets set ALLOWED_ORIGINS="$ALLOWED_ORIGINS" --yes
       - run: supabase functions deploy track --no-verify-jwt --yes
       - run: supabase functions deploy stats --no-verify-jwt --yes
+      - run: supabase functions deploy party --no-verify-jwt --yes
