@@ -27,8 +27,22 @@ now nothing in the main game links to it, and it carries `noindex`, so only peop
 on it locally, run `npm run dev` and open http://localhost:5173/party/ (or `npm run build && npm run preview`, then
 http://localhost:4173/party/). A room code rides in the address: `/party/#KPZW` opens room KPZW (4 letters from 20, no
 vowels and no L; lower case is accepted), and anything else falls back to the start screen with a note. The page has its
-own small header (the Pokémondle title links home, a Party label and its own Help), and so far only placeholder start
-and room screens: hosting, joining and the game itself come in later pull requests.
+own small header (the Pokémondle title links home, a Party label and its own Help). Its start and room screens are
+still plain working placeholders (host or join, a player list, Start); the designed screens and the game come in later
+pull requests.
+
+**How the page connects to a room** (`src/party/`). Actions (host, join, rejoin, settings, start, answer, remove, leave,
+play again) are `POST`s to the `party` Edge Function (`api.ts`). The room's state comes from Supabase Realtime: when a
+room opens, `@supabase/supabase-js` is loaded with a dynamic import (`client.ts`, its own chunk, so the game's bundle
+doesn't grow), the page reads the room's rows with selects (anon may select the four public tables), subscribes to
+Postgres Changes filtered by the room id, and reads the rows again on every (re)subscribe, so a dropped connection heals
+itself. `state.ts` is a pure reducer over those rows (idempotent, tolerant of out-of-order events, ignores rows of other
+games) plus selectors. The player's seat (`code`, `room_id`, `player_id`, secret `token`) is kept in
+`localStorage['pokemondle:party']`, and a reload on the same `#CODE` rejoins with it. While in a room the page calls
+`party_heartbeat` every 4 s, estimates the server clock from every reply's `server_time` (`clock.ts`, smallest round trip
+wins) so the countdown matches on every screen, and when the countdown reaches zero calls `party_timeout(room, turn_no)`,
+once more about 400 ms later (the first call usually lands inside the server's 300 ms grace). With
+`VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY` empty the page says Party isn't available and never creates a client.
 
 ## Project layout
 
@@ -36,7 +50,7 @@ and room screens: hosting, joining and the game itself come in later pull reques
 e2e/smoke.spec.ts             Playwright browser smoke test (load, guess, win, mode switch, Endless Gens at 390px and 1280px)
 e2e/party.spec.ts             Playwright smoke test of the Party page (noindex, header, Help, #CODE routing, Leave and Back)
 party/index.html              the Party page (second Vite entry, served at /party/, noindex)
-src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (screens; start and room are placeholders for now), PartyHeader, PartyHelpModal, route.ts (the #CODE route, tested)
+src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (screens; start and room are plain placeholders for now), PartyHeader, PartyHelpModal, route.ts (the #CODE route), and the room connection: api.ts (Edge Function and RPC wrappers), client.ts (lazy supabase-js, snapshot, Realtime), state.ts (room reducer and selectors), clock.ts (server clock offset), session.ts (the saved seat), useParty.ts (the hook); all tested except the hook and client
 scripts/fetchPokemonData.ts   builds the local Pokémon dataset from PokéAPI
 scripts/makeIcons.ts          builds the tab icon, home-screen icons and manifest icons from the pixel Poké Ball
 scripts/icons/pokeball.txt    the hand-drawn Poké Ball (16x16 and 32x32 grids, one letter per colour); its 16x16 grid is also drawn in-game, at 1x, by CaptureScene and PixelBall (the board's guess count)
@@ -385,7 +399,7 @@ Caddy's `file_server` serves `party/index.html` at `/party/` and redirects `/par
 After changing `deploy/Caddyfile` or `deploy/cloudflared.yml`, run `install.ps1` again to apply them, because merges only deliver the site.
 The Caddyfile's CSP `connect-src` allows the Supabase project's `https://` and `wss://` origins (Party uses Realtime over `wss://`). **After the Party security-header PR merges, rerun `deploy/windows/install.ps1` on the Basement PC once**, or the new header never goes live.
 
-Build-time public config lives in `.env.production` (copied from `.env.example` for local work): `VITE_TRACK_URL` (analytics), `VITE_SUPABASE_URL` (the project URL) and `VITE_SUPABASE_ANON_KEY` (the Supabase publishable key, public by design, from Project Settings → API Keys). The anon key is left empty until Party ships, so fill it in before then.
+Build-time public config lives in `.env.production` (copied from `.env.example` for local work): `VITE_TRACK_URL` (analytics), `VITE_SUPABASE_URL` (the project URL) and `VITE_SUPABASE_ANON_KEY` (the Supabase publishable key, public by design, from Project Settings → API Keys). The key is filled in in `.env.production` (`.env.example` leaves it empty for local work, which makes Party show as unavailable until you copy the key there).
 
 The Cloudflare side is two proxied CNAME records, `@` and `www`, pointing at `<tunnel-id>.cfargotunnel.com`, plus
 Web Analytics switched on for the site. To move to another machine, run `cloudflared tunnel create`, update the tunnel id

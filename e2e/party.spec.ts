@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test'
 // code in the address. Runs at 390px (phone) and 1280px (desktop); see playwright.config.ts.
 
 test.beforeEach(async ({ page }) => {
-  // Nothing on this page may reach the network yet (task 6 adds the room connection).
+  // Offline-safe: these tests never reach the real party server (real two-browser tests come later).
   await page.route(/supabase\.co|pokeapi\.co|raw\.githubusercontent\.com/, (r) => r.abort())
 })
 
@@ -59,4 +59,19 @@ test('a code that is not one falls back to the start screen with a note', async 
   await expect(page.getByTestId('party-bad-code')).toContainText('“AEIO” isn\'t a room code')
   await expect(page.locator('[data-screen="room"]')).toHaveCount(0)
   await expect.poll(() => page.evaluate(() => location.hash)).toBe('')
+})
+
+test('hosting while the server is unreachable says so and stays on the start screen', async ({ page }) => {
+  await page.goto('/party/')
+  await page.getByLabel('Nickname').fill('Ash')
+  await page.getByRole('button', { name: 'Host a room' }).click()
+  await expect(page.getByTestId('party-problem')).toHaveText("Can't reach the party server right now.")
+  await expect(page.locator('[data-screen="start"]')).toBeVisible()
+  expect(await page.evaluate(() => location.hash)).toBe('')
+})
+
+test('a room link with no saved seat asks for a nickname', async ({ page }) => {
+  await page.goto('/party/#KPZW')
+  await expect(page.getByRole('button', { name: 'Join room' })).toBeVisible()
+  await expect(page.getByLabel('Nickname')).toBeVisible()
 })
