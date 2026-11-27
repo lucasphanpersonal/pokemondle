@@ -1,0 +1,24 @@
+# Starts a local Supabase stack and runs the pgTAP tests in supabase/tests/database/.
+# Runs only when something under supabase/ changes. No secrets, never touches the live project.
+name: Supabase tests
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/supabase-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  supabase-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 3.1.0
+      - run: supabase start -x studio,imgproxy,vector,logflare,mailpit,supavisor
+      - run: supabase test db
