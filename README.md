@@ -46,6 +46,7 @@ src/lib/rng.ts                 seeded hash and PRNG (hashString, mulberry32), us
 scripts/syncPartyShared.ts     npm run party:sync: copies the engine (src/lib/party, src/lib/rng.ts, src/config/partyConfig.ts, src/types/pokemon.ts) and a slim dataset into supabase/functions/_shared/party/; scripts/lib/partyShared.ts builds the copies (pure, tested via src/lib/party/sharedDrift.test.ts)
 supabase/functions/_shared/party/  generated server copy of the Party engine and pokemon.json (do not edit; run npm run party:sync)
 src/data/pokemon.json         generated dataset (committed, so the app needs no API at runtime)
+supabase/migrations/20261127200000_party.sql  Party rooms, players, deck, answers and the turn rules in SQL (see supabase/README.md, "Party database"); tested in supabase/tests/database/
 ```
 
 ## How the game plays
