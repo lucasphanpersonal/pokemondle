@@ -170,7 +170,8 @@ export function HelpModal({ onClose }: HelpModalProps) {
         </dl>
         <p>
           <span className="inline-flex items-center gap-1.5 align-middle"><PixelBulb /><strong>Gen hint:</strong></span> after{' '}
-          {HINT_AFTER_GUESSES} guesses you can reveal the answer's Gen. A hinted win still counts.
+          {HINT_AFTER_GUESSES} guesses you can reveal the answer's Gen from the <strong>◀ HINT</strong> tab on the right edge of
+          the screen; the tab then shows the Gen. A hinted win still counts.
         </p>
         <p>
           <strong>Type tracker:</strong> tap the <strong>◀ TYPES</strong> tab on the right edge of the screen, then tap types to

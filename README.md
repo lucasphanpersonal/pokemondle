@@ -27,7 +27,7 @@ scripts/makeIcons.ts          builds the tab icon, home-screen icons and manifes
 scripts/icons/pokeball.txt    the hand-drawn Poké Ball (16x16 and 32x32 grids, one letter per colour); its 16x16 grid is also drawn in-game, at 1x, by CaptureScene and PixelBall (the board's guess count)
 src/lib/pokeballArt.ts        its palette and parser, shared by makeIcons.ts, the catch/escape scene and PixelBall (plus the pixel star)
 public/                       favicon.ico, apple-touch-icon.png, manifest.json and its icons (generated, committed)
-src/components/               Header, SearchBar, GuessGrid, FeedbackRow, ResultModal, HistoryModal, HelpModal, GiveUpModal, GensModal, TypeTracker, Modal, and pixel icons (PixelBall, PixelBulb, PixelGear)
+src/components/               Header, SearchBar, GuessGrid, FeedbackRow, ResultModal, HistoryModal, HelpModal, GiveUpModal, GensModal, HintPrompt, SideTabs (TypeTracker, HintPanel), Modal, and pixel icons (PixelBall, PixelBulb, PixelGear)
 src/hooks/usePokemondle.ts    game state (target, guesses, status), saved to localStorage (answer id scrambled, see below)
 src/lib/history.ts            Daily history (solved and given up), streak maths, Endless stats and recent Endless games (pure, tested)
 src/hooks/useAnalytics.ts     wraps guesses with anonymous analytics
@@ -104,9 +104,13 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   buttons appear (`HINT_GUARD_MS`; the buttons are `aria-disabled` meanwhile), so a tap meant for the board can't
   accept by accident. Show hint types out "This Pokémon is from Gen N!" with a stepping
   ▼; advancing closes it. Esc or a tap on the dimmed background means No thanks. The pop-up appears once per game
-  (`localStorage['pokemondle:hint-offered']`, the last game offered in each mode); after No thanks a white **Gen hint**
-  button (with a pixel bulb, `PixelBulb.tsx`) sits under the title box, stretched to the same width, until the game ends. Once taken, that button stays in
-  place pressed in (the inverse bevel, a non-interactive status) and reads **Hint · Gen N**, the save gets `hinted: true`, the result screen shows **Used the Gen hint**
+  (`localStorage['pokemondle:hint-offered']`, the last game offered in each mode). After that the hint lives in the
+  **◀ HINT** side tab on the right edge of the screen, under **◀ TYPES** (see Side tabs below), so it never crowds the
+  main page. Its panel (`src/components/HintPanel.tsx`) says how many guesses are left before the hint unlocks, then
+  offers a red **Show hint** button (with the pixel bulb, `PixelBulb.tsx`) that reveals the Gen right in the panel. Show
+  hint has the same 0.5 s guard (`HINT_GUARD_MS`, `aria-disabled` meanwhile), so a double tap on the tab can't spend it.
+  Once taken, the tab itself reads **◀ GEN N** for the rest of the game (the panel says "This Pokémon is from Gen N!"),
+  the save gets `hinted: true`, the result screen shows **Used the Gen hint**
   and History marks the Daily with a bulb. A hinted win still counts as a win and keeps the streak; History shows
   "N% of wins without a hint" for the Daily and for Endless. Analytics events carry `config.hint_used` (false until the hint is
   taken), and the Daily stats panel says what share of players used it.
@@ -119,15 +123,20 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   They sit on the shared bevel. A ruled-out type is pressed in (the inverse bevel), its face turns dark grey and its name
   is struck through (a drawn line through the middle of the capitals, `.type-struck`, since CSS line-through sits low in
   the pixel font), so it never relies on colour alone.
-  It sits off to the side so it never crowds the game: on every screen size a narrow **◀ TYPES** tab on the right edge
-  of the screen (vertically centred; 30 px wide, 28 px with 8 px letters under 360 px, so its letters keep design rule 4's 10 px from its edges) slides out a panel with the 18 types in three columns, **Clear** and a
-  close button (Esc also closes it). The panel isn't a dialog: on wider screens the page stays usable beside it (on phones it covers the page until closed).
-  Closed, the tab never covers the board: wherever the screen has no spare margin beside the page, the page's right
+  It sits off to the side so it never crowds the game, in the first of the side tabs.
+- **Side tabs** (`src/components/SideTabs.tsx`): on every screen size two narrow tabs are stacked on the right edge of the
+  screen, vertically centred as a pair 6 px apart: **◀ TYPES** (the Type tracker) and, under it, **◀ HINT** (the Gen hint,
+  left out in an Endless game drawn from a single Gen). They are 30 px wide, 28 px with 8 px letters under 360 px, so
+  their letters keep design rule 4's 10 px from their edges. A tab slides out its panel to its left: the Type tracker's
+  18 types in three columns with **Clear**, or the Gen hint. One panel is open at a time; the tabs stay in place and the
+  open one is pressed in (design rule 2). Tapping it again, the panel's close button or Esc puts the panel away. A panel
+  isn't a dialog: on wider screens the page stays usable beside it (on phones it covers the page until closed).
+  Closed, the tabs never cover the board: wherever the screen has no spare margin beside the page, the page's right
   padding grows to the tab's width plus a 4 px gap (2 px under 360 px), `.page-gutter` and `--tab-w` in
-  `src/index.css`, used by the page and the Give up footer. Only the right side grows: the tab fills that space, so the
+  `src/index.css`, used by the page and the Give up footer. Only the right side grows: the tabs fill that space, so the
   page still looks balanced, and the board keeps as much width as it can. From about 1310 px the screen's own margin
   is wide enough and the padding is the usual 20 px again. The search box's placeholder drops to 9 px under 420 px and
-  8 px under 380 px so it still fits. Marks belong to one game: they are saved per mode with that game's
+  8 px under 380 px so it still fits. Type tracker marks belong to one game: they are saved per mode with that game's
   key in `localStorage['pokemondle:type-notes']` (`{ daily: { key, out }, endless: { key, out } }`), so a refresh keeps
   them and a new Daily or a new Endless Pokémon starts with none.
 - **Pokédex numbers**: every guess shows its National Dex number (`#025`) as a display-only label (beside the name on phone cards, in the top-right corner of the table's Pokémon tile),
@@ -268,7 +277,7 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    `.ds-button bevel-paper` square holding the pixel-art cross (`ResultMark` drawn at 2px per art pixel), like the
    header's ? button. The exceptions are the small on/off switch graphics in Help, which are not menu buttons, and the Endless
    Gens gear, a bare pixel icon inside the title box (a deliberate exception so the box stays small).
-2. **Pressed means the inverse bevel.** A selected or "on" control (the chosen Daily/Endless side, a chosen Gen in the Endless Gens picker, the taken Gen hint, a type ruled out in the Type tracker) adds
+2. **Pressed means the inverse bevel.** A selected or "on" control (the chosen Daily/Endless side, a chosen Gen in the Endless Gens picker, the open side tab, a type ruled out in the Type tracker) adds
    `.bevel-pressed`: same edges, dark on top and light at the bottom. The edges stay the same size, so labels sit at
    the same height whether a control is up or down.
 3. **Equal heights and gaps.** Header and menu controls are all 44px tall (also the minimum touch target), top-aligned
