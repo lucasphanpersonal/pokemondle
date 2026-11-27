@@ -11,6 +11,10 @@ import type { Pokemon } from '../types/pokemon'
  */
 
 const SHY = '\u00AD'
+/** Word joiner: an invisible character that forbids a line break where it sits. */
+const JOIN = '\u2060'
+/** The invisible characters breakable() adds, which take no room in the tile. */
+const INVISIBLE = /[\u00AD\u2060]/g
 
 /**
  * Long words that may still not fit at 7px in the narrowest tiles get a soft hyphen at
@@ -28,28 +32,32 @@ const BREAKS: Record<string, string> = {
   Electromorphosis: `Electro${SHY}morphosis`,
 }
 
-/** Adds soft hyphens to the long game words in a tile's text. */
+/**
+ * Adds soft hyphens to the long game words in a tile's text, and keeps hyphenated words whole: a word joiner after
+ * the hyphen stops "Ground, Human-Like" breaking as "Ground, Human- / Like". Tile words wrap only between words or at
+ * the soft hyphens above.
+ */
 export function breakable(text: string): string {
-  return text.replace(/[A-Za-z]+/g, (w) => BREAKS[w] ?? w)
+  return text.replace(/[A-Za-z]+/g, (w) => BREAKS[w] ?? w).replace(/-(?=\p{L})/gu, `-${JOIN}`)
 }
 
 /** Length of the longest word across the given text parts (split at spaces; a trailing comma counts, as it is drawn on the same line). */
 export function longestWord(...parts: (string | number)[]): number {
   let max = 1
-  for (const p of parts) for (const w of String(p).split(/\s+/)) max = Math.max(max, w.replace(/\u00AD/g, '').length)
+  for (const p of parts) for (const w of String(p).split(/\s+/)) max = Math.max(max, w.replace(INVISIBLE, '').length)
   return max
 }
 
 /**
- * Length of the longest piece that can't be split: words cut at soft hyphens and real
- * hyphens, counting the "-" drawn at the end of the line. With this the CSS can size a
+ * Length of the longest piece that can't be split: words cut at soft hyphens (a real hyphen
+ * is kept whole by breakable()), counting the "-" drawn at the end of the line. With this the CSS can size a
  * wrapped word ("Undis- / covered") when the whole word cannot fit on one line even at 7px.
  */
 export function longestPiece(...parts: (string | number)[]): number {
   let max = 1
   for (const p of parts)
     for (const w of breakable(String(p)).split(/\s+/))
-      for (const piece of w.split(/(?<=[-\u00AD])/)) max = Math.max(max, piece.length)
+      for (const piece of w.split(/(?<=\u00AD)/)) max = Math.max(max, piece.replace(INVISIBLE, '').length)
   return max
 }
 
@@ -59,7 +67,7 @@ export function longestPiece(...parts: (string | number)[]): number {
  * Pokémon tile so even "Paldean Tauros (Combat Breed)" fits without being cut off.
  */
 export function lineChars(text: string, maxLines: number): number {
-  const words = text.replace(/\u00AD/g, '').split(/\s+/).filter(Boolean)
+  const words = text.replace(INVISIBLE, '').split(/\s+/).filter(Boolean)
   const lines = (cap: number) => {
     let count = 0
     let len = 0

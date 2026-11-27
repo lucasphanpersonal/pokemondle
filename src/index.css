@@ -58,11 +58,18 @@ html.big-text {
  * balanced, and the guess board keeps as much width as it can (the desktop table's tile text is sized to its columns).
  * --tab-w is the tab's width, --page-pad the usual side padding. Percent padding is measured against the body (no
  * scrollbar), and 80rem is the page's widest size.
+ *
+ * An open panel does the same from 1024 px up (data-side-panel on <html>, set by lib/sidePanel.ts): the gutter also
+ * takes the panel's width (--panel-w) plus a --page-pad gap, so the panel sits beside the board instead of over it, and
+ * GuessGrid swaps the table for cards while the board is too narrow for it. Wide screens' own margins absorb part or
+ * all of it. On phones and portrait tablets there is no room beside the board, so the panel slides over it (--panel-room
+ * stays 0).
  */
 :root {
   --tab-w: 28px;
   --tab-gap: 2px;
   --page-pad: 12px;
+  --panel-room: 0px;
 }
 @media (min-width: 360px) {
   :root {
@@ -75,9 +82,17 @@ html.big-text {
     --page-pad: 20px;
   }
 }
+@media (min-width: 64rem) {
+  :root {
+    --panel-w: 18.5rem; /* 296 px: just wide enough for "Type tracker", Clear and the close button on one line */
+  }
+  :root[data-side-panel] {
+    --panel-room: calc(var(--panel-w) + var(--page-pad));
+  }
+}
 @utility page-gutter {
   padding-inline: var(--page-pad);
-  padding-right: max(var(--page-pad), calc(var(--tab-w) + var(--tab-gap) - max(0px, (100% - 80rem) / 2)));
+  padding-right: max(var(--page-pad), calc(var(--tab-w) + var(--tab-gap) + var(--panel-room) - max(0px, (100% - 80rem) / 2)));
 }
 
 /* big: styles that apply only with Larger text on. */
@@ -274,7 +289,7 @@ html.big-text {
   /*
    * Tile text that always stays inside the tile's padding (10px a side: the 6px bevel
    * plus 4px of air). The tile sets --fs (its normal font size) and --chars (its longest
-   * word) and --piece (its longest piece between hyphens; see lib/tileText.ts). The pixel
+   * word) and --piece (its longest piece between soft hyphens; real hyphens are kept whole, see lib/tileText.ts). The pixel
    * font is monospaced, so a word fits when font-size <= content width / chars: use that,
    * capped at --fs. Every size here is multiplied by --ts (Larger text). A whole word on one line at 7px or more beats a
    * hyphen ("Region- / al" read badly): only when the word can't fit at 7px does it wrap at its soft hyphen, sized for
@@ -285,7 +300,7 @@ html.big-text {
   }
   .tile-fit .fit {
     /*
-     * Whole word on one line if it fits at 7px or more; otherwise wrapped at its hyphen at up to 8px. The last term
+     * Whole word on one line if it fits at 7px or more; otherwise wrapped at its soft hyphen at up to 8px. The last term
      * of the min() is a switch: hugely positive when the whole word is under 7px (so the wrapped size counts), negative
      * once it reaches 7px (so the whole-word size wins the max()). The 7px is rounded up to a whole pixel, as the font
      * size is, so with Larger text (7 × 1.25 = 8.75px) a word isn't kept whole at a size that rounds up past its room.

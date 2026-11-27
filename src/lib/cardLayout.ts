@@ -28,4 +28,7 @@ export const TWO_UP = {
     keyCopy: 'hidden min-[900px]:grid',
     card: 'min-[900px]:[&:nth-child(2)]:border-t-0 min-[900px]:[&:nth-child(2)]:pt-0 min-[900px]:[&:nth-last-child(2):nth-child(odd)]:pb-0',
   },
+  /** One card per row at any width: Larger text with a side panel open beside a board too narrow for two (GuessGrid). */
+  single: { grid: '', keyCopy: 'hidden', card: '' },
 } as const
+export type CardLayout = keyof typeof TWO_UP

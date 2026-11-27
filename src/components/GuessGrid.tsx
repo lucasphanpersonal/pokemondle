@@ -3,8 +3,9 @@ import { GRID_COLUMNS } from '../config/gameConfig'
 import type { GuessFeedback } from '../lib/compare'
 import type { Pokemon } from '../types/pokemon'
 import { useMediaQuery } from '../hooks/useMediaQuery'
-import { cardTileSpan, TWO_UP } from '../lib/cardLayout'
+import { cardTileSpan, TWO_UP, type CardLayout } from '../lib/cardLayout'
 import { isBigText, subscribeBigText } from '../lib/display'
+import { isSidePanelOpen, subscribeSidePanel } from '../lib/sidePanel'
 import { abilityColumnFit } from '../lib/tileText'
 import { FeedbackRow, GuessCard } from './FeedbackRow'
 import { PixelBall } from './PixelBall'
@@ -16,6 +17,16 @@ const TABLE_QUERY = '(min-width: 64rem)'
  * 1280 px (the page grows with the screen from 1024 px up to 1280 px wide, lg:max-w-[80rem] and big:max-w-[80rem] in App.tsx); cards are shown below that.
  */
 const BIG_TABLE_QUERY = '(min-width: 80rem)'
+/**
+ * From 1024 px up an open side panel (Type tracker, Gen hint) takes 316 px of the page's width (its 18.5rem plus a 20 px
+ * gap, see .page-gutter in index.css), less whatever margin the screen has beside the 1280 px page. The board then keeps
+ * the table only where it is still as wide as the table needs (970 px of page, or 1226 px with Larger text); otherwise
+ * it shows the cards while the panel is open. The page is V - 370 px wide up to 1280 px, then 910 + (V - 1280) / 2 px.
+ */
+const DOCKED_TABLE_QUERY = '(min-width: 87.5rem)' // 1400 px: 910 + 120 / 2 = 970
+const DOCKED_BIG_TABLE_QUERY = '(min-width: 119.5rem)' // 1912 px: 910 + 632 / 2 = 1226
+/** With Larger text, cards sit two to a row on 846 px of page (900 px screens), which an open panel leaves from 1216 px. */
+const DOCKED_BIG_TWO_UP_QUERY = '(min-width: 76rem)'
 
 /**
  * Share of the table width for each column (sums to 100). Fixed widths stop the
@@ -42,14 +53,23 @@ interface GuessGridProps {
  * remounts the grid) appears instantly.
  *
  * Phones and tablets under 1024 px show one compact card per guess (no sideways
- * scrolling); larger tablets and desktops show the full ten-column table.
+ * scrolling); larger tablets and desktops show the full ten-column table, unless a side panel open beside
+ * the board leaves too little room for it (see DOCKED_TABLE_QUERY).
  * Only the layout that fits is rendered, so each guess's tiles exist once in the DOM.
  */
 export function GuessGrid({ guesses, feedback }: GuessGridProps) {
   const abilityColumn = abilityColumnFit(guesses, feedback)
   const bigText = useSyncExternalStore(subscribeBigText, isBigText, () => false)
-  const twoUp = TWO_UP[bigText ? 'big' : 'normal']
-  const showTable = useMediaQuery(bigText ? BIG_TABLE_QUERY : TABLE_QUERY)
+  // An open side panel makes room beside the board only on screens from 1024 px up; below that it slides over the board.
+  const panelOpen = useSyncExternalStore(subscribeSidePanel, isSidePanelOpen, () => false)
+  const wide = useMediaQuery(TABLE_QUERY)
+  const docked = panelOpen && wide
+  const showTable = useMediaQuery(
+    docked ? (bigText ? DOCKED_BIG_TABLE_QUERY : DOCKED_TABLE_QUERY) : bigText ? BIG_TABLE_QUERY : TABLE_QUERY,
+  )
+  const roomyBigTwoUp = useMediaQuery(DOCKED_BIG_TWO_UP_QUERY)
+  const cards: CardLayout = bigText ? (docked && !roomyBigTwoUp ? 'single' : 'big') : 'normal'
+  const twoUp = TWO_UP[cards]
   // Captured once at mount: how many guesses were restored rather than made now.
   const [restoredCount, setRestoredCount] = useState(guesses.length)
   // Crossing the breakpoint (rotating an iPad) mounts the other layout's rows;
@@ -138,7 +158,7 @@ export function GuessGrid({ guesses, feedback }: GuessGridProps) {
               .map((g, i) => ({ g, f: feedback[i], i }))
               .reverse()
               .map(({ g, f, i }) => (
-                <GuessCard key={g.id} guess={g} feedback={f} animate={i >= restoredCount} bigText={bigText} />
+                <GuessCard key={g.id} guess={g} feedback={f} animate={i >= restoredCount} cards={cards} />
               ))}
           </ul>
         </div>

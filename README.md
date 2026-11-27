@@ -35,7 +35,7 @@ src/hooks/useRevealEffects.ts  flip-reveal hold, tick sounds, the catch/escape s
 src/components/CaptureScene.tsx  the Poké Ball catch (win) and escape (give up) animation; timings in src/lib/capture.ts
 src/hooks/useMediaQuery.ts     live CSS media-query match (GuessGrid picks table or cards with it)
 src/hooks/useTypeNotes.ts     the Type tracker's marks for the game on screen; the rules (types, colours, per-game reset) are in src/lib/typeNotes.ts (pure, tested)
-src/lib/                      dataset + search, Pokédex entry fetch (dexEntry.ts), comparison, daily seed, game rules, Endless Gen filter (gens.ts), sound, storage, display settings (display.ts: CRT, Larger text), tile text fitting (tileText.ts), phone card layout (cardLayout.ts)
+src/lib/                      dataset + search, Pokédex entry fetch (dexEntry.ts), comparison, daily seed, game rules, Endless Gen filter (gens.ts), sound, storage, display settings (display.ts: CRT, Larger text), tile text fitting (tileText.ts), phone card layout (cardLayout.ts), side panel open state (sidePanel.ts)
 src/config/gameConfig.ts      game settings, including which form categories are enabled
 src/config/uiConfig.ts        tile animation timing
 src/data/pokemon.json         generated dataset (committed, so the app needs no API at runtime)
@@ -130,7 +130,12 @@ src/data/pokemon.json         generated dataset (committed, so the app needs no 
   their letters keep design rule 4's 10 px from their edges. A tab slides out its panel to its left: the Type tracker's
   18 types in three columns with **Clear**, or the Gen hint. One panel is open at a time; the tabs stay in place and the
   open one is pressed in (design rule 2). Tapping it again, the panel's close button or Esc puts the panel away. A panel
-  isn't a dialog: on wider screens the page stays usable beside it (on phones it covers the page until closed).
+  isn't a dialog: the page stays usable while it is open. From 1024 px up an open panel (18.5rem wide) never covers the
+  board: the page's right padding also takes the panel's width plus a 20 px gap (`data-side-panel` on `<html>`, set by
+  `src/lib/sidePanel.ts`; `--panel-room` in `src/index.css`), so the board sits beside it. While the board is too narrow
+  for the ten-column table (under 1400 px, or 1912 px with Larger text) it shows the cards until the panel closes, and
+  with Larger text under 1216 px the cards go one per row. On phones and portrait tablets there is no room beside the
+  board, so the panel slides over it until closed.
   Closed, the tabs never cover the board: wherever the screen has no spare margin beside the page, the page's right
   padding grows to the tab's width plus a 4 px gap (2 px under 360 px), `.page-gutter` and `--tab-w` in
   `src/index.css`, used by the page and the Give up footer. Only the right side grows: the tabs fill that space, so the
@@ -285,9 +290,11 @@ asked to flag any break), and UI changes are screenshotted and measured at 320, 
    at any width from 320px.
 4. **Text stays inside the padding.** Guess-tile and button text keeps at least 10px from the edge (the 6px bevel plus
    4px of air). Guess tiles shrink long words to fit (`.tile-fit`, down to 7px, or 9px with Larger text); only a word that
-   can't fit on one line even at 7px wraps at a soft hyphen (`src/lib/tileText.ts`), rather than run edge to edge. The
+   can't fit on one line even at 7px wraps at a soft hyphen (`src/lib/tileText.ts`), rather than run edge to edge.
+   Words with a real hyphen ("Human-Like", "G-Max") are kept whole: `breakable()` puts an invisible word joiner after
+   the hyphen, so "Ground, Human-Like" wraps between the words, never as "Human- / Like". The
    table's columns leave room for every common word on one line ("Regional", "Undiscovered"), and the Form tile says
-   "G-Max" for Gigantamax, so a hyphen split is now rare (on phones narrower than about 405px, "Regional" and "Cosmetic" still split, and in a 1024 px table the abilities "Proto-synthesis" and "Electro-morphosis"). Multi-line tiles are also sized by
+   "G-Max" for Gigantamax, so a soft-hyphen split is now rare (on phones narrower than about 405px, "Regional" and "Cosmetic" still split, and in a 1024 px table the abilities "Proto-synthesis" and "Electro-morphosis"). Multi-line tiles are also sized by
    line count so nothing is cut off: the table's Pokémon name gets up to 3 lines under its centred sprite
    (the sprite shrinks, from 30px, to the room the name leaves, so it never crosses the bevel), and Shared Ability up to
    4 lines at 9px or 5 at 8px (`lineChars` in `tileText.ts`). The table's Shared Ability column uses one size for every
