@@ -157,9 +157,12 @@ select is((pg_temp.ans((select id from r1), (select c from s), 12)->>'error'), '
 select is((public.party_timeout((select id from r1))->>'acted')::boolean, false, 'no timeouts after the game');
 
 -- ------------------------------------------------------------ play again ----
-select is((public.party_play_again((select id from r1), (select b from s), pg_temp.tok((select b from s)))->>'error'),
+-- Seats are shuffled, so find the host and a non-host by query.
+create temp table host1 as select host_id as h,
+  (select p.id from public.party_players p where p.room_id = r.id and p.id <> r.host_id and p.seat is not null limit 1) as other
+  from public.party_rooms r where r.id = (select id from r1);
+select is((public.party_play_again((select id from r1), (select other from host1), pg_temp.tok((select other from host1)))->>'error'),
   'not_host', 'only the host can play again');
-create temp table host1 as select host_id as h from public.party_rooms where id = (select id from r1);
 select is((public.party_play_again((select id from r1), (select h from host1), pg_temp.tok((select h from host1)))->>'ok')::boolean,
   true, 'host plays again');
 select is((pg_temp.room((select id from r1))).status, 'lobby', 'back to the lobby');
