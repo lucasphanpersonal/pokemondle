@@ -1,5 +1,8 @@
-# Starts a local Supabase stack and runs the pgTAP tests in supabase/tests/database/.
 # Runs only when something under supabase/ changes. No secrets, never touches the live project.
+# - functions-check: type-checks every Edge Function with Deno (the same runtime they deploy to).
+# - supabase-test: starts a local Supabase stack, runs the pgTAP tests in supabase/tests/database/, then serves the
+#   Edge Functions and smoke-tests the party function against it (supabase/tests/functions/party-smoke.mjs).
+# The functions' unit tests (supabase/functions/**/*.test.ts) run with Vitest in ci.yml (npm test).
 name: Supabase tests
 
 on:
@@ -12,6 +15,17 @@ permissions:
   contents: read
 
 jobs:
+  functions-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.9.6
+      # --node-modules-dir=none: the repo's package.json is for the site, not for the functions.
+      - run: deno check --node-modules-dir=none supabase/functions/track/index.ts supabase/functions/stats/index.ts supabase/functions/party/index.ts
+
   supabase-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -22,3 +36,14 @@ jobs:
           version: 3.1.0
       - run: supabase start -x studio,imgproxy,vector,logflare,mailpit,supavisor
       - run: supabase test db
+      - name: Smoke-test the party function
+        run: |
+          echo "ALLOWED_ORIGINS=http://localhost:5173" > "$RUNNER_TEMP/functions.env"
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|PUBLISHABLE_KEY)=' | sed 's/^/export /')"
+          supabase functions serve --env-file "$RUNNER_TEMP/functions.env" > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -H "apikey: ${ANON_KEY:-$PUBLISHABLE_KEY}" -o /dev/null -w '%{http_code}' -X POST "$API_URL/functions/v1/party" || true)
+            [ "$code" = "403" ] && break
+            sleep 2
+          done
+          node supabase/tests/functions/party-smoke.mjs || { cat "$RUNNER_TEMP/serve.log"; exit 1; }

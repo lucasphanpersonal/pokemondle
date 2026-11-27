@@ -57,6 +57,8 @@ src/config/partyConfig.ts     Party mode numbers: tiers, seconds per turn, lives
 src/lib/party/categories.ts   Party category engine (pure, shared with the Edge Function later): parts, species pools, answer check, labels, seeded deck dealer; tested in categories.test.ts
 src/lib/rng.ts                 seeded hash and PRNG (hashString, mulberry32), used by daily.ts and the Party engine
 scripts/syncPartyShared.ts     npm run party:sync: copies the engine (src/lib/party, src/lib/rng.ts, src/config/partyConfig.ts, src/types/pokemon.ts) and a slim dataset into supabase/functions/_shared/party/; scripts/lib/partyShared.ts builds the copies (pure, tested via src/lib/party/sharedDrift.test.ts)
+supabase/functions/party/        the Party Edge Function: handler.ts (pure request handling, unit-tested with a fake database in handler.test.ts) and index.ts (Deno wiring); API in supabase/README.md, "Party Edge Function"
+supabase/functions/_shared/network.ts  salted daily IP hash helpers shared by track and party
 supabase/functions/_shared/party/  generated server copy of the Party engine and pokemon.json (do not edit; run npm run party:sync)
 src/data/pokemon.json         generated dataset (committed, so the app needs no API at runtime)
 supabase/migrations/20261127200000_party.sql  Party rooms, players, deck, answers and the turn rules in SQL (see supabase/README.md, "Party database"); tested in supabase/tests/database/
@@ -411,6 +413,7 @@ npx supabase db push --remote --yes            # create the tables, views and da
 npx supabase secrets set ALLOWED_ORIGINS="https://pokemondle.io,https://lucasphanpersonal.github.io"   # sites allowed to send events (set BEFORE deploying)
 npx supabase functions deploy track --no-verify-jwt --yes   # deploy the event-collecting function
 npx supabase functions deploy stats --no-verify-jwt --yes   # deploy the public daily-stats function
+npx supabase functions deploy party --no-verify-jwt --yes   # deploy the Party function
 ```
 
 The function stores two salted hashes per event, a visitor hash (IP + user agent) and an IP-only hash used for a
@@ -421,7 +424,7 @@ With Supabase CLI 3, `db push` targets a local database unless you pass `--remot
 
 The live project is `inxvlunfwsssifvjkgtz` (US); the client sends events to `https://inxvlunfwsssifvjkgtz.supabase.co/functions/v1/track`.
 
-After the one-time setup, merging a change under `supabase/` to `main` deploys the migrations and both functions automatically
+After the one-time setup, merging a change under `supabase/` to `main` deploys the migrations and all three functions (`track`, `stats`, `party`) automatically
 (`.github/workflows/supabase-deploy.yml`; needs the `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD` repo secrets; the
 Supabase CLI version there is pinned and bumped by hand). That workflow also sets `ALLOWED_ORIGINS` on every run, so change the list there. Local dev is deliberately not on it, so test games stay out of the real stats.
 Dependabot (`.github/dependabot.yml`) opens weekly update PRs for npm packages and GitHub Actions.

@@ -10,3 +10,8 @@ verify_jwt = false
 # Public read-only daily stats for the result screen; the browser sends no JWT.
 # Set here so a deploy without --no-verify-jwt can't break the panel.
 verify_jwt = false
+
+[functions.party]
+# The browser sends no Supabase JWT; players are identified by their own secret token (checked in SQL),
+# and abuse is handled inside the function (origin allow-list, validation, per-network caps).
+verify_jwt = false

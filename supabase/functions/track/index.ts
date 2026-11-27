@@ -3,6 +3,7 @@
 // derives a daily-rotating anonymous visitor hash, and inserts with the service role.
 // The IP and user agent are only used to compute salted hashes and are never stored.
 import { createClient } from 'npm:@supabase/supabase-js@2.119.0'
+import { clientIp, getDailySalt, hex, sha256 } from '../_shared/network.ts'
 import { validateBatch } from './validate.ts'
 
 const MAX_BODY_BYTES = 64 * 1024
@@ -47,44 +48,6 @@ function respond(status: number, origin: string | null, error?: string): Respons
   return new Response(JSON.stringify({ error: error ?? 'error' }), { status, headers })
 }
 
-function hex(buf: ArrayBuffer): string {
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
-}
-
-async function sha256(text: string): Promise<string> {
-  return hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))
-}
-
-async function getDailySalt(day: string): Promise<string> {
-  const read = async () => {
-    const { data, error } = await supabase.from('daily_salts').select('salt').eq('day', day).maybeSingle()
-    if (error) throw error
-    return data?.salt as string | undefined
-  }
-  const existing = await read()
-  if (existing) return existing
-  const fresh = hex(crypto.getRandomValues(new Uint8Array(32)).buffer)
-  const { error } = await supabase
-    .from('daily_salts')
-    .upsert({ day, salt: fresh }, { onConflict: 'day', ignoreDuplicates: true })
-  if (error) throw error
-  // Privacy housekeeping that does not depend on pg_cron: drop salts older than 2 days.
-  const cutoff = new Date(Date.parse(`${day}T00:00:00Z`) - 2 * 86_400_000).toISOString().slice(0, 10)
-  const { error: delError } = await supabase.from('daily_salts').delete().lt('day', cutoff)
-  if (delError) console.error('salt cleanup failed')
-  const salt = await read()
-  if (!salt) throw new Error('salt missing')
-  return salt
-}
-
-function clientIp(req: Request): string {
-  const cf = req.headers.get('cf-connecting-ip')?.trim()
-  if (cf) return cf
-  const real = req.headers.get('x-real-ip')?.trim()
-  if (real) return real
-  return (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim()
-}
-
 // The Origin check is CORS hygiene, not access control (non-browser clients can forge it).
 // The real defences are validation and the per-visitor and per-IP rate limits.
 Deno.serve(async (req) => {
@@ -112,7 +75,7 @@ Deno.serve(async (req) => {
   try {
     const now = new Date()
     const day = now.toISOString().slice(0, 10)
-    const salt = await getDailySalt(day)
+    const salt = await getDailySalt(supabase, day)
     // Without any IP, do not pool everyone into one visitor: mix in a random value
     // and skip the rate limit for this request.
     const ip = clientIp(req)

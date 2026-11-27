@@ -44,7 +44,7 @@ Delete test rows afterwards: `delete from events where game_id = '3fa85b3a-8158-
 ## Automatic deploys (GitHub Actions)
 
 `.github/workflows/supabase-deploy.yml` runs when a change under `supabase/` is merged to `main` (or by hand from the
-Actions tab, main branch only; edits to the workflow file also trigger it). It links the project, runs `supabase db push --remote --yes`, then deploys `track` and `stats` with
+Actions tab, main branch only; edits to the workflow file also trigger it). It links the project, runs `supabase db push --remote --yes`, then deploys `track`, `stats` and `party` with
 `--no-verify-jwt`. It also sets `ALLOWED_ORIGINS` on every run from the list in the workflow's `env`, so change the list there: a value set by hand is overwritten by the next run. Other function secrets are not touched.
 
 The Supabase CLI version in the workflow is pinned (currently `3.1.0`), so a new CLI release never runs with the
@@ -303,3 +303,70 @@ What the function must do, and what it can rely on SQL for:
 returns `acted: false`. That is expected, not an error. Call it again about 400 ms after zero (pass `p_turn_no` so a late retry
 can't hit the next turn); the every-second sweep also times the turn out within about 1 s if no client does. Treat the room row
 arriving over Realtime as the result, not the call's reply.
+
+## Party Edge Function
+
+`supabase/functions/party/`: `handler.ts` is the pure request handling (unit-tested with a fake database in `handler.test.ts`, run by
+`npm test`), `index.ts` wires in the service-role client and `_shared/party/pokemon.json`. `verify_jwt = false` (config.toml, and
+`--no-verify-jwt` in the deploy workflow): browsers send no Supabase key; players prove who they are with their own secret token, which SQL checks.
+The function's own CI checks are `deno check` of every function and a smoke test (`supabase/tests/functions/party-smoke.mjs`: create, join,
+start, answer against `supabase functions serve`) in `.github/workflows/supabase-test.yml`.
+
+**Request.** `POST https://inxvlunfwsssifvjkgtz.supabase.co/functions/v1/party`, `Content-Type: application/json` (or `text/plain`), body at most 4 KB:
+`{"action": "<name>", ...fields}`. The `Origin` header must be in `ALLOWED_ORIGINS` (else 403, no CORS headers); `OPTIONS` answers 204.
+Unknown fields are ignored. Responses are always JSON with `Cache-Control: no-store`.
+
+**Response.** Every response body has `server_time` (epoch milliseconds, the server's clock when it answered), so a client can estimate
+its clock offset (`offset = server_time - (sendTime + receiveTime) / 2`). Success is HTTP 200 with `{"ok": true, ...}`. A refusal is
+`{"ok": false, "error": "<code>", ...}` with the status below. `deadline` values are Postgres timestamps (ISO strings); the clock
+offset applies to them too.
+
+Field formats (checked before anything else; a bad one is 400 and nothing happens):
+
+| Field | Rule | Error |
+| --- | --- | --- |
+| `nickname` | trimmed, spaces collapsed, 1 to 12 letters (A-Z, a-z), digits and single spaces | `bad_nickname` |
+| `code` | 4 letters from `BCDFGHJKMNPQRSTVWXYZ`, any case | `bad_code` |
+| `room_id`, `player_id`, `target_id` | uuid | `bad_room`, `bad_player`, `bad_target` |
+| `token` | 64 lowercase hex characters (401 `bad_token` if malformed too) | `bad_token` |
+| `lives` | integer 1 to 5 | `bad_settings` |
+| `start_tier` | `easy`, `medium`, `hard` or `expert` | `bad_settings` |
+| `pokemon_id` | positive integer that exists in the dataset | `bad_answer` |
+
+Actions (`auth` = `room_id`, `player_id`, `token` as returned by create or join):
+
+| `action` | Body | Success (200) | Refusals |
+| --- | --- | --- | --- |
+| `create` | `nickname`, optional `lives` (default 3), optional `start_tier` (default `easy`) | `{ok, room_id, code, player_id, token, nickname, icon, status: 'lobby'}`. **The only time the token is returned (with join): store it.** | `429 rate_limited` (per network), `bad_nickname`, `bad_settings` |
+| `join` | `code`, `nickname` | same shape; the nickname may come back changed ("Ash 2"). Joining a running game watches until the next one. | `429 rate_limited`, `bad_code`, `404 no_room`, `bad_nickname`, `409 room_full` |
+| `rejoin` | `player_id`, `token` | `{ok, room_id, code, player_id, nickname, icon, status}` (no token); counts as a heartbeat | `401 bad_token` |
+| `settings` | auth, `lives`, `start_tier` | `{ok}` | `403 not_host`, `409 not_lobby`, `bad_settings` |
+| `start` | auth | `{ok, game_no, players}`; deals the deck (seeded random, sized for the players present, from the room's `start_tier`) | `401 bad_token`, `403 not_host`, `404 no_room`, `409 not_lobby`, `409 too_few_players` |
+| `answer` | auth, `pokemon_id` | `{ok, result: 'passed' or 'cleared', round, turn_player_id, deadline, turn_no}` (see below) | see below |
+| `remove` | auth, `target_id` | `{ok}` | `403 not_host`, `404 no_player` (unknown, self, or already gone) |
+| `leave` | auth | `{ok}`; the token stops working | `401 bad_token` |
+| `play_again` | auth | `{ok}`; the room goes back to the lobby (the host then calls `start` again) | `403 not_host`, `409 not_over` |
+
+**Answering.** Only the player whose turn it is may answer; the function checks the answer against the category with the shared engine
+first.
+
+- A wrong answer is **HTTP 200** with `{"ok": false, "error": "wrong_answer", "why": "part" | "used", "reason": "Squirtle isn't a Fire type", "part": {...}}`
+  (`part`, the failed `Part` JSON, only when `why` is `part`). Nothing is written and the timer keeps running: show `reason` and let them try again.
+  `why: "used"` means the species was already said this round.
+- A valid answer is passed to `party_apply_answer`, and its result is returned: `result: 'passed'` (next player's turn, new `deadline`) or
+  `'cleared'` (a full lap, or the pool ran out: no life lost, next round). Read the new room state from Realtime.
+- `409 too_late`: the answer arrived after `deadline + 300 ms`. The turn is timed out in the same transaction; the reply carries
+  `timeout` (the timeout result). `409 already_used` is the same race lost to another request. `403 not_your_turn`, `409 not_playing`,
+  `404 no_room`, `400 bad_answer` (unknown Pokémon id) change nothing.
+
+**Statuses.** `400` bad field or JSON (`invalid_json`, `invalid_body`, `unknown_action`, the field errors above, `bad_settings`, `bad_deck`, `bad_answer`);
+`401 bad_token`; `403 forbidden` (origin), `not_host`, `not_your_turn`; `404 no_room`, `no_player`; `405 method_not_allowed`; `409 not_lobby`, `not_playing`,
+`not_over`, `room_full`, `too_few_players`, `already_used`, `too_late`; `413 too_large`; `429 rate_limited`; `500 server_error` (a database error;
+only its code is logged, never a token or the message).
+
+**Caps.** `create`: 20 per network per hour; `join`: 120 per network per hour (`party_network_hit` with `sha256(salt|ip|<ip>)`, the same daily
+salt as `track`, kept in `_shared/network.ts`). Override with the function secrets `MAX_PARTY_CREATES_PER_HOUR` and `MAX_PARTY_JOINS_PER_HOUR`.
+A request that carries no IP skips the cap, as in `track`. Not rate limited: `rejoin`, `settings`, `start`, `answer`, `remove`, `leave`,
+`play_again` (they need a valid token, and `start` checks the token before it deals the deck).
+
+Not handled here (the client calls SQL directly): `party_timeout` at zero, `party_heartbeat` every 4 s, and Realtime reads (see "Party database").
