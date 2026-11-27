@@ -1,0 +1,83 @@
+/**
+ * Party mode settings. Every tunable number for the category engine and the turn rules lives here
+ * (the server copy of the engine imports this file too, so keep it free of imports and of React/DOM).
+ */
+
+export type TierId = 'easy' | 'medium' | 'hard' | 'expert'
+
+export interface TierConfig {
+  id: TierId
+  /** Shown to players ("Now: Hard"). */
+  name: string
+  /** First round of the tier (rounds are numbered from 1; each tier lasts until the next one starts). */
+  fromRound: number
+  /**
+   * How many columns a category may check. Most parts check one column; a two-type pair checks two (type 1 and
+   * type 2), so it counts as 2. A category's columns add up to one of these numbers.
+   */
+  columns: readonly number[]
+  /** Smallest and largest answer pool (distinct species) a category of this tier may have. */
+  minPool: number
+  maxPool: number
+  /** Seconds each player gets per turn. */
+  seconds: number
+}
+
+export const PARTY_TIERS: readonly TierConfig[] = [
+  { id: 'easy', name: 'Easy', fromRound: 1, columns: [1], minPool: 60, maxPool: Infinity, seconds: 20 },
+  { id: 'medium', name: 'Medium', fromRound: 4, columns: [1, 2], minPool: 20, maxPool: 60, seconds: 17 },
+  { id: 'hard', name: 'Hard', fromRound: 7, columns: [2], minPool: 10, maxPool: 25, seconds: 14 },
+  { id: 'expert', name: 'Expert', fromRound: 11, columns: [3], minPool: 6, maxPool: 15, seconds: 12 },
+]
+
+export const PARTY_CONFIG = {
+  /** Room size. */
+  minPlayers: 2,
+  maxPlayers: 8,
+  /** Starting lives: default and the range the host can pick from. */
+  livesDefault: 3,
+  livesMin: 1,
+  livesMax: 5,
+  /** The server accepts an answer this long after the deadline, to cover network lag. */
+  graceMs: 300,
+  /** Categories dealt at the start of a game (round 1 is the first one). */
+  deckSize: 40,
+  /** A category needs at least this many answers per player (counted by species)... */
+  poolPerPlayer: 2,
+  /** ...and never fewer than this. */
+  poolFloor: 6,
+  /**
+   * Tiers where the per-player multiple is not applied (only the floor is). Expert is narrow by design, so with 8
+   * players it could never be dealt otherwise; a lap that exhausts the pool counts as cleared.
+   */
+  tiersWithoutPerPlayerPool: ['expert'] as readonly TierId[],
+  /** An ability only becomes a part when at least this many species have it. */
+  abilityMinPool: 20,
+  /** Size parts: "over 100 kg", "over 2 m", "under 0.5 m". */
+  heavyOverKg: 100,
+  tallOverM: 2,
+  tinyUnderM: 0.5,
+  /** Random tries per category before the dealer relaxes its limits (then fails loudly if even that finds nothing). */
+  dealAttempts: 3000,
+  /** How many species "Also fit" lists after a failure. */
+  alsoFitCount: 3,
+}
+
+/** The tier a round belongs to (rounds past the last tier's start stay in it). */
+export function tierForRound(round: number): TierConfig {
+  let found = PARTY_TIERS[0]
+  for (const tier of PARTY_TIERS) if (round >= tier.fromRound) found = tier
+  return found
+}
+
+/** Seconds per turn in a round. */
+export const secondsForRound = (round: number): number => tierForRound(round).seconds
+
+/** The fewest answers a category may have in a room with this many players, whatever the tier. */
+export function poolFloorFor(tier: TierConfig, players: number): number {
+  const perPlayer = PARTY_CONFIG.tiersWithoutPerPlayerPool.includes(tier.id) ? 0 : PARTY_CONFIG.poolPerPlayer * players
+  return Math.max(PARTY_CONFIG.poolFloor, perPlayer)
+}
+
+/** The smallest pool a category of this tier may have in a room with this many players. */
+export const requiredPool = (tier: TierConfig, players: number): number => Math.max(poolFloorFor(tier, players), tier.minPool)

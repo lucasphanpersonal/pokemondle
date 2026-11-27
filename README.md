@@ -14,6 +14,7 @@ npm run preview    # serve the production build locally
 npm run test       # unit tests
 npm run test:e2e   # browser smoke test (Playwright; first run: npx playwright install chromium)
 npm run fetch-data # rebuild src/data/pokemon.json from PokéAPI
+npm run party-stats # print the Party category pool numbers (developer tool)
 npm run icons      # rebuild the site icons in public/ from scripts/icons/pokeball.txt
 npm run font       # rebuild the ♀/♂ pixel font (needs Python 3: pip install fonttools brotli)
 ```
@@ -38,6 +39,8 @@ src/hooks/useTypeNotes.ts     the Type tracker's marks for the game on screen; t
 src/lib/                      dataset + search, Pokédex entry fetch (dexEntry.ts), comparison, daily seed, game rules, Endless Gen filter (gens.ts), sound, storage, display settings (display.ts: CRT, Larger text), tile text fitting (tileText.ts), phone card layout (cardLayout.ts), side panel open state (sidePanel.ts)
 src/config/gameConfig.ts      game settings, including which form categories are enabled
 src/config/uiConfig.ts        tile animation timing
+src/config/partyConfig.ts     Party mode numbers: tiers, seconds per turn, lives, pool rules, grace, deck size
+src/lib/party/categories.ts   Party category engine (pure, shared with the Edge Function later): parts, species pools, answer check, labels, seeded deck dealer; tested in categories.test.ts
 src/data/pokemon.json         generated dataset (committed, so the app needs no API at runtime)
 ```
 
