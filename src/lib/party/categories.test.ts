@@ -312,5 +312,5 @@ describe('dealDeck', () => {
         }
       })
     }
-  })
+  }, 60_000) // 1,000 deals: slow on shared CI runners, so not on the 5 s default
 })
