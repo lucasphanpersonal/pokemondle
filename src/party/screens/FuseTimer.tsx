@@ -50,8 +50,8 @@ export function FuseTimer({ deadlineAt, seconds, scale, showSeconds, reduceMotio
         style={{ transform: swell === 1 ? undefined : `scale(${swell.toFixed(3)})`, transformOrigin: '50% 90%' }}
         className="block"
       >
-        {fusePaths(cells, lit, reduceMotion ? 0 : frame, flash).map((p) => (
-          <path key={p.color} fill={p.color} d={p.d} />
+        {fusePaths(cells, lit, reduceMotion ? 0 : frame, flash).map((p, i) => (
+          <path key={i} fill={p.color} d={p.d} />
         ))}
       </svg>
       {showSeconds && timer && (

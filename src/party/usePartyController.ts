@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { POKEDEX, POKEDEX_BY_ID } from '../lib/pokedex.ts'
 import { friendlyError } from './api.ts'
 import { speciesLeftFor } from './game.ts'
-import type { AnswerRow, CategoryRow, PlayerRow, RoomRow } from './state.ts'
-import type { AnswerResult, GameView, LobbyPlayer, LobbyView, PartyController, PartySettings } from './types.ts'
+import { hardestCleared, resultPlayers, toRoundEnd } from './moments.ts'
+import type { AnswerRow, CategoryRow, PartyState, PlayerRow, RoomRow } from './state.ts'
+import type { AnswerResult, GameOverView, GameView, LobbyPlayer, LobbyView, PartyController, PartySettings, RoundEnd } from './types.ts'
 import { PARTY_UNREACHABLE, useParty } from './useParty.ts'
 
 /** Words for a start-screen or lobby problem that isn't a server refusal. */
@@ -41,6 +42,7 @@ export function toGameView(
   answers: readonly AnswerRow[],
   meId: string,
   deadlineAt: number | null,
+  roundEnd: RoundEnd | null = null,
 ): GameView | null {
   if (room.status !== 'playing' || !category) return null
   const byId = new Map(players.map((p) => [p.id, p]))
@@ -67,6 +69,45 @@ export function toGameView(
     seconds: room.turn_seconds ?? category.seconds,
     startLives: room.lives,
     answers: said,
+    roundEnd,
+  }
+}
+
+/** The rows of the room's current game, as plain arrays (the reducer keys them by id). */
+function gameRows(state: PartyState) {
+  const gameNo = state.room?.game_no ?? 0
+  return {
+    players: Object.values(state.players),
+    categories: Object.values(state.categories).filter((c) => c.game_no === gameNo),
+    answers: Object.values(state.answers).filter((a) => a.game_no === gameNo),
+  }
+}
+
+/** How the last round ended (party_rooms.last_event), for the moments; `current` is the round being played now. */
+export function roundEndOf(state: PartyState, current: CategoryRow | null): RoundEnd | null {
+  const room = state.room
+  if (!room || !current) return null
+  const rows = gameRows(state)
+  return toRoundEnd(room.last_event, { roomId: room.id, gameNo: room.game_no, ...rows, currentTier: current.tier })
+}
+
+/** Maps a finished game's rows to the game over screen, or null while the room isn't 'over'. */
+export function toGameOverView(code: string, state: PartyState, meId: string): GameOverView | null {
+  const room = state.room
+  if (!room || room.status !== 'over') return null
+  const rows = gameRows(state)
+  const winner = room.winner_id ? (state.players[room.winner_id] ?? null) : null
+  const hardest = hardestCleared(rows.categories)
+  const final = toRoundEnd(room.last_event, { roomId: room.id, gameNo: room.game_no, ...rows, currentTier: hardest?.tier ?? 'easy' })
+  return {
+    code,
+    meId,
+    isHost: room.host_id === meId,
+    winner: winner ? { id: winner.id, nickname: winner.nickname, icon: winner.icon } : null,
+    players: resultPlayers(rows.players, room.lives, room.winner_id, meId),
+    hardest: hardest ? { category: hardest.parts, tier: hardest.tier } : null,
+    rounds: room.round,
+    finalTimeout: final?.kind === 'timeout' ? final : null,
   }
 }
 
@@ -102,10 +143,15 @@ export function usePartyController(routeCode: string | null): PartyScreenControl
   const lobby = session && room ? toLobbyView(session.code, room, players, session.player_id) : null
   const error = actionError ?? (status === 'error' ? `${PARTY_UNREACHABLE}.` : party.lost ? LOST_SEAT_TEXT : undefined)
 
+  const roundEnd = useMemo(() => roundEndOf(party.state, party.category), [party.state, party.category])
   const game =
     session && room && me?.seat != null
-      ? toGameView(session.code, room, players, party.category, party.answers, session.player_id, party.deadlineAt)
+      ? toGameView(session.code, room, players, party.category, party.answers, session.player_id, party.deadlineAt, roundEnd)
       : null
+  const over = useMemo(
+    () => (session && me?.seat != null ? toGameOverView(session.code, party.state, session.player_id) : null),
+    [session, me?.seat, party.state],
+  )
 
   // The game screen checks answers itself first, so a refusal here is the server's: too late, a race, a lost seat.
   const partyAnswer = party.answer
@@ -121,6 +167,7 @@ export function usePartyController(routeCode: string | null): PartyScreenControl
   return {
     lobby,
     game,
+    over,
     answer,
     busy: pending > 0 || status === 'connecting',
     error,
@@ -130,6 +177,7 @@ export function usePartyController(routeCode: string | null): PartyScreenControl
     changeSettings: (s: PartySettings) => guard(() => party.settings(s.lives, s.startTier)),
     start: () => guard(party.start),
     remove: (id) => guard(() => party.remove(id)),
+    playAgain: () => guard(party.playAgain),
     leave: () => {
       setActionError(undefined)
       void party.leave()

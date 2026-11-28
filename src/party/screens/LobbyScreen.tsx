@@ -273,7 +273,7 @@ function PlayerRow({ player, me, host, armed, canRemove, busy, onRemove }: Playe
 
 /** The host's crown: 11 x 6 pixel art drawn at 2 px a pixel, gold with an ink outline. */
 const CROWN = ['.k...k...k.', 'kYk.kYk.kYk', 'kYYkYYYkYYk', 'kYYYYYYYYYk', 'kYYYYYYYYYk', 'kkkkkkkkkkk']
-function Crown() {
+export function Crown() {
   return (
     <svg width={22} height={12} viewBox="0 0 11 6" shapeRendering="crispEdges" aria-hidden="true" className="shrink-0">
       {CROWN.flatMap((row, y) =>

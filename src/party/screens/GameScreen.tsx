@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState, type RefObject } from 'react'
 import { ResultMark } from '../../components/ResultMark.tsx'
 import { SearchBar } from '../../components/SearchBar.tsx'
 import { SpriteImg } from '../../components/SpriteImg.tsx'
@@ -21,11 +21,13 @@ import {
   type RailPlayer,
   type TickMemory,
 } from '../game.ts'
+import { initialMoments, momentEndsAt, momentReducer } from '../moments.ts'
 import { playParty } from '../sounds.ts'
 import type { AnswerResult, GameAnswer, GameView } from '../types.ts'
 import { useNow } from '../useNow.ts'
 import { CategoryCard } from './CategoryCard.tsx'
 import { FuseTimer } from './FuseTimer.tsx'
+import { ClearedPanel, TimeUpPanel } from './RoundMoments.tsx'
 
 /**
  * The game screen: the player rail, the category card, the turn's text box and timer, the turn-gated search box and this
@@ -36,13 +38,19 @@ import { FuseTimer } from './FuseTimer.tsx'
  * - `onAnswer(pokemonId)`: on this player's turn, after the answer passed the local check; resolves with the server's
  *   verdict (a refusal's reason shows under the box).
  * - `onLeave()`: Leave the room.
- * - `onTimeUp()`: optional, called once per turn when its countdown reaches zero on screen (task 11 hangs the burst on
- *   it; ending the turn on the server is the room connection's job).
+ * - `onTimeUp()`: optional, called once per turn when its countdown reaches zero on screen (the screen also starts the
+ *   time's up burst then; ending the turn on the server is the room connection's job).
  * - `headingRef`: PartyApp focuses the heading (the category card's "Round N") when the screen changes.
  *
  * Phones get one column: the rail (scrolling sideways), the category card right above the turn box and search box, then
- * the answers. From 768 px the answers sit beside the card. Only the timers and TurnEvents read the 50 ms clock, so the
- * rest of the screen redraws when the room changes, not 20 times a second.
+ * the answers. From 768 px the answers sit beside the card. Only the timers, TurnEvents and a playing moment read the
+ * 50 ms clock, so the rest of the screen redraws when the room changes, not 20 times a second.
+ *
+ * The end of a round (view.roundEnd, from the server's last_event, so every screen shows it) plays over the category
+ * card: time's up (~2.5 s, the bomb bursts, then "Also fit") or round cleared (~1.5 s), then the new category slides in.
+ * The panel covers the card's place (growing upwards over the rail if it needs more room), so the turn box and search
+ * box never move and the next player can type straight away: a moment never blocks input. The local countdown reaching
+ * zero starts the burst before the server's event arrives; a round end plays once per round (moments.ts).
  */
 export interface GameScreenProps {
   view: GameView
@@ -97,6 +105,24 @@ export function GameScreen({ view, onAnswer, onLeave, onTimeUp, busy, error, hea
   const [reduceMotion] = useState(prefersReducedMotion)
   const turn = turnText(view)
   const turnKey = turnKeyOf(view)
+
+  // The end of a round: the server's event, joined to an early burst when this screen's countdown got there first.
+  const [moments, dispatchMoment] = useReducer(momentReducer, view.roundEnd, initialMoments)
+  const roundEnd = view.roundEnd
+  const round = view.round
+  useEffect(() => {
+    dispatchMoment({ type: 'event', end: roundEnd, round, now: Date.now() })
+  }, [roundEnd, round])
+  const turnRound = view.round
+  const turnPlayer = view.turnPlayerId
+  const handleTimeUp = useCallback(() => {
+    dispatchMoment({ type: 'early', round: turnRound, playerId: turnPlayer, now: Date.now() })
+    onTimeUp?.()
+  }, [turnRound, turnPlayer, onTimeUp])
+  const moment = moments.moment
+  const momentDone = useCallback((id: number) => dispatchMoment({ type: 'done', id }), [])
+  // After a moment the card slides in (the last moment's id as its key); never on the screen's first draw.
+  const slideFor = moments.nextId - 1
   const rail = useMemo(
     () => railPlayers({ players: view.players, turnPlayerId: view.turnPlayerId, meId: view.meId, startLives: view.startLives }),
     [view.players, view.turnPlayerId, view.meId, view.startLives],
@@ -161,7 +187,7 @@ export function GameScreen({ view, onAnswer, onLeave, onTimeUp, busy, error, hea
 
   return (
     <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_18rem] md:items-start" data-screen="game">
-      <TurnEvents turn={turnKey} deadlineAt={view.deadlineAt} seconds={view.seconds} onTimeUp={onTimeUp} />
+      <TurnEvents turn={turnKey} deadlineAt={view.deadlineAt} seconds={view.seconds} onTimeUp={handleTimeUp} />
       <PlayerRail
         players={rail}
         startLives={view.startLives}
@@ -172,7 +198,39 @@ export function GameScreen({ view, onAnswer, onLeave, onTimeUp, busy, error, hea
       />
 
       <div className="flex min-w-0 flex-col gap-4">
-        <CategoryCard category={view.category} tier={view.tier} round={view.round} left={view.left} headingRef={headingRef} />
+        <div className="relative overflow-x-clip" data-testid="party-card-slot">
+          <div
+            key={`card-${slideFor}`}
+            className={moment ? 'invisible' : slideFor > 0 && !reduceMotion ? 'party-slide-in' : ''}
+            data-moment={moment ? moment.kind : undefined}
+          >
+            <CategoryCard category={view.category} tier={view.tier} round={view.round} left={view.left} headingRef={headingRef} />
+          </div>
+          {moment?.kind === 'timeout' && (moment.end === null || moment.end.kind === 'timeout') && (
+            <TimeUpPanel
+              key={`moment-${moment.id}`}
+              end={moment.end}
+              startedAt={moment.startedAt}
+              eventAt={moment.eventAt}
+              endsAt={momentEndsAt(moment)}
+              meId={view.meId}
+              reduceMotion={reduceMotion}
+              onDone={() => momentDone(moment.id)}
+              className="absolute inset-x-0 bottom-0 z-20 min-h-full"
+            />
+          )}
+          {moment?.kind === 'cleared' && moment.end?.kind === 'cleared' && (
+            <ClearedPanel
+              key={`moment-${moment.id}`}
+              end={moment.end}
+              startedAt={moment.startedAt}
+              endsAt={momentEndsAt(moment)}
+              reduceMotion={reduceMotion}
+              onDone={() => momentDone(moment.id)}
+              className="absolute inset-x-0 bottom-0 z-20 min-h-full"
+            />
+          )}
+        </div>
 
         <div className="flex flex-col gap-1.5 sm:gap-2" data-testid="party-turn">
           <div className="flex items-stretch gap-1.5 sm:gap-2">

@@ -52,10 +52,31 @@ spark crackles on the tip, and in the last 5 s it flashes white and swells; the 
 beside the text box on your turn and small in the rail otherwise. An answer is checked on the page first with the
 category engine (`checkAnswer`): a wrong one never reaches the server, the box shakes and the reason ("Squirtle isn't a
 Fire type") shows under it for 1.5 s. Sounds (`sounds.ts`, synthesised and played at the player's volume through
-`playNotes` in `src/lib/sound.ts`): a tick each second, faster in the last 5, a chime for each valid answer and a buzz for
-a wrong one. Reduced motion stops the shake, flash, swell and spark. Try it with `/party/?mock=game#KPZW` (also
+`playNotes` in `src/lib/sound.ts`): a tick each second, faster in the last 5, a chime for each valid answer, a buzz for
+a wrong one, a pop when time runs out and a fanfare for a cleared round. Reduced motion stops the shake, flash, swell and spark. Try it with `/party/?mock=game#KPZW` (also
 `&players=8`, `&turn=them`, `&parts=1|2|3|words|pair|pure`, `&out=1`, `&round=11`, `&secs=4`, `&freeze=1`; see
-`src/party/mock.ts`). Time's up, round cleared and game over come in a later pull request.
+`src/party/mock.ts`).
+
+The **end of a round** plays over the category card on every screen in the room, driven by the server's
+`party_rooms.last_event` (so everyone sees it, not only the player whose time ran out), and once per round however
+often or late the event arrives (`moments.ts`, keyed by game and round; an event already there when the screen opens is
+not replayed). **Time's up** (about 2.5 s): the fuse bomb flashes and bursts in a pixel explosion drawn in code
+(`burstGrid` in `fuseArt.ts`) with a pop, "Time's up! Brock lost a life." (or "…is out!", "You…" on their own screen)
+types out, then "Also fit:" shows three species that fit and nobody said, picked by `alsoFit` with a seed every screen
+shares (room id, game and round), so everyone sees the same three. The countdown reaching zero on screen starts the
+burst straight away; the server's event then fills in the words (if it doesn't come within 1.5 s, the burst goes away).
+**Round cleared** (about 1.5 s): a fanfare, "Round cleared!" and the new tier when it changed ("Now: Hard"), then the
+new category card slides in. The panel covers the card's place (growing upwards over the rail on phones), so the turn
+box and search box never move and the next player can answer at once: a moment never blocks input. Reduced motion
+skips the flash, burst, typing and slide and shows the text states as they are. The **game over** screen
+(`screens/GameOverScreen.tsx`, `GameOverView` in `types.ts`) shows the winner's sprite and name, the time's up that
+ended the game once more, a table of answers given and lives lost per player (players who left are listed as "Left"),
+and the hardest category anyone cleared (`party_categories.result = 'cleared'`, highest tier, then the latest round);
+the host gets a red Play again (back to the lobby with the same room and players, where Start deals a new game) and
+everyone a white Leave; guests see "Waiting for the host…". No share button or result grid. Try them with
+`/party/?mock=game&freeze=1&moment=timeout#KPZW` (also `moment=out|cleared|tier`, `&early=1`), a whole game with
+`&seconds=7&think=1500`, and `/party/?mock=over&players=8#KPZW` (also `&as=guest`, `&winner=me`, `&hardest=none`,
+`&end=gone`).
 
 **How the page connects to a room** (`src/party/`). Actions (host, join, rejoin, settings, start, answer, remove, leave,
 play again) are `POST`s to the `party` Edge Function (`api.ts`). The room's state comes from Supabase Realtime: when a
@@ -76,7 +97,7 @@ once more about 400 ms later (the first call usually lands inside the server's 3
 e2e/smoke.spec.ts             Playwright browser smoke test (load, guess, win, mode switch, Endless Gens at 390px and 1280px)
 e2e/party.spec.ts             Playwright smoke test of the Party page (noindex, header, Help, #CODE routing, code boxes, nickname check)
 party/index.html              the Party page (second Vite entry, served at /party/, noindex)
-src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (picks the screen), screens/ (StartScreen, LobbyScreen, GameScreen with CategoryCard and FuseTimer), types.ts (lobby and game view models and the PartyController the room connection implements), game.ts (the game screen's pure helpers: timer maths, rail, turn text; tested), fuseArt.ts (the timer's pixel art), sounds.ts (the game's sound effects), party.css (Party-only styles), codeBoxes.ts and nickname.ts (tested), mock.ts (dev-only pretend room), usePartyController.ts (maps the room connection to the screens), and the room connection: api.ts (Edge Function and RPC wrappers), client.ts (lazy supabase-js, snapshot, Realtime), state.ts (room reducer and selectors), clock.ts (server clock offset), session.ts (the saved seat), useParty.ts (the hook), PartyHeader, PartyHelpModal, route.ts (the #CODE route and invite link, tested)
+src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (picks the screen), screens/ (StartScreen, LobbyScreen, GameScreen with CategoryCard, FuseTimer and RoundMoments (time's up, round cleared), GameOverScreen), types.ts (lobby, game and game over view models and the PartyController the room connection implements), game.ts (the game screen's pure helpers: timer maths, rail, turn text; tested), moments.ts (the end of a round and the game over results: event mapping, shared Also fit seed, timelines, hardest category; tested), fuseArt.ts (the timer's pixel art and its burst), sounds.ts (the game's sound effects), party.css (Party-only styles), codeBoxes.ts and nickname.ts (tested), mock.ts (dev-only pretend room), usePartyController.ts (maps the room connection to the screens), and the room connection: api.ts (Edge Function and RPC wrappers), client.ts (lazy supabase-js, snapshot, Realtime), state.ts (room reducer and selectors), clock.ts (server clock offset), session.ts (the saved seat), useParty.ts (the hook), PartyHeader, PartyHelpModal, route.ts (the #CODE route and invite link, tested)
 scripts/fetchPokemonData.ts   builds the local Pokémon dataset from PokéAPI
 scripts/makeIcons.ts          builds the tab icon, home-screen icons and manifest icons from the pixel Poké Ball
 scripts/icons/pokeball.txt    the hand-drawn Poké Ball (16x16 and 32x32 grids, one letter per colour); its 16x16 grid is also drawn in-game, at 1x, by CaptureScene and PixelBall (the board's guess count)

@@ -101,11 +101,18 @@ export function CategoryCard({ category, tier, round, left, headingRef }: Catego
           {left} left
         </p>
       </div>
-      <ul className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2" aria-label="Category">
-        {sortedParts(category).map((part, i) => (
-          <PartChip key={i} part={part} />
-        ))}
-      </ul>
+      <CategoryChips category={category} />
     </section>
+  )
+}
+
+/** The category's parts as chips, in display order (also the game over screen's hardest category). */
+export function CategoryChips({ category, label = 'Category' }: { category: Category; label?: string }) {
+  return (
+    <ul className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2" aria-label={label}>
+      {sortedParts(category).map((part, i) => (
+        <PartChip key={i} part={part} />
+      ))}
+    </ul>
   )
 }
