@@ -51,6 +51,32 @@ assert.equal((await call({ action: 'join', code: otherCode, nickname: 'X' })).bo
 assert.equal((await call({ action: 'rejoin', player_id: guest.player_id, token: guest.token })).status, 200)
 assert.equal((await call({ action: 'rejoin', player_id: guest.player_id, token: '0'.repeat(64) })).status, 401)
 
+// Settings: the reply carries the room row it wrote (the page shows it before Realtime brings it).
+const settings = await call({ action: 'settings', room_id: host.room_id, player_id: host.player_id, token: host.token, lives: 3, start_tier: 'easy' })
+assert.equal(settings.status, 200, JSON.stringify(settings.body))
+assert.equal(settings.body.room?.id, host.room_id)
+assert.equal(settings.body.room?.lives, 3)
+
+// Timings on the local stack (no network between the function and the database): how long each kind of call takes
+// when the database is next door. Printed for the PR record, not asserted.
+async function median(label, n, body) {
+  const times = []
+  for (let i = 0; i < n; i++) {
+    const t0 = performance.now()
+    await call(typeof body === 'function' ? body(i) : body)
+    times.push(performance.now() - t0)
+  }
+  times.sort((a, b) => a - b)
+  const ms = times[Math.floor(n / 2)]
+  console.log(`timing ${label}: median ${ms.toFixed(1)} ms over ${n}`)
+  return ms
+}
+await median('rejoin with a wrong token (one read rpc)', 15, { action: 'rejoin', player_id: guest.player_id, token: '0'.repeat(64) })
+await median('settings (one write rpc)', 15, (i) => ({
+  action: 'settings', room_id: host.room_id, player_id: host.player_id, token: host.token, lives: 1 + (i % 5), start_tier: 'easy',
+}))
+await call({ action: 'settings', room_id: host.room_id, player_id: host.player_id, token: host.token, lives: 3, start_tier: 'easy' })
+
 // Guests can't start; the host can.
 assert.equal((await call({ action: 'start', room_id: host.room_id, player_id: guest.player_id, token: guest.token })).status, 403)
 const started = await call({ action: 'start', room_id: host.room_id, player_id: host.player_id, token: host.token })
@@ -81,6 +107,15 @@ for (const p of dataset) {
 assert(passed, 'no Pokémon fit the first category')
 assert.equal(passed.result, 'passed')
 assert.equal(passed.turn_player_id, waiting.player_id)
+// The reply carries the rows it wrote: the room after the answer and the answer itself.
+assert.equal(passed.room?.turn_player_id, waiting.player_id)
+assert.equal(passed.room?.turn_no, passed.turn_no)
+assert.equal(passed.answer?.player_id, turn.player_id)
+
+// An already-said Pokémon is refused after one read (party_answer_context), with no write.
+await median('answer, refused by the category check (one read rpc)', 15, {
+  action: 'answer', room_id: host.room_id, player_id: waiting.player_id, token: waiting.token, pokemon_id: passed.answer.pokemon_id,
+})
 
 const answers = await rest(`party_answers?room_id=eq.${host.room_id}&select=player_id`)
 assert.equal(answers.length, 1)

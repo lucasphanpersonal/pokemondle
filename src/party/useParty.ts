@@ -8,9 +8,11 @@ import {
   type AnswerReply,
   type JoinedReply,
   type PartyRpc,
+  type SettingsReply,
 } from './api.ts'
 import { asRpcClient, fetchSnapshot, loadClient, subscribeToRoom, type Subscription } from './client.ts'
 import { ServerClock } from './clock.ts'
+import { draftSettled, latestOnly, type SettingsDraft } from './optimistic.ts'
 import { clearSession, decideRejoin, readSession, writeSession, type PartySession } from './session.ts'
 import {
   deadlineLocalMs,
@@ -38,6 +40,8 @@ export const PARTY_UNREACHABLE = "Can't reach the party server right now"
 export const HEARTBEAT_MS = 4000
 /** party_timeout at zero lands inside the server's 300 ms grace, so ask again a moment later. */
 export const TIMEOUT_RETRY_MS = 400
+/** A settings draft whose reply carried no room row waits this long for Realtime at most. */
+export const DRAFT_KEEP_MS = 5000
 
 export interface HostOptions {
   lives?: number
@@ -66,6 +70,10 @@ export function useParty(routeCode: string | null) {
   useEffect(() => {
     stateRef.current = state
   })
+  /** The host's last lobby tap and the room it is for, shown pressed until the server confirms it (optimistic.ts). */
+  const [settingsDraft, setSettingsDraft] = useState<{ roomId: string; draft: SettingsDraft; sending: boolean } | null>(null)
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => () => clearTimeout(draftTimer.current), [])
 
   const setSession = useCallback((next: PartySession | null) => {
     sessionRef.current = next
@@ -269,14 +277,48 @@ export function useParty(routeCode: string | null) {
     if (api && s) await api.leave(s) // the seat is already gone locally; this frees it on the server
   }, [api, setSession])
 
-  const start = useCallback(() => authed((a, s) => a.start(s)), [authed])
-  const settings = useCallback(
-    (lives: number, startTier: TierId) => authed((a, s) => a.settings(s, { lives, start_tier: startTier })),
-    [authed],
+  // Lobby settings: shown at once as a draft; one request at a time, always with the latest tap.
+  const [settingsQueue] = useState(() =>
+    latestOnly<SettingsDraft, ApiResult<SettingsReply>>((x, y) => x.lives === y.lives && x.start_tier === y.start_tier),
   )
+  const settings = useCallback(
+    async (lives: number, startTier: TierId): Promise<ApiResult<SettingsReply>> => {
+      const forRoom = sessionRef.current?.room_id
+      if (!forRoom) return authed((a, s) => a.settings(s, { lives, start_tier: startTier }))
+      const draft: SettingsDraft = { lives, start_tier: startTier }
+      setSettingsDraft({ roomId: forRoom, draft, sending: true })
+      const res = await settingsQueue.push(draft, (d) => authed((a, s) => a.settings(s, d)))
+      const mine = (d: typeof settingsDraft) => d?.roomId === forRoom && d.draft === draft
+      if (!res.ok) {
+        // Refused: show the room as it is (unless a newer tap took over meanwhile).
+        setSettingsDraft((d) => (mine(d) ? null : d))
+      } else if (res.room) {
+        // The reply's room row shows the change now (Realtime's copy of it changes nothing), so the draft can go.
+        dispatch({ type: 'reply', room: res.room })
+        setSettingsDraft((d) => (mine(d) ? null : d))
+      } else {
+        // No row in the reply: keep showing the draft until Realtime brings the room (render drops it once they agree).
+        setSettingsDraft((d) => (mine(d) ? { ...d!, sending: false } : d))
+        clearTimeout(draftTimer.current)
+        draftTimer.current = setTimeout(() => setSettingsDraft((d) => (mine(d) ? null : d)), DRAFT_KEEP_MS)
+      }
+      return res
+    },
+    [authed, settingsQueue],
+  )
+  // Start only once the last settings change has landed, so the game uses what the host sees.
+  const start = useCallback(async () => {
+    await settingsQueue.idle()
+    return authed((a, s) => a.start(s))
+  }, [authed, settingsQueue])
   const remove = useCallback((targetId: string) => authed((a, s) => a.remove(s, targetId)), [authed])
   const answer = useCallback(
-    (pokemonId: number): Promise<ApiResult<AnswerReply>> => authed((a, s) => a.answer(s, pokemonId)),
+    async (pokemonId: number): Promise<ApiResult<AnswerReply>> => {
+      const res = await authed((a, s) => a.answer(s, pokemonId))
+      // Show the passed turn and the answer itself now, not when Realtime brings the same rows (about 0.2-0.4 s later).
+      if (res.ok && (res.room || res.answer)) dispatch({ type: 'reply', room: res.room, answers: res.answer ? [res.answer] : [] })
+      return res
+    },
     [authed],
   )
   /** Sends the room back to the lobby; the host then calls start again. */
@@ -286,6 +328,10 @@ export function useParty(routeCode: string | null) {
     setStatus('connecting')
     setRetryTick((n) => n + 1)
   }, [])
+
+  const draftHere = settingsDraft?.roomId === roomId ? settingsDraft : null
+  const shownDraft =
+    draftHere && (draftHere.sending || !draftSettled(state.room, draftHere.draft)) ? draftHere.draft : null
 
   const me = selectMe(state, playerId)
   // Outside a room there is nothing to connect to, so a stale error from the last room isn't shown.
@@ -299,6 +345,8 @@ export function useParty(routeCode: string | null) {
     lost,
     state,
     room,
+    /** The host's lobby settings tap that the room doesn't show yet (show it instead of the room's), or null. */
+    settingsDraft: shownDraft,
     me,
     isHost: selectIsHost(state, playerId),
     myTurn: selectMyTurn(state, playerId),

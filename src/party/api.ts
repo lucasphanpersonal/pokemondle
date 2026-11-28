@@ -65,13 +65,22 @@ export interface AnswerReply {
   turn_player_id: string
   deadline: string
   turn_no: number
+  /** The room row after the answer (party_rooms), so the page can show it before Realtime brings it. */
+  room?: unknown
+  /** The party_answers row this answer added. */
+  answer?: unknown
+}
+
+export interface SettingsReply {
+  /** The room row after the change (party_rooms). */
+  room?: unknown
 }
 
 export interface PartyApi {
   create(p: { nickname: string; lives?: number; start_tier?: TierId }): Promise<ApiResult<JoinedReply>>
   join(p: { code: string; nickname: string }): Promise<ApiResult<JoinedReply>>
   rejoin(p: { player_id: string; token: string }): Promise<ApiResult<RejoinedReply>>
-  settings(a: Auth, p: { lives: number; start_tier: TierId }): Promise<ApiResult<object>>
+  settings(a: Auth, p: { lives: number; start_tier: TierId }): Promise<ApiResult<SettingsReply>>
   start(a: Auth): Promise<ApiResult<{ game_no: number; players: number }>>
   answer(a: Auth, pokemonId: number): Promise<ApiResult<AnswerReply>>
   remove(a: Auth, targetId: string): Promise<ApiResult<object>>
