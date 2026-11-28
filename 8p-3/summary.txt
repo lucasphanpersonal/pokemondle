@@ -1,0 +1,37 @@
+PLAYTEST 8p-3: finished, Ash won in 14.5 min, 46 rounds, 104 turns
+  Easy at round 1, 0 min
+  Medium at round 4, 2 min
+  Hard at round 7, 4.1 min
+  Expert at round 11, 5.3 min
+  easy    20s: 3 rounds (1 cleared, 0 exhausted), 15 turns, 13.3% timeouts, used median 5.8s p90 8.1s, avg round 39.8s
+  medium  17s: 3 rounds (2 cleared, 0 exhausted), 16 turns, 6.3% timeouts, used median 7.3s p90 10.6s, avg round 41.6s
+  hard    14s: 4 rounds (0 cleared, 0 exhausted), 7 turns, 57.1% timeouts, used median 5.2s p90 7.2s, avg round 18.8s
+  expert  12s: 36 rounds (20 cleared, 0 exhausted), 66 turns, 24.2% timeouts, used median 6.7s p90 11s, avg round 15.4s
+  rounds lost by their first player (0 answers): 14; loss streaks: Brock lost 3 rounds in a row from round 7; Lillie lost 3 rounds in a row from round 11; May lost 3 rounds in a row from round 14; Serena lost 3 rounds in a row from round 19; Dawn lost 3 rounds in a row from round 44
+  laps ending with <=3 left: 0 of 23; deck looped: true; repeated categories: 6
+  expert pool < 2x alive: 6 rounds
+  wait between own turns: median 9.1s, p90 79.3s, max 133.4s
+  answer on other screens: median 1162 ms, p95 1644 ms; next box live: median 919 ms, p95 1581 ms
+  timer drift (shown - server, s): median 0.5, min 0, max 1 over 2448 reads
+  screen checks: {"checks":306,"twoLive":0,"wrongLive":0,"notLive":0,"railDiff":0,"roundDiff":0,"leftDiff":0}; moments missed: 0; also-fit disagreements: 0
+  problems: 1; console errors/warnings: 7
+  Ash     strong  desktop lives 1, 28 answers in 30 turns, 4 wrong, 1 blank, 0 stumped, 0 too slow, 0 refused
+  Misty   average phone   lives 0 OUT, 6 answers in 9 turns, 2 wrong, 0 blank, 0 stumped, 2 too slow, 0 refused
+  Brock   weak    tablet  lives 0 OUT, 4 answers in 7 turns, 3 wrong, 0 blank, 0 stumped, 3 too slow, 0 refused
+  May     average phone   lives 0 OUT, 5 answers in 8 turns, 3 wrong, 0 blank, 1 stumped, 1 too slow, 0 refused
+  Dawn    strong  desktop lives 0 OUT, 27 answers in 30 turns, 4 wrong, 0 blank, 0 stumped, 3 too slow, 0 refused
+  Iris    weak    phone   lives 0 OUT, 2 answers in 5 turns, 1 wrong, 2 blank, 1 stumped, 0 too slow, 0 refused
+  Serena  average tablet  lives 0 OUT, 5 answers in 8 turns, 3 wrong, 0 blank, 1 stumped, 2 too slow, 0 refused
+  Lillie  weak    phone   lives 0 OUT, 4 answers in 7 turns, 6 wrong, 0 blank, 3 stumped, 0 too slow, 0 refused
+
+PROBLEMS
+32.8s lobby-stale: Ash's lobby lists 4 of 8 players 30 s after the last join; reloading it
+
+CONSOLE
+766.9s Misty(phone) error: Failed to load resource: the server responded with a status of 404 ()
+766.9s Dawn(desktop) error: Failed to load resource: the server responded with a status of 404 ()
+766.9s Iris(phone) error: Failed to load resource: the server responded with a status of 404 ()
+766.9s Serena(tablet) error: Failed to load resource: the server responded with a status of 404 ()
+766.9s May(phone) error: Failed to load resource: the server responded with a status of 404 ()
+766.9s Lillie(phone) error: Failed to load resource: the server responded with a status of 404 ()
+766.9s Brock(tablet) error: Failed to load resource: the server responded with a status of 404 ()
