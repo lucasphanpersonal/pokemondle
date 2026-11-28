@@ -113,7 +113,7 @@ export function PartyApp() {
             <h2 id="party-game-title" ref={headingRef} tabIndex={-1} className="tx-11 leading-5 outline-none">
               Room {lobby.code}
             </h2>
-            <p>{lobby.status === 'over' ? 'Counting up the results…' : 'Dealing the next category…'}</p>
+            <p>{lobby.status === 'over' ? 'This game is over.' : 'Dealing the next category…'}</p>
             <button type="button" onClick={() => { party.leave(); navigate({ screen: 'start' }) }} className="ds-button bevel-paper h-11 px-4 text-[10px] text-ds-ink">
               Leave
             </button>

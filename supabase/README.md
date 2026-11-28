@@ -172,6 +172,11 @@ for a browser talking to the hosted project.
 pg_cron jobs are scheduled; `10_party.test.sql` covers the Party turn rules (below). Run the same thing locally with Docker:
 `npx supabase start` then `npx supabase test db`.
 
+`.github/workflows/party-e2e.yml` runs on every pull request: the same local stack with the Edge Functions served, the
+site built against it, and a two-player browser game (`e2e/live/`; see the main README). It forces short turn timers by
+updating the dealt deck (`party_categories.seconds`) with `psql` as the local stack's `postgres` user; nothing the site or
+the Edge Function can call does that, so it can't happen on the live project.
+
 ## Party database
 
 Migration `20261127200000_party.sql`. The SQL functions own the turn rules (whose turn, deadline, lives, round cleared, next
@@ -203,9 +208,10 @@ messages. On a `party_rooms` update where `game_no` changed, or status went back
 `last_event` (jsonb) says what just happened, for the banners:
 `{"kind":"lobby"}`, `{"kind":"start","round":1}`, `{"kind":"answer","round","player_id","pokemon_id"}`,
 `{"kind":"cleared","round","player_id","deck_no","exhausted"}` (`round` is the round that was cleared; `exhausted`: the pool ran out
-mid-lap), `{"kind":"timeout","round","player_id","lives","out","deck_no"}`, `{"kind":"gone","round","player_id","reason"}`. When the
+mid-lap), `{"kind":"timeout","round","player_id","lives","out","deck_no","said"}`, `{"kind":"gone","round","player_id","reason"}`. When the
 event ended the game it also has `"over":true,"winner_id"`. "Also fit" for a failed round: the category is the `party_categories` row
-with that `deck_no`, the used species are that round's `party_answers`.
+with that `deck_no`, the used species are the `said` pokemon ids (that round's `party_answers`, oldest first; added by migration
+`20261128120000_party_timeout_said.sql` so every screen excludes the same answers whatever reached it).
 
 ### Tokens
 

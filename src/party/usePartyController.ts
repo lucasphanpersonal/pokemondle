@@ -148,10 +148,8 @@ export function usePartyController(routeCode: string | null): PartyScreenControl
     session && room && me?.seat != null
       ? toGameView(session.code, room, players, party.category, party.answers, session.player_id, party.deadlineAt, roundEnd)
       : null
-  const over = useMemo(
-    () => (session && me?.seat != null ? toGameOverView(session.code, party.state, session.player_id) : null),
-    [session, me?.seat, party.state],
-  )
+  // The results are for everyone in the room, seated or not (a late arrival who watched, or a host who never played).
+  const over = useMemo(() => (session ? toGameOverView(session.code, party.state, session.player_id) : null), [session, party.state])
 
   // The game screen checks answers itself first, so a refusal here is the server's: too late, a race, a lost seat.
   const partyAnswer = party.answer
@@ -171,7 +169,8 @@ export function usePartyController(routeCode: string | null): PartyScreenControl
     answer,
     busy: pending > 0 || status === 'connecting',
     error,
-    inGame: !!lobby && lobby.status !== 'lobby' && me?.seat != null,
+    // A running game is for its seated players (others wait in the lobby for the next one); a finished one for everyone.
+    inGame: !!lobby && (lobby.status === 'over' || (lobby.status === 'playing' && me?.seat != null)),
     host: (nickname) => guard(() => party.host(nickname)),
     join: (code, nickname) => guard(() => party.join(code, nickname)),
     changeSettings: (s: PartySettings) => guard(() => party.settings(s.lives, s.startTier)),

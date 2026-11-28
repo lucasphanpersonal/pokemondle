@@ -34,7 +34,7 @@ export interface LobbyPlayer {
 export interface LobbyView {
   /** The room code, 4 letters (party_room_codes.code). */
   code: string
-  /** party_rooms.status. 'playing' or 'over' in the lobby means this player arrived late and waits for the next game. */
+  /** party_rooms.status. 'playing' in the lobby means this player arrived late and waits for the next game. */
   status: PartyStatus
   /** Present players only (party_players.gone_at is null), in join order (party_players.joined_at). */
   players: LobbyPlayer[]
@@ -240,8 +240,8 @@ export interface PartyController {
    */
   answer(pokemonId: number): Promise<AnswerResult>
   /**
-   * The finished game (party_rooms.status 'over') for a player who was in it, or null. While it is set, the game over
-   * screen shows.
+   * The finished game (party_rooms.status 'over') for everyone in the room (late arrivals too), or null. While it is set,
+   * the game over screen shows.
    */
   over: GameOverView | null
   /** Host only, on the game over screen: back to the lobby with the same room and players (then Start deals a new game). */

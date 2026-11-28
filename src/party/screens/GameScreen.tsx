@@ -48,8 +48,10 @@ import { ClearedPanel, TimeUpPanel } from './RoundMoments.tsx'
  *
  * The end of a round (view.roundEnd, from the server's last_event, so every screen shows it) plays over the category
  * card: time's up (~2.5 s, the bomb bursts, then "Also fit") or round cleared (~1.5 s), then the new category slides in.
- * The panel covers the card's place (growing upwards over the rail if it needs more room), so the turn box and search
- * box never move and the next player can type straight away: a moment never blocks input. The local countdown reaching
+ * The panel covers the card's place, so the turn box and search box never move and the next player can type straight
+ * away: a moment never blocks input. Below 1024 px the time's up panel is taller than a one-part card, so it is kept short
+ * (RoundMoments) and also takes half of the gap below the card; in the usual case it then stays clear of the rail's
+ * cards (it grows upwards only with a long nickname or long names). The local countdown reaching
  * zero starts the burst before the server's event arrives; a round end plays once per round (moments.ts).
  */
 export interface GameScreenProps {
@@ -216,7 +218,7 @@ export function GameScreen({ view, onAnswer, onLeave, onTimeUp, busy, error, hea
               meId={view.meId}
               reduceMotion={reduceMotion}
               onDone={() => momentDone(moment.id)}
-              className="absolute inset-x-0 bottom-0 z-20 min-h-full"
+              className="absolute inset-x-0 -bottom-2 z-20 min-h-full lg:bottom-0"
             />
           )}
           {moment?.kind === 'cleared' && moment.end?.kind === 'cleared' && (

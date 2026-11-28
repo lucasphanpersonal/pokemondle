@@ -14,7 +14,18 @@ export type RoomEvent =
   | { kind: 'start'; round: number }
   | { kind: 'answer'; round: number; player_id: string; pokemon_id: number }
   | { kind: 'cleared'; round: number; player_id: string; deck_no: number; exhausted?: boolean; over?: boolean; winner_id?: string }
-  | { kind: 'timeout'; round: number; player_id: string; lives: number; out: boolean; deck_no: number; over?: boolean; winner_id?: string }
+  | {
+      kind: 'timeout'
+      round: number
+      player_id: string
+      lives: number
+      out: boolean
+      deck_no: number
+      /** The pokemon ids answered in that round, oldest first (from migration 20261128120000; older events lack it). */
+      said?: number[]
+      over?: boolean
+      winner_id?: string
+    }
   | { kind: 'gone'; round: number; player_id: string; reason: string; over?: boolean; winner_id?: string }
 
 export interface RoomRow {

@@ -6,6 +6,8 @@ const executablePath = process.env.PW_CHROMIUM_PATH || undefined
 
 export default defineConfig({
   testDir: './e2e',
+  // e2e/live/ needs a local Supabase stack: it runs with playwright.party.config.ts (.github/workflows/party-e2e.yml).
+  testIgnore: 'live/**',
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',

@@ -26,8 +26,12 @@ function useClockUntil(at: number): number {
   return useNow(stoppedFor !== at)
 }
 
-/** Pixels per art pixel for the burst: the bomb is 16 x 25 (48 x 75 px), the burst 24 x 24 (72 x 72 px). */
-const SCALE = 3
+/**
+ * Pixels per art pixel for the burst, as the CSS variable --art: 2 below 1024 px (the bomb 32 x 50 px, the burst 48 x 48)
+ * so the panel stays short, 3 from 640 px (48 x 75 and 72 x 72). Whole numbers keep the pixels square.
+ */
+const ART_SCALE = '[--art:2] lg:[--art:3]'
+const px = (n: number) => `calc(var(--art) * ${n}px)`
 
 /** The art column: the bomb flashing, a burst frame, or the smoke left once it's spent. */
 function BurstArt({ art, reduceMotion, className = '' }: { art: TimeUpFrame['art']; reduceMotion: boolean; className?: string }) {
@@ -39,10 +43,13 @@ function BurstArt({ art, reduceMotion, className = '' }: { art: TimeUpFrame['art
     svg = (
       <svg
         viewBox={`0 0 ${ART_W} ${ART_H}`}
-        width={ART_W * SCALE}
-        height={ART_H * SCALE}
         shapeRendering="crispEdges"
-        style={{ transform: swell === 1 ? undefined : `scale(${swell.toFixed(3)})`, transformOrigin: '50% 70%' }}
+        style={{
+          width: px(ART_W),
+          height: px(ART_H),
+          transform: swell === 1 ? undefined : `scale(${swell.toFixed(3)})`,
+          transformOrigin: '50% 70%',
+        }}
         className="block"
       >
         {fusePaths(0, false, 0, on).map((p, i) => (
@@ -53,7 +60,7 @@ function BurstArt({ art, reduceMotion, className = '' }: { art: TimeUpFrame['art
   } else {
     const frame = art.kind === 'burst' ? art.frame : BURST_FRAMES - 1
     svg = (
-      <svg viewBox={`0 0 ${BURST_W} ${BURST_H}`} width={BURST_W * SCALE} height={BURST_H * SCALE} shapeRendering="crispEdges" className="block">
+      <svg viewBox={`0 0 ${BURST_W} ${BURST_H}`} shapeRendering="crispEdges" style={{ width: px(BURST_W), height: px(BURST_H) }} className="block">
         {burstPaths(frame).map((p, i) => (
           <path key={i} fill={p.color} d={p.d} />
         ))}
@@ -62,8 +69,8 @@ function BurstArt({ art, reduceMotion, className = '' }: { art: TimeUpFrame['art
   }
   return (
     <div
-      className={`flex shrink-0 items-center justify-center ${className}`}
-      style={{ width: BURST_W * SCALE, height: ART_H * SCALE }}
+      className={`flex shrink-0 items-center justify-center ${ART_SCALE} ${className}`}
+      style={{ width: px(BURST_W), height: px(ART_H) }}
       aria-hidden="true"
       data-testid="party-burst"
       data-art={art.kind === 'burst' ? `burst-${art.frame}` : art.kind}
@@ -124,30 +131,40 @@ export function TimeUpPanel({ end, startedAt, eventAt, endsAt, meId, reduceMotio
   return (
     <div
       role="status"
-      className={`ds-box flex flex-col justify-center px-3 py-3 sm:px-4 ${className}`}
+      className={`ds-box flex flex-col justify-center px-3 py-2.5 sm:px-4 sm:py-3 ${className}`}
       data-testid="party-moment"
       data-kind="timeout"
     >
       <p className="sr-only">{spoken}</p>
-      {/* Phones: the bomb beside the text, "Also fit" across the box below. From 640 px "Also fit" sits under the text,
+      {/* Below 1024 px: the bomb beside the text, "Also fit" across the box below. From 1024 px "Also fit" sits under the text,
           beside the bomb, so the panel stays about as tall as the category card it covers. */}
-      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
-        <BurstArt art={frame.art} reduceMotion={reduceMotion} className={showFits ? 'sm:row-span-2' : ''} />
-        <Typed text={text} letters={end ? frame.letters : reduceMotion || frame.popped ? text.length : 0} className="tx-11 leading-6" />
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 lg:gap-y-2">
+        <BurstArt art={frame.art} reduceMotion={reduceMotion} className={showFits ? 'lg:row-span-2' : ''} />
+        <Typed text={text} letters={end ? frame.letters : reduceMotion || frame.popped ? text.length : 0} className="tx-11 leading-5 lg:leading-6" />
         {showFits && (
           <div
             aria-hidden="true"
-            className={`col-span-2 flex flex-col gap-1 sm:col-span-1 sm:col-start-2 ${frame.alsoFit ? '' : 'invisible'}`}
+            className={`col-span-2 flex flex-col gap-0.5 lg:col-span-1 lg:gap-1 lg:col-start-2 ${frame.alsoFit ? '' : 'invisible'}`}
             data-testid="party-also-fit"
           >
-            <p className="tx-9 leading-4">Also fit:</p>
-            <ul className="grid max-w-[24rem] grid-cols-3 gap-1.5 sm:gap-2">
+            {/* The names as one line of text that wraps only between words (never mid-name, even at 320 px with Larger text),
+                then the sprites in the same order: shorter than a name under each sprite. */}
+            <p className="tx-9 leading-4" data-testid="party-also-fit-names">
+              Also fit{names.length ? `: ${names.join(', ')}.` : ':'}
+            </p>
+            <ul className="flex gap-2">
               {(fits.length ? fits : [0, 0, 0]).map((id, i) => {
                 const p = POKEDEX_BY_ID.get(id)
                 return (
-                  <li key={`${id}-${i}`} className="flex min-w-0 flex-col items-center gap-0.5 text-center">
-                    <SpriteImg sources={iconSources(p ?? { id, dexNumber: id })} crop={24} alt="" width={40} height={40} className="h-10 w-10 shrink-0" />
-                    <span className="w-full tx-8 leading-4 break-words hyphens-auto" lang="en">{p?.name ?? ''}</span>
+                  <li key={`${id}-${i}`} data-pokemon-id={id}>
+                    <SpriteImg
+                      sources={iconSources(p ?? { id, dexNumber: id })}
+                      crop={24}
+                      alt=""
+                      width={40}
+                      height={40}
+                      className="h-8 w-8 lg:h-10 lg:w-10"
+                    />
                   </li>
                 )
               })}

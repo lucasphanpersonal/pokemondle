@@ -38,6 +38,20 @@ export const PARTY_UNREACHABLE = "Can't reach the party server right now"
 export const HEARTBEAT_MS = 4000
 /** party_timeout at zero lands inside the server's 300 ms grace, so ask again a moment later. */
 export const TIMEOUT_RETRY_MS = 400
+/**
+ * How long a room may take to connect (supabase-js loaded, Realtime subscribed, first snapshot read). Past it the page
+ * says it can't reach the party server instead of waiting quietly: Realtime blocked (a firewall, or a security header
+ * without the wss:// address) fails this way while the function calls still work.
+ */
+export const CONNECT_TIMEOUT_MS = 10_000
+
+/**
+ * The status the page shows. Outside a room a stale error from the last room isn't shown, except when hosting or
+ * joining just failed to connect (`connectFailed`): the start screen must say so.
+ */
+export function shownStatus(status: PartyStatus, routeCode: string | null, connectFailed: boolean): PartyStatus {
+  return routeCode === null && status !== 'unavailable' && !connectFailed ? 'ready' : status
+}
 
 export interface HostOptions {
   lives?: number
@@ -60,6 +74,10 @@ export function useParty(routeCode: string | null) {
   )
   /** True once the server stopped recognising our token (removed, or the room is gone): the seat is lost. */
   const [lost, setLost] = useState(false)
+  /** True when a room just hosted or joined could not connect: the seat was given up and the start screen says why. */
+  const [connectFailed, setConnectFailed] = useState(false)
+  /** The seat came from Host or Join in this page (not a rejoin): if it can't connect, it is given up. */
+  const freshRef = useRef(false)
   const [retryTick, setRetryTick] = useState(0)
   const rpcRef = useRef<PartyRpc | null>(null)
   const stateRef = useRef(state)
@@ -105,6 +123,23 @@ export function useParty(routeCode: string | null) {
     }
   }, [api, routeCode, retryTick, setSession])
 
+  // A room that never connected: a seat from Host or Join is given up (it would only be a ghost in the lobby, kept
+  // alive by the heartbeat) and the start screen says the server can't be reached; a rejoined seat keeps trying.
+  const failConnect = useCallback(() => {
+    const s = sessionRef.current
+    if (!freshRef.current || !s) {
+      setStatus('error')
+      return
+    }
+    freshRef.current = false
+    clearSession()
+    setSession(null)
+    dispatch({ type: 'reset', roomId: null })
+    setConnectFailed(true)
+    setStatus('error')
+    if (api) void api.leave(s)
+  }, [api, setSession])
+
   // 2. With a seat in the room: subscribe, load the snapshot (again on every resubscribe) and send heartbeats.
   const roomId = active?.room_id ?? null
   const playerId = active?.player_id ?? null
@@ -112,16 +147,20 @@ export function useParty(routeCode: string | null) {
   useEffect(() => {
     if (!env || !roomId || !playerId || !token) return
     let cancelled = false
+    let connected = false
     let sub: Subscription | null = null
     let heartbeat: ReturnType<typeof setInterval> | undefined
     if (stateRef.current.roomId !== roomId) dispatch({ type: 'reset', roomId })
+    const connectTimer = setTimeout(() => {
+      if (!cancelled && !connected) failConnect()
+    }, CONNECT_TIMEOUT_MS)
 
     void (async () => {
       let client
       try {
         client = await loadClient(env)
       } catch {
-        if (!cancelled) setStatus('error')
+        if (!cancelled) failConnect()
         return
       }
       if (cancelled) return
@@ -154,7 +193,13 @@ export function useParty(routeCode: string | null) {
           if (cancelled) return
           if (s === 'SUBSCRIBED') {
             refresh().then(
-              () => !cancelled && setStatus('ready'),
+              () => {
+                if (cancelled) return
+                connected = true
+                freshRef.current = false
+                clearTimeout(connectTimer)
+                setStatus('ready')
+              },
               () => !cancelled && setStatus('error'),
             )
           } else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT') {
@@ -173,11 +218,12 @@ export function useParty(routeCode: string | null) {
 
     return () => {
       cancelled = true
+      clearTimeout(connectTimer)
       sub?.close()
       clearInterval(heartbeat)
       rpcRef.current = null
     }
-  }, [env, roomId, playerId, token, retryTick, clock, loseSeat])
+  }, [env, roomId, playerId, token, retryTick, clock, loseSeat, failConnect])
 
   // 3. When the visible countdown reaches zero, ask the database to end the turn (every client does; it acts once).
   const room = state.room
@@ -217,6 +263,8 @@ export function useParty(routeCode: string | null) {
       const next: PartySession = { code: res.code, room_id: res.room_id, player_id: res.player_id, token: res.token }
       writeSession(next)
       setLost(false)
+      setConnectFailed(false)
+      freshRef.current = true
       setStatus('connecting')
       setSession(next)
       return res
@@ -265,6 +313,7 @@ export function useParty(routeCode: string | null) {
     clearSession()
     setSession(null)
     setLost(false)
+    setConnectFailed(false)
     dispatch({ type: 'reset', roomId: null })
     if (api && s) await api.leave(s) // the seat is already gone locally; this frees it on the server
   }, [api, setSession])
@@ -288,8 +337,7 @@ export function useParty(routeCode: string | null) {
   }, [])
 
   const me = selectMe(state, playerId)
-  // Outside a room there is nothing to connect to, so a stale error from the last room isn't shown.
-  const shown: PartyStatus = routeCode === null && status !== 'unavailable' ? 'ready' : status
+  const shown = shownStatus(status, routeCode, connectFailed)
   return {
     status: shown,
     /** Set when status is 'error'. */
