@@ -427,3 +427,61 @@ describe('rows from a server reply (ahead of Realtime)', () => {
     expect(s.room).toEqual(final)
   })
 })
+
+// party_categories is not in Realtime (migration 20261128160000): the deck comes from a select, results from last_event.
+describe('the deck without Realtime', () => {
+  const lobbySnap = (): PartyAction => ({
+    type: 'snapshot',
+    roomId: ROOM,
+    room: room({ game_no: 1, status: 'lobby' }),
+    players: [player('p1')],
+    categories: [],
+    answers: [],
+  })
+
+  it('a Start shows the category once the deck read lands (merged; other rooms and old games ignored)', () => {
+    let s = run(
+      initialPartyState(ROOM),
+      lobbySnap(),
+      change('party_rooms', 'UPDATE', playingRoom({ game_no: 2, last_activity: '2026-11-27T10:00:01.000Z' })),
+    )
+    expect(selectCurrentCategory(s)).toBeNull()
+    s = run(s, { type: 'deck', roomId: ROOM, categories: [cat(2, 1), cat(2, 2), { ...cat(2, 3), room_id: 'other' }, cat(1, 1)] })
+    expect(Object.keys(s.categories).sort()).toEqual(['2:1', '2:2'])
+    expect(selectCurrentCategory(s)?.deck_no).toBe(1)
+    expect(run(s, { type: 'deck', roomId: 'other', categories: [cat(2, 9)] })).toBe(s)
+  })
+
+  it("marks a round's category cleared or failed from the room's last_event", () => {
+    let s = run(initialPartyState(ROOM), snap({ categories: [cat(1, 1), cat(1, 2)] }))
+    s = run(
+      s,
+      change('party_rooms', 'UPDATE', playingRoom({
+        round: 2, category_no: 2, turn_no: 6, last_activity: '2026-11-27T10:00:02.000Z',
+        last_event: { kind: 'cleared', round: 1, player_id: 'p2', deck_no: 1 },
+      })),
+    )
+    expect(s.categories['1:1'].result).toBe('cleared')
+    s = run(
+      s,
+      change('party_rooms', 'UPDATE', playingRoom({
+        round: 3, category_no: 3, turn_no: 7, last_activity: '2026-11-27T10:00:03.000Z',
+        last_event: { kind: 'timeout', round: 2, player_id: 'p1', lives: 2, out: false, deck_no: 2 },
+      })),
+    )
+    expect(s.categories['1:2'].result).toBe('failed')
+    expect(s.categories['1:1'].result).toBe('cleared')
+  })
+
+  it('a deck read that lands after the event is marked too, and a stale read never clears a marked result', () => {
+    const ended = playingRoom({
+      round: 2, category_no: 2, turn_no: 6, last_activity: '2026-11-27T10:00:02.000Z',
+      last_event: { kind: 'cleared', round: 1, player_id: 'p2', deck_no: 1 },
+    })
+    let s = run(initialPartyState(ROOM), snap({ room: ended, categories: [] }))
+    s = run(s, { type: 'deck', roomId: ROOM, categories: [cat(1, 1), cat(1, 2)] })
+    expect(s.categories['1:1'].result).toBe('cleared')
+    s = run(s, { type: 'deck', roomId: ROOM, categories: [cat(1, 1)] })
+    expect(s.categories['1:1'].result).toBe('cleared')
+  })
+})

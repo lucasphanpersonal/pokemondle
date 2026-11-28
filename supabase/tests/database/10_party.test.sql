@@ -341,6 +341,14 @@ select ok(exists (select 1 from pg_publication_tables where pubname = 'supabase_
   'party_rooms in the realtime publication');
 select ok(not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'party_tokens'),
   'party_tokens not published');
+select ok(exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'party_players'),
+  'party_players in the realtime publication');
+select ok(exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'party_answers'),
+  'party_answers in the realtime publication');
+-- The deck is read with a select when a game starts (migration 20261128160000): no burst of one message per row.
+select ok(not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'party_categories'),
+  'party_categories not published');
+select ok(has_table_privilege('anon', 'public.party_categories', 'select'), 'anon can still select party_categories');
 select ok(not exists (select 1 from information_schema.columns where table_name = 'party_players' and column_name like '%token%'),
   'party_players has no token column');
 select ok(not has_function_privilege('anon', 'public.party_apply_answer(uuid, uuid, text, int, int, boolean)', 'execute'),

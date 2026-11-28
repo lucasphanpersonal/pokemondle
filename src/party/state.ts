@@ -115,6 +115,13 @@ export type PartyAction =
       categories: readonly CategoryRow[]
       answers: readonly AnswerRow[]
     }
+  /**
+   * A lobby re-read of the room row and its players only (see resync.ts): applied like a snapshot, keeping the deck and
+   * answers this state already has.
+   */
+  | { type: 'lobby'; roomId: string; room: RoomRow | null; players: readonly PlayerRow[] }
+  /** A game's deck read with a select (party_categories is not in Realtime): merged in, keyed by game and deck_no. */
+  | { type: 'deck'; roomId: string; categories: readonly CategoryRow[] }
   | { type: 'change'; table: PartyTable; event: ChangeKind; row: Record<string, unknown> }
   /** Rows a server reply returned (party_settings, party_apply_answer): applied at once, ahead of Realtime. */
   | { type: 'reply'; room?: unknown; answers?: readonly unknown[] }
@@ -219,6 +226,26 @@ function without<T>(rows: Readonly<Record<string, T>>, key: string): Readonly<Re
 }
 
 export function partyReducer(state: PartyState, action: PartyAction): PartyState {
+  const next = reduce(state, action)
+  return next.room !== state.room || next.categories !== state.categories ? markResult(next) : next
+}
+
+/**
+ * The deck isn't in Realtime, so a category's result ('cleared' / 'failed', for the game over screen's hardest category)
+ * is taken from the room's last_event, which names the deck entry; the SQL writes the same result in that transaction.
+ */
+function markResult(state: PartyState): PartyState {
+  const room = state.room
+  const ev = room?.last_event
+  if (!room || !ev || (ev.kind !== 'cleared' && ev.kind !== 'timeout') || typeof ev.deck_no !== 'number') return state
+  const key = categoryKey({ game_no: room.game_no, deck_no: ev.deck_no })
+  const row = state.categories[key]
+  const result = ev.kind === 'cleared' ? 'cleared' : 'failed'
+  if (!row || row.result === result) return state
+  return { ...state, categories: { ...state.categories, [key]: { ...row, result } } }
+}
+
+function reduce(state: PartyState, action: PartyAction): PartyState {
   switch (action.type) {
     case 'reset':
       return initialPartyState(action.roomId)
@@ -235,6 +262,28 @@ export function partyReducer(state: PartyState, action: PartyAction): PartyState
       // A snapshot is a committed state, never an in-between one: it settles a reply row (unless it is older).
       const replyRoom = keep && state.room === state.replyRoom ? state.replyRoom : null
       return prune({ roomId: action.roomId, room, players, categories, answers, replyRoom })
+    }
+    case 'lobby':
+      if (state.roomId !== action.roomId) return state
+      return partyReducer(state, {
+        type: 'snapshot',
+        roomId: action.roomId,
+        room: action.room,
+        players: action.players,
+        categories: Object.values(state.categories),
+        answers: Object.values(state.answers),
+      })
+    case 'deck': {
+      if (state.roomId !== action.roomId) return state
+      const game = state.room?.game_no
+      const categories = { ...state.categories }
+      for (const c of action.categories) {
+        if (c.room_id !== action.roomId || (game !== undefined && c.game_no < game)) continue
+        const key = categoryKey(c)
+        // A result already marked from the room's events is newer than a row read before it.
+        categories[key] = categories[key]?.result && !c.result ? { ...c, result: categories[key].result } : c
+      }
+      return { ...state, categories }
     }
     case 'change':
       return applyChange(state, action)

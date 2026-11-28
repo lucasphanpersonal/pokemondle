@@ -48,7 +48,7 @@ export const PARTY_CONFIG = {
   /** The server accepts an answer this long after the deadline, to cover network lag. */
   graceMs: 300,
   /** Categories dealt at the start of a game (round 1 is the first one). */
-  deckSize: 40,
+  deckSize: 60,
   /** A category needs at least this many answers per player (counted by species)... */
   poolPerPlayer: 2,
   /** ...and never fewer than this. */

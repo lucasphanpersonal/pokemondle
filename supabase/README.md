@@ -191,7 +191,7 @@ transaction that locks the room row (`select ... for update`).
 | --- | --- | --- |
 | `party_rooms` | `id`, `host_id`, `status` (`lobby`, `playing`, `over`), settings `lives` (1-5) and `start_tier`, `game_no` (1 for the first game), `round` (1-based, 0 in the lobby), `category_no` (the `party_categories.deck_no` this round plays), `turn_player_id`, `turn_no` (+1 on every turn), `turn_seconds`, `turn_started_at`, `deadline`, `winner_id`, `last_event`, `last_activity` | select + Realtime |
 | `party_players` | `id`, `room_id`, `nickname`, `icon` (a starter's dex number), `joined_at`, `seat` (0-7 turn order; null = watching or lobby), `lives`, `is_out`, `answers_given`, `gone_at` / `gone_reason` (`left`, `removed`, `dropped`) | select + Realtime (no token, no last_seen) |
-| `party_categories` | the dealt deck: `room_id`, `game_no`, `deck_no` (1 = round 1), `parts` (the engine's `Category` JSON), `tier`, `pool`, `seconds`, `result` (`cleared` / `failed` once its round ends) | select + Realtime |
+| `party_categories` | the dealt deck: `room_id`, `game_no`, `deck_no` (1 = round 1), `parts` (the engine's `Category` JSON), `tier`, `pool`, `seconds`, `result` (`cleared` / `failed` once its round ends) | select only (not in Realtime since migration 20261128160000) |
 | `party_answers` | `room_id`, `game_no`, `round`, `player_id`, `pokemon_id`, `species`, `created_at`; unique `(room_id, game_no, round, species)` | select + Realtime |
 | `party_tokens` | `player_id`, `token_hash` (sha256 hex), `last_seen` | nothing |
 | `party_room_codes` | `code` (4 letters from `BCDFGHJKMNPQRSTVWXYZ`), `room_id` | nothing (so nobody can list open rooms) |
@@ -201,8 +201,12 @@ Row-level security is on everywhere. anon, authenticated and service_role may on
 owner can insert, update or delete any table: all writes go through the functions below. A player "in the turn order" means
 `seat is not null and not is_out and gone_at is null`.
 
-Realtime: the first four tables are in the `supabase_realtime` publication. Subscribe with `filter: 'id=eq.<room>'` on
-`party_rooms` and `filter: 'room_id=eq.<room>'` on the others. Inserts and updates carry the whole row. Deletes under RLS carry only
+Realtime: `party_rooms`, `party_players` and `party_answers` are in the `supabase_realtime` publication. `party_categories`
+is not (migration 20261128160000): `party_start` inserts the whole deck at once, and Realtime would send one message per row
+to every player (480 at once for a 60-entry deck and 8 players, against the free plan's 100 per second). Read a game's deck
+with a select when the room row shows a running game whose deck you lack, and take a category's `result` from the room's
+`last_event` (`cleared` / `timeout` name its `deck_no`; the SQL writes `result` in the same transaction). Subscribe with
+`filter: 'id=eq.<room>'` on `party_rooms` and `filter: 'room_id=eq.<room>'` on the others. Inserts and updates carry the whole row. Deletes under RLS carry only
 the primary key and can't be filtered, so the functions never delete these rows during play (leaving marks a player gone, a new game
 uses a new `game_no`); the only deletes are whole idle rooms. `last_seen` lives in `party_tokens` so heartbeats send no Realtime
 messages. On a `party_rooms` update where `game_no` changed, or status went back to `lobby`, refetch the room's rows.
@@ -306,7 +310,8 @@ What the function must do, and what it can rely on SQL for:
    `not_lobby`, `not_playing`, `not_over`, `room_full`, `too_few_players`, `already_used`, `too_late` 409; `bad_nickname`,
    `bad_settings`, `bad_deck`, `bad_answer` 400. A thrown SQL error is a 500.
 6. **Not the function's job:** timeouts (clients call `party_timeout` at zero, cron backs them up), heartbeats (clients call
-   `party_heartbeat` every 4 s; it returns `server_time` for the clock offset), and Realtime (clients subscribe to the tables).
+   `party_heartbeat` every 4 s; it returns `server_time` for the clock offset), and Realtime (clients subscribe to the room,
+   players and answers, and read the deck with a select).
    Settings and answer replies also carry the rows they wrote (`room`, `answer`), so the player who acted sees the change
    without waiting for Realtime; everyone else still gets it from Realtime.
 

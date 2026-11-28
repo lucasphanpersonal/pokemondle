@@ -37,7 +37,7 @@ export interface Snapshot {
  * the newest few answers of the room always hold the whole current round.
  */
 export const SNAPSHOT_ANSWERS = 64
-/** Enough decks for several games (a deck is 40 entries, at most 200), newest game first. */
+/** Enough decks for several games (a deck is PARTY_CONFIG.deckSize = 60 entries, at most 200), newest game first. */
 export const SNAPSHOT_CATEGORIES = 1000
 
 /**
@@ -84,6 +84,30 @@ export async function fetchSnapshot(client: SupabaseClient, roomId: string): Pro
 }
 
 /**
+ * A game's dealt deck. party_categories is not in the Realtime publication (a 60-row deck would be one message per row
+ * per player at Start), so the page reads it with this one select when the room row shows a game whose deck it lacks.
+ */
+export async function fetchDeck(client: SupabaseClient, roomId: string, gameNo: number): Promise<CategoryRow[]> {
+  const res = await client.from('party_categories').select('*').eq('room_id', roomId).eq('game_no', gameNo)
+  if (res.error) throw new Error(res.error.message)
+  return (res.data ?? []) as CategoryRow[]
+}
+
+/**
+ * The lobby re-read (resync.ts): just the room row and its players, two small selects side by side. Used while the room
+ * is in the lobby to catch a join that Realtime missed; anything else (a game started) is a cue for a full snapshot.
+ */
+export async function fetchLobby(client: SupabaseClient, roomId: string): Promise<{ room: RoomRow | null; players: PlayerRow[] }> {
+  const [r, p] = await Promise.all([
+    client.from('party_rooms').select('*').eq('id', roomId).maybeSingle(),
+    client.from('party_players').select('*').eq('room_id', roomId),
+  ])
+  const err = r.error ?? p.error
+  if (err) throw new Error(err.message)
+  return { room: (r.data as RoomRow | null) ?? null, players: (p.data ?? []) as PlayerRow[] }
+}
+
+/**
  * Which of the side-by-side reads are older than the room row: a game is running (or over) but none of its deck came
  * back, or the room's last event is an answer of this round that isn't among the answers.
  */
@@ -115,19 +139,21 @@ export interface Subscription {
 
 export type ChannelStatus = 'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED'
 
-/** Postgres Changes on the room's four tables, filtered by room id. supabase-js reconnects by itself and reports each
- * (re)subscription through onStatus; the caller refetches the snapshot on SUBSCRIBED. */
+/** Postgres Changes on the room's three live tables (not the deck: see fetchDeck), filtered by room id. supabase-js reconnects by itself and reports each
+ * (re)subscription through onStatus; the caller refetches the snapshot on SUBSCRIBED. SUBSCRIBED can come before the
+ * server streams Postgres Changes for the channel; the server's later "system" ok for postgres_changes calls
+ * onChangesReady (when the server sends one), so the caller can read again (resync.ts). */
 export function subscribeToRoom(
   client: SupabaseClient,
   roomId: string,
   onChange: (table: PartyTable, event: ChangeKind, row: Record<string, unknown>) => void,
   onStatus: (status: ChannelStatus) => void,
+  onChangesReady?: () => void,
 ): Subscription {
   let channel = client.channel(`party:${roomId}:${Math.random().toString(36).slice(2, 8)}`)
   const tables: [PartyTable, string][] = [
     ['party_rooms', `id=eq.${roomId}`],
     ['party_players', `room_id=eq.${roomId}`],
-    ['party_categories', `room_id=eq.${roomId}`],
     ['party_answers', `room_id=eq.${roomId}`],
   ]
   for (const [table, filter] of tables) {
@@ -137,6 +163,9 @@ export function subscribeToRoom(
       onChange(table, event, row ?? {})
     })
   }
+  channel = channel.on('system', {}, (payload: { extension?: string; status?: string }) => {
+    if (payload?.extension === 'postgres_changes' && payload.status === 'ok') onChangesReady?.()
+  })
   channel.subscribe((status) => onStatus(status as ChannelStatus))
   return { close: () => void client.removeChannel(channel) }
 }

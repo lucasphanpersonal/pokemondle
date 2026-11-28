@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it } from 'vitest'
-import { fetchSnapshot, snapshotOf, staleParts } from './client.ts'
+import { fetchSnapshot, snapshotOf, staleParts, subscribeToRoom } from './client.ts'
 import type { AnswerRow, CategoryRow, PlayerRow, RoomRow } from './state.ts'
 
 const ROOM = 'r1'
@@ -102,5 +102,28 @@ describe('fetchSnapshot refetch', () => {
     expect(calls).toBe(6)
     expect(s.categories.map((c) => c.game_no)).toEqual([3])
     expect(s.answers.map((a) => a.id)).toEqual([20])
+  })
+})
+
+describe('subscribeToRoom', () => {
+  it('follows rooms, players and answers live, not the deck (read with a select instead), and reports ready', () => {
+    const bound: string[] = []
+    let system: ((p: unknown) => void) | null = null
+    const channel = {
+      on(type: string, filter: { table?: string }, cb: (p: unknown) => void) {
+        if (type === 'postgres_changes') bound.push(filter.table!)
+        if (type === 'system') system = cb
+        return channel
+      },
+      subscribe: () => channel,
+    }
+    const client = { channel: () => channel, removeChannel: () => {} } as unknown as SupabaseClient
+    let ready = 0
+    subscribeToRoom(client, ROOM, () => {}, () => {}, () => ready++)
+    expect(bound.sort()).toEqual(['party_answers', 'party_players', 'party_rooms'])
+    system!({ extension: 'postgres_changes', status: 'ok' })
+    system!({ extension: 'system', status: 'ok' })
+    system!({ extension: 'postgres_changes', status: 'error' })
+    expect(ready).toBe(1)
   })
 })
