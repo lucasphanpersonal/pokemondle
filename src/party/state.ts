@@ -115,6 +115,11 @@ export type PartyAction =
       categories: readonly CategoryRow[]
       answers: readonly AnswerRow[]
     }
+  /**
+   * A lobby re-read of the room row and its players only (see resync.ts): applied like a snapshot, keeping the deck and
+   * answers this state already has.
+   */
+  | { type: 'lobby'; roomId: string; room: RoomRow | null; players: readonly PlayerRow[] }
   | { type: 'change'; table: PartyTable; event: ChangeKind; row: Record<string, unknown> }
   /** Rows a server reply returned (party_settings, party_apply_answer): applied at once, ahead of Realtime. */
   | { type: 'reply'; room?: unknown; answers?: readonly unknown[] }
@@ -236,6 +241,16 @@ export function partyReducer(state: PartyState, action: PartyAction): PartyState
       const replyRoom = keep && state.room === state.replyRoom ? state.replyRoom : null
       return prune({ roomId: action.roomId, room, players, categories, answers, replyRoom })
     }
+    case 'lobby':
+      if (state.roomId !== action.roomId) return state
+      return partyReducer(state, {
+        type: 'snapshot',
+        roomId: action.roomId,
+        room: action.room,
+        players: action.players,
+        categories: Object.values(state.categories),
+        answers: Object.values(state.answers),
+      })
     case 'change':
       return applyChange(state, action)
     case 'reply':

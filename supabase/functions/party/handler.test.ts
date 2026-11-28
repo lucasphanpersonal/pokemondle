@@ -285,7 +285,7 @@ describe('start', () => {
     expect(who.fn).toBe('party_rejoin')
     expect(start.fn).toBe('party_start')
     const deck = start.args.p_deck as { parts: unknown[]; tier: string; pool: number; seconds: number }[]
-    expect(deck).toHaveLength(40)
+    expect(deck).toHaveLength(60) // PARTY_CONFIG.deckSize; party_start takes 1 to 200
     expect(deck[0].tier).toBe('hard')
     expect(deck[0].seconds).toBe(14)
     expect(deck.every((e) => e.parts.length >= 1 && e.pool >= 6 && e.seconds >= 3)).toBe(true)

@@ -136,23 +136,23 @@ export function TimeUpPanel({ end, startedAt, eventAt, endsAt, meId, reduceMotio
       data-kind="timeout"
     >
       <p className="sr-only">{spoken}</p>
-      {/* Below 1024 px: the bomb beside the text, "Also fit" across the box below. From 1024 px "Also fit" sits under the text,
+      {/* Phones: the bomb beside the text, "Also fit" across the box below. From 768 px "Also fit" sits under the text,
           beside the bomb, so the panel stays about as tall as the category card it covers. */}
       <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 lg:gap-y-2">
-        <BurstArt art={frame.art} reduceMotion={reduceMotion} className={showFits ? 'lg:row-span-2' : ''} />
+        <BurstArt art={frame.art} reduceMotion={reduceMotion} className={showFits ? 'md:row-span-2' : ''} />
         <Typed text={text} letters={end ? frame.letters : reduceMotion || frame.popped ? text.length : 0} className="tx-11 leading-5 lg:leading-6" />
         {showFits && (
           <div
             aria-hidden="true"
-            className={`col-span-2 flex flex-col gap-0.5 lg:col-span-1 lg:gap-1 lg:col-start-2 ${frame.alsoFit ? '' : 'invisible'}`}
+            className={`col-span-2 flex items-center gap-2 md:col-span-1 md:col-start-2 md:flex-col md:items-stretch md:gap-0.5 lg:gap-1 ${frame.alsoFit ? '' : 'invisible'}`}
             data-testid="party-also-fit"
           >
             {/* The names as one line of text that wraps only between words (never mid-name, even at 320 px with Larger text),
                 then the sprites in the same order: shorter than a name under each sprite. */}
-            <p className="tx-9 leading-4" data-testid="party-also-fit-names">
+            <p className="min-w-0 flex-1 tx-9 leading-4" data-testid="party-also-fit-names">
               Also fit{names.length ? `: ${names.join(', ')}.` : ':'}
             </p>
-            <ul className="flex gap-2">
+            <ul className="flex shrink-0 gap-2">
               {(fits.length ? fits : [0, 0, 0]).map((id, i) => {
                 const p = POKEDEX_BY_ID.get(id)
                 return (

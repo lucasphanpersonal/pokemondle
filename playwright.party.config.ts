@@ -11,7 +11,8 @@ export default defineConfig({
   // One game at a time: the tests share the stack's per-network caps and its once-a-second sweep.
   workers: 1,
   timeout: 120_000,
-  retries: process.env.CI ? 1 : 0,
+  // No retries: the game must pass first time (a retry once hid the host's missing-guest bug, fixed in src/party/resync.ts).
+  retries: 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://localhost:4173/',

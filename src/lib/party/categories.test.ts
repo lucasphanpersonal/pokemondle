@@ -285,6 +285,20 @@ describe('dealDeck', () => {
     expect(deck.map((e) => e.tier)).toEqual(['hard', 'hard', 'hard', 'hard', 'expert'])
     expect(deck[0].round).toBe(1)
   })
+  it('deals a full deck with no repeats from every start tier, within what party_start takes (1 to 200 entries)', () => {
+    expect(PARTY_CONFIG.deckSize).toBeGreaterThanOrEqual(60) // long 8-player games ran past 40 rounds in the playtest
+    expect(PARTY_CONFIG.deckSize).toBeLessThanOrEqual(200)
+    for (const tier of PARTY_TIERS) {
+      for (const players of [2, 8]) {
+        const deck = dealDeck(`start-${tier.id}-${players}`, players, dex, { startTier: tier.id })
+        expect(deck).toHaveLength(PARTY_CONFIG.deckSize)
+        expect(new Set(deck.map((e) => categoryKey(e.category))).size).toBe(deck.length)
+        // What start sends to party_start: well under any request limit.
+        const sent = JSON.stringify(deck.map((e) => ({ parts: e.category, tier: e.tier, pool: e.pool, seconds: 1 })))
+        expect(sent.length).toBeLessThan(64 * 1024)
+      }
+    }
+  })
   it('never puts two parts of a typing in one category', () => {
     for (let i = 0; i < 50; i++) {
       for (const { category } of dealDeck(`typing-${i}`, 2, dex)) {

@@ -10,8 +10,9 @@ import {
   type PartyRpc,
   type SettingsReply,
 } from './api.ts'
-import { asRpcClient, fetchSnapshot, loadClient, subscribeToRoom, type Subscription } from './client.ts'
+import { asRpcClient, fetchLobby, fetchSnapshot, loadClient, subscribeToRoom, type Subscription } from './client.ts'
 import { ServerClock } from './clock.ts'
+import { createResync, type Resync } from './resync.ts'
 import { draftSettled, latestOnly, type SettingsDraft } from './optimistic.ts'
 import { clearSession, decideRejoin, readSession, writeSession, type PartySession } from './session.ts'
 import {
@@ -149,7 +150,8 @@ export function useParty(routeCode: string | null) {
     if (api) void api.leave(s)
   }, [api, setSession])
 
-  // 2. With a seat in the room: subscribe, load the snapshot (again on every resubscribe) and send heartbeats.
+  // 2. With a seat in the room: subscribe, load the snapshot (again on every resubscribe, once more a moment later, and
+  // the players every few seconds in the lobby: resync.ts) and send heartbeats.
   const roomId = active?.room_id ?? null
   const playerId = active?.player_id ?? null
   const token = active?.token ?? null
@@ -158,6 +160,7 @@ export function useParty(routeCode: string | null) {
     let cancelled = false
     let connected = false
     let sub: Subscription | null = null
+    let resync: Resync | null = null
     let heartbeat: ReturnType<typeof setInterval> | undefined
     if (stateRef.current.roomId !== roomId) dispatch({ type: 'reset', roomId })
     const connectTimer = setTimeout(() => {
@@ -176,31 +179,49 @@ export function useParty(routeCode: string | null) {
       const rpc = createPartyRpc(asRpcClient(client), { onClockSample: (s) => clock.add(s) })
       rpcRef.current = rpc
 
-      let dirty = false
+      // Counts the Realtime changes seen, so a read can tell whether one arrived while it was out.
+      let changes = 0
       // Read the room as it is now. Events that arrive during the read might be missing from it, so read again
       // (up to 3 reads); events after that are applied live.
       const refresh = async () => {
         for (let i = 0; i < 3; i++) {
-          dirty = false
+          const seen = changes
           const snap = await fetchSnapshot(client, roomId)
           if (cancelled) return
-          if (!dirty || i === 2) {
+          if (changes === seen || i === 2) {
             dispatch({ type: 'snapshot', roomId, ...snap })
             return
           }
         }
       }
+      // In the lobby: the room row and players only. A change during the read means Realtime is delivering; the next
+      // poll checks again. A room that has left the lobby (a start Realtime missed) gets a full snapshot.
+      const pollLobby = async () => {
+        const seen = changes
+        const { room: r, players } = await fetchLobby(client, roomId)
+        if (cancelled || changes !== seen) return
+        const cur = stateRef.current.room
+        if (r && (r.status !== 'lobby' || (cur && r.game_no !== cur.game_no))) await refresh()
+        else dispatch({ type: 'lobby', roomId, room: r, players })
+      }
+      const quietly = (read: () => Promise<void>) => () => void read().catch(() => {})
+      resync = createResync({
+        refresh: quietly(refresh),
+        pollLobby: quietly(pollLobby),
+        inLobby: () => stateRef.current.room?.status === 'lobby',
+      })
 
       sub = subscribeToRoom(
         client,
         roomId,
         (table, event, row) => {
-          dirty = true
+          changes++
           dispatch({ type: 'change', table, event, row })
         },
         (s) => {
           if (cancelled) return
           if (s === 'SUBSCRIBED') {
+            resync?.subscribed()
             refresh().then(
               () => {
                 if (cancelled) return
@@ -215,6 +236,7 @@ export function useParty(routeCode: string | null) {
             setStatus('connecting')
           }
         },
+        () => !cancelled && resync?.changesReady(),
       )
 
       const beat = () =>
@@ -229,6 +251,7 @@ export function useParty(routeCode: string | null) {
       cancelled = true
       clearTimeout(connectTimer)
       sub?.close()
+      resync?.close()
       clearInterval(heartbeat)
       rpcRef.current = null
     }

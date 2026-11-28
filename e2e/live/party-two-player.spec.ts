@@ -9,7 +9,8 @@ import type { Pokemon } from '../../src/types/pokemon.ts'
  * Two players, two browser contexts, one real game on /party/ against a LOCAL Supabase stack (run by
  * .github/workflows/party-e2e.yml with playwright.party.config.ts; never the live project).
  *
- * The host (desktop) creates a room and picks 2 lives, the guest (phone) joins by the invite link, the host starts.
+ * The host (desktop) creates a room, the guest (phone) joins by the invite link at once, the host must see them
+ * without a reload, picks 2 lives and starts.
  * Round 1: a wrong answer (costs time only), then a valid answer from each player clears the lap. Rounds 2 and 3 get a
  * forced 5 s timer and nobody answers: the player on turn loses a life (every screen shows the same three "Also fit"),
  * starts round 3, runs out again and is out, so the other player wins. Then the host taps Play again.
@@ -127,20 +128,26 @@ test('two players play a whole game: wrong answer, cleared lap, timeouts, a winn
   await expect(host.page.getByRole('button', { name: 'Copy invite link' })).toBeVisible()
   await expect.poll(() => host.page.evaluate(() => location.hash)).toMatch(/^#[A-Z]{4}$/)
   const inviteLink = host.page.url()
+
+  // ---- The guest opens the invite link at once (the playtest's repro: a join within a couple of seconds of the room
+  // being made, before the host's Postgres Changes are delivered). The code is filled in, Join is the main action.
+  await guest.page.goto(inviteLink)
+  await guest.page.getByLabel('Your name').fill('Misty')
+  await guest.page.getByRole('button', { name: 'Join' }).click()
+  await expect(guest.page.locator('[data-screen=lobby]')).toBeVisible({ timeout: 20_000 })
+  // The host must see the guest without a reload: by Realtime, or at the latest by the lobby re-read (src/party/resync.ts,
+  // every LOBBY_POLL_MS = 5 s), so 10 s is always enough.
+  await expect(host.page.getByTestId('party-players').locator('li')).toHaveCount(2, { timeout: 10_000 })
+  await expect(guest.page.getByTestId('party-players').locator('li')).toHaveCount(2, { timeout: 10_000 })
+
+  // ---- The host picks 2 lives; the guest's read-only settings follow.
   const lives = host.page.getByTestId('party-lives').getByRole('radio', { name: '2', exact: true })
   // The lobby may still be settling (the controls are disabled while busy): tap until the server has it.
   await expect(async () => {
     if ((await lives.getAttribute('aria-checked')) !== 'true') await lives.click()
     await expect(lives).toHaveAttribute('aria-checked', 'true', { timeout: 3000 })
   }).toPass({ timeout: 20_000 })
-
-  // ---- The guest opens the invite link: the code is filled in, Join is the main action.
-  await guest.page.goto(inviteLink)
-  await guest.page.getByLabel('Your name').fill('Misty')
-  await guest.page.getByRole('button', { name: 'Join' }).click()
-  await expect(guest.page.locator('[data-screen=lobby]')).toBeVisible({ timeout: 20_000 })
-  await expect(host.page.getByTestId('party-players').locator('li')).toHaveCount(2)
-  await expect(guest.page.getByTestId('party-settings-readonly')).toContainText('2')
+  await expect(guest.page.getByTestId('party-settings-readonly')).toContainText('2', { timeout: 10_000 })
 
   const hostSeat = (await seatOf(host.page))!
   const guestSeat = (await seatOf(guest.page))!
@@ -206,6 +213,20 @@ test('two players play a whole game: wrong answer, cleared lap, timeouts, a winn
   const expected = alsoFit(category2, DATASET, new Set(), `${roomId}|${round2.game_no}|2`, 3).map((p) => p.id)
   expect(hostFits).toEqual(expected)
   expect(hostFits.every((id) => BY_ID.has(id))).toBe(true)
+  // The time's up panel never covers the player rail (desktop and phone), nor the turn box below it. Read in one go, while
+  // the panel is still up (it goes after about 2.5 s; if it's already gone there is nothing to check).
+  for (const p of [host.page, guest.page]) {
+    const boxes = await p.evaluate(() => {
+      const box = (s: string) => document.querySelector(s)?.getBoundingClientRect()
+      const panel = box('[data-testid=party-moment][data-kind=timeout]')
+      const rail = box('section[aria-label=Players]')
+      const turn = box('[data-testid=party-turn]')
+      return panel && rail && turn ? { panelTop: panel.top, panelBottom: panel.bottom, railBottom: rail.bottom, turnTop: turn.top } : null
+    })
+    if (!boxes) continue
+    expect(boxes.panelTop, 'panel below the rail').toBeGreaterThanOrEqual(boxes.railBottom)
+    expect(boxes.panelBottom, 'panel above the turn box').toBeLessThanOrEqual(boxes.turnTop)
+  }
 
   // ---- Round 3: the failed player starts it, runs out again and is out. The other player wins.
   const round3 = await waitRoom(roomId, (r) => r.round === 3, 'round 3')
