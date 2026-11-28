@@ -1,0 +1,26 @@
+PLAYTEST 2p-3: finished, Ash won in 4.5 min, 18 rounds, 34 turns
+  Easy at round 1, 0 min
+  Medium at round 4, 0.5 min
+  Hard at round 7, 1 min
+  Expert at round 11, 2.3 min
+  easy    20s: 3 rounds (3 cleared, 0 exhausted), 6 turns, 0% timeouts, used median 5.9s p90 6.1s, avg round 9.4s
+  medium  17s: 3 rounds (3 cleared, 0 exhausted), 6 turns, 0% timeouts, used median 5.5s p90 8s, avg round 10.2s
+  hard    14s: 4 rounds (3 cleared, 0 exhausted), 8 turns, 12.5% timeouts, used median 10.4s p90 12.1s, avg round 19.5s
+  expert  12s: 8 rounds (5 cleared, 0 exhausted), 14 turns, 21.4% timeouts, used median 9.2s p90 11.9s, avg round 16.5s
+  rounds lost by their first player (0 answers): 2; loss streaks: none
+  laps ending with <=3 left: 0 of 14; deck looped: false; repeated categories: 0
+  expert pool < 2x alive: 0 rounds
+  wait between own turns: median 6s, p90 11.9s, max 23.8s
+  answer on other screens: median 1056 ms, p95 1985 ms; next box live: median 809 ms, p95 2143 ms
+  timer drift (shown - server, s): median 0.4, min 0, max 1 over 190 reads
+  screen checks: {"checks":95,"twoLive":0,"wrongLive":0,"notLive":0,"railDiff":0,"roundDiff":0,"leftDiff":0}; moments missed: 0; also-fit disagreements: 0
+  problems: 1; console errors/warnings: 2
+  Ash     strong  desktop lives 2, 15 answers in 16 turns, 4 wrong, 1 blank, 0 stumped, 0 too slow, 0 refused
+  Misty   average phone   lives 0 OUT, 15 answers in 18 turns, 4 wrong, 0 blank, 1 stumped, 2 too slow, 0 refused
+
+PROBLEMS
+31.2s lobby-stale: Ash's lobby lists 1 of 2 players 30 s after the last join; reloading it
+
+CONSOLE
+273.6s Ash(desktop) error: Failed to load resource: the server responded with a status of 404 ()
+273.6s Ash(desktop) error: Failed to load resource: the server responded with a status of 404 ()
