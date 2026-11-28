@@ -1,0 +1,32 @@
+PLAYTEST 8p-3: finished, Ash won in 12.7 min, 35 rounds, 88 turns
+  Easy at round 1, 0 min
+  Medium at round 4, 2.7 min
+  Hard at round 7, 4.6 min
+  Expert at round 11, 6.1 min
+  easy    20s: 3 rounds (1 cleared, 0 exhausted), 21 turns, 9.5% timeouts, used median 5.5s p90 13.1s, avg round 54.2s
+  medium  17s: 3 rounds (1 cleared, 0 exhausted), 14 turns, 14.3% timeouts, used median 6.4s p90 8.7s, avg round 37.9s
+  hard    14s: 4 rounds (0 cleared, 0 exhausted), 8 turns, 50% timeouts, used median 9.3s p90 13.1s, avg round 23.1s
+  expert  12s: 25 rounds (10 cleared, 0 exhausted), 45 turns, 33.3% timeouts, used median 6.3s p90 9.6s, avg round 15.6s
+  rounds lost by their first player (0 answers): 11; loss streaks: May lost 3 rounds in a row from round 12
+  laps ending with <=3 left: 0 of 12; deck looped: false; repeated categories: 0
+  expert pool < 2x alive: 4 rounds
+  wait between own turns: median 41.3s, p90 116.8s, max 141.6s
+  answer on other screens: median 959 ms, p95 1552 ms; next box live: median 916 ms, p95 1706 ms
+  timer drift (shown - server, s): median 0.5, min 0, max 1 over 2128 reads
+  screen checks: {"checks":266,"twoLive":0,"wrongLive":0,"notLive":0,"railDiff":0,"roundDiff":0,"leftDiff":0}; moments missed: 0; also-fit disagreements: 0
+  problems: 2; console errors/warnings: 0
+  Ash     strong  desktop lives 1, 17 answers in 19 turns, 2 wrong, 2 blank, 0 stumped, 0 too slow, 0 refused
+  Misty   average phone   lives 0 OUT, 7 answers in 10 turns, 2 wrong, 0 blank, 1 stumped, 2 too slow, 0 refused
+  Brock   weak    tablet  lives 0 OUT, 4 answers in 7 turns, 0 wrong, 2 blank, 0 stumped, 1 too slow, 0 refused
+  May     average phone   lives 0 OUT, 4 answers in 7 turns, 4 wrong, 0 blank, 2 stumped, 0 too slow, 0 refused
+  Dawn    strong  desktop lives 0 OUT, 17 answers in 20 turns, 0 wrong, 1 blank, 0 stumped, 1 too slow, 0 refused
+  Iris    weak    phone   lives 0 OUT, 5 answers in 8 turns, 7 wrong, 0 blank, 2 stumped, 0 too slow, 0 refused
+  Serena  average tablet  lives 0 OUT, 7 answers in 10 turns, 4 wrong, 1 blank, 1 stumped, 1 too slow, 0 refused
+  Lillie  weak    phone   lives 0 OUT, 4 answers in 7 turns, 3 wrong, 1 blank, 1 stumped, 1 too slow, 0 refused
+
+PROBLEMS
+32.8s lobby-stale: Ash's lobby lists 4 of 8 players 30 s after the last join; reloading it
+797.6s bot-crash: Dawn: locator.isEnabled: Timeout 10000ms exceeded.
+
+CONSOLE
+
