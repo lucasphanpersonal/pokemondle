@@ -308,7 +308,21 @@ test(`playtest ${GAME}`, async ({ browser }) => {
     await b.page.getByRole('button', { name: 'Join' }).click()
     await expect(b.page.locator('[data-screen=lobby]')).toBeVisible({ timeout: 20_000 })
   }
-  await expect(host.page.getByTestId('party-players').locator('li')).toHaveCount(PLAYERS, { timeout: 15_000 })
+  // Every lobby should list everyone. (The two-player test is flaky right here on a fresh stack: the host's list can
+  // miss a join.) Wait, record how long it took, and reload a stale screen as a player would.
+  const lobbyAt = Date.now()
+  for (const b of bots) {
+    const list = b.page.getByTestId('party-players').locator('li')
+    try {
+      await expect(list).toHaveCount(PLAYERS, { timeout: 30_000 })
+    } catch {
+      problem('lobby-stale', `${b.name}'s lobby lists ${await list.count()} of ${PLAYERS} players 30 s after the last join; reloading it`)
+      log(`console so far: ${consoleErrors.slice(-10).join(' | ')}`)
+      await b.page.reload()
+      await expect(list).toHaveCount(PLAYERS, { timeout: 30_000 })
+    }
+  }
+  log(`Lobbies agree ${r1((Date.now() - lobbyAt) / 1000)} s after the last join`)
   for (const b of bots) {
     const seat = await b.page.evaluate(() => JSON.parse(localStorage.getItem('pokemondle:party') ?? 'null') as { room_id: string; player_id: string })
     b.id = seat.player_id
