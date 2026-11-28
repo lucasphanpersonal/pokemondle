@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
-import { alsoFit, checkAnswer, unusedEntries } from '../../src/lib/party/categories.ts'
+import { alsoFit, checkAnswer, fittingEntries } from '../../src/lib/party/categories.ts'
 import type { Category } from '../../src/lib/party/types.ts'
 import type { Pokemon } from '../../src/types/pokemon.ts'
 
@@ -27,8 +27,11 @@ test.skip(!API_URL || !ANON_KEY || !DB_URL, 'needs a local Supabase stack (PARTY
 
 const DATASET: Pokemon[] = JSON.parse(readFileSync(new URL('../../src/data/pokemon.json', import.meta.url), 'utf8'))
 const BY_ID = new Map(DATASET.map((p) => [p.id, p]))
-/** Entries whose name is one plain word and unique: typing it and pressing Enter picks exactly that entry. */
-const TYPEABLE = DATASET.filter((p) => /^[A-Za-z]+$/.test(p.name) && DATASET.filter((q) => q.name.toLowerCase() === p.name.toLowerCase()).length === 1)
+/** Entries whose full name no other entry shares: typing it and pressing Enter picks exactly that entry (an exact name is
+ * the top suggestion). */
+const nameCount = new Map<string, number>()
+for (const p of DATASET) nameCount.set(p.name.toLowerCase(), (nameCount.get(p.name.toLowerCase()) ?? 0) + 1)
+const TYPEABLE = new Set(DATASET.filter((p) => nameCount.get(p.name.toLowerCase()) === 1))
 
 interface Room {
   id: string
@@ -125,8 +128,11 @@ test('two players play a whole game: wrong answer, cleared lap, timeouts, a winn
   await expect.poll(() => host.page.evaluate(() => location.hash)).toMatch(/^#[A-Z]{4}$/)
   const inviteLink = host.page.url()
   const lives = host.page.getByTestId('party-lives').getByRole('radio', { name: '2', exact: true })
-  await lives.click()
-  await expect(lives).toHaveAttribute('aria-checked', 'true')
+  // The lobby may still be settling (the controls are disabled while busy): tap until the server has it.
+  await expect(async () => {
+    if ((await lives.getAttribute('aria-checked')) !== 'true') await lives.click()
+    await expect(lives).toHaveAttribute('aria-checked', 'true', { timeout: 3000 })
+  }).toPass({ timeout: 20_000 })
 
   // ---- The guest opens the invite link: the code is filled in, Join is the main action.
   await guest.page.goto(inviteLink)
@@ -140,6 +146,7 @@ test('two players play a whole game: wrong answer, cleared lap, timeouts, a winn
   const guestSeat = (await seatOf(guest.page))!
   const roomId = hostSeat.room_id
   expect(guestSeat.room_id).toBe(roomId)
+  await waitRoom(roomId, (r) => (r as Room & { lives: number }).lives === 2, 'lives set to 2')
   const pageOf = (playerId: string | null) => (playerId === hostSeat.player_id ? host.page : guest.page)
   const nameOf = (playerId: string | null) => (playerId === hostSeat.player_id ? 'Ash' : 'Misty')
 
@@ -157,19 +164,20 @@ test('two players play a whole game: wrong answer, cleared lap, timeouts, a winn
     const category = await categoryOf(room)
     const used = await usedSpecies(room)
     if (i === 0) {
-      const wrong = TYPEABLE.find((p) => !checkAnswer(category, p, used).ok)!
+      const wrong = DATASET.find((p) => TYPEABLE.has(p) && !checkAnswer(category, p, used).ok)!
       const check = checkAnswer(category, wrong, used)
       await say(page, wrong)
       await expect(page.getByTestId('party-wrong')).toHaveText(check.ok ? '' : check.reason)
       // Still this player's turn, with no life lost.
       expect((await getRoom(roomId)).turn_no).toBe(room.turn_no)
     }
-    const right = unusedEntries(category, DATASET, used).find((p) => TYPEABLE.includes(p))!
-    await say(page, right)
+    const right = fittingEntries(category, DATASET).find((p) => TYPEABLE.has(p) && !used.has(p.dexNumber))
+    expect(right, 'a typeable answer that fits').toBeDefined()
+    await say(page, right!)
     if (i === 0) {
       // Both screens list the answer.
       await waitRoom(roomId, (r) => r.turn_no > room.turn_no, 'turn passed')
-      for (const p of [host.page, guest.page]) await expect(p.getByTestId('party-answers')).toContainText(right.name)
+      for (const p of [host.page, guest.page]) await expect(p.getByTestId('party-answers')).toContainText(right!.name)
     }
   }
   await Promise.all(
