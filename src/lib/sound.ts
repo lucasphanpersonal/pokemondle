@@ -24,7 +24,7 @@ export type SoundName =
   | 'burst'
   | 'flee'
 
-interface Note {
+export interface Note {
   /** Frequency in Hz. */
   f: number
   /** Start offset in seconds. */
@@ -236,7 +236,10 @@ function onPressableClick(e: Event): void {
 if (typeof document !== 'undefined') document.addEventListener('click', onPressableClick, true)
 
 /** Play an effect at the current volume. Silent when muted, unsupported, or never throws. */
-export function playSound(name: SoundName, pitch = 0): void {
+export const playSound = (name: SoundName, pitch = 0): void => playNotes(notesFor(name, pitch))
+
+/** Play notes at the current volume (the Party page brings its own effects, so Daily and Endless don't carry them). */
+export function playNotes(notes: readonly Note[]): void {
   if (!isSoundOn()) return
   const audio = getContext()
   if (!audio) return
@@ -249,7 +252,7 @@ export function playSound(name: SoundName, pitch = 0): void {
     }
     const t0 = audio.currentTime + 0.01
     const gainScale = volumeGain(getVolume())
-    for (const note of notesFor(name, pitch)) {
+    for (const note of notes) {
       const osc = audio.createOscillator()
       const gain = audio.createGain()
       const start = t0 + note.at

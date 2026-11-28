@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react'
+import { POKEDEX, POKEDEX_BY_ID } from '../lib/pokedex.ts'
 import { friendlyError } from './api.ts'
-import type { PlayerRow, RoomRow } from './state.ts'
-import type { LobbyPlayer, LobbyView, PartyController, PartySettings } from './types.ts'
+import { speciesLeftFor } from './game.ts'
+import type { AnswerRow, CategoryRow, PlayerRow, RoomRow } from './state.ts'
+import type { AnswerResult, GameView, LobbyPlayer, LobbyView, PartyController, PartySettings } from './types.ts'
 import { PARTY_UNREACHABLE, useParty } from './useParty.ts'
 
 /** Words for a start-screen or lobby problem that isn't a server refusal. */
@@ -24,6 +26,47 @@ export function toLobbyView(code: string, room: RoomRow, players: readonly Playe
     meId,
     hostId: room.host_id,
     settings: { lives: room.lives, startTier: room.start_tier },
+  }
+}
+
+/**
+ * Maps the room rows to what the game screen shows, or null when no game is running (or its category hasn't arrived).
+ * `players` are the present players; `answers` this round's, newest first; `deadlineAt` already in local time.
+ */
+export function toGameView(
+  code: string,
+  room: RoomRow,
+  players: readonly PlayerRow[],
+  category: CategoryRow | null,
+  answers: readonly AnswerRow[],
+  meId: string,
+  deadlineAt: number | null,
+): GameView | null {
+  if (room.status !== 'playing' || !category) return null
+  const byId = new Map(players.map((p) => [p.id, p]))
+  const seated = players.filter((p) => p.seat !== null && p.gone_at === null).sort((a, b) => (a.seat ?? 0) - (b.seat ?? 0))
+  const said = answers.map((a) => ({
+    id: String(a.id),
+    pokemonId: a.pokemon_id,
+    playerId: a.player_id,
+    nickname: byId.get(a.player_id)?.nickname ?? 'Someone',
+  }))
+  return {
+    code,
+    round: room.round,
+    tier: category.tier,
+    category: category.parts,
+    left: speciesLeftFor(category.parts, said, POKEDEX, POKEDEX_BY_ID),
+    // TODO(presence): there is no presence channel yet, so everyone shows as online; a player who drops is removed by the
+    // server after 60 s. The rail already draws "Away" for online: false.
+    players: seated.map((p) => ({ id: p.id, nickname: p.nickname, icon: p.icon, lives: p.lives, out: p.is_out, online: true })),
+    meId,
+    turnPlayerId: room.turn_player_id,
+    turnNo: room.turn_no,
+    deadlineAt,
+    seconds: room.turn_seconds ?? category.seconds,
+    startLives: room.lives,
+    answers: said,
   }
 }
 
@@ -59,8 +102,26 @@ export function usePartyController(routeCode: string | null): PartyScreenControl
   const lobby = session && room ? toLobbyView(session.code, room, players, session.player_id) : null
   const error = actionError ?? (status === 'error' ? `${PARTY_UNREACHABLE}.` : party.lost ? LOST_SEAT_TEXT : undefined)
 
+  const game =
+    session && room && me?.seat != null
+      ? toGameView(session.code, room, players, party.category, party.answers, session.player_id, party.deadlineAt)
+      : null
+
+  // The game screen checks answers itself first, so a refusal here is the server's: too late, a race, a lost seat.
+  const partyAnswer = party.answer
+  const answer = useCallback(
+    async (pokemonId: number): Promise<AnswerResult> => {
+      const res = await partyAnswer(pokemonId)
+      if (res.ok) return { ok: true }
+      return { ok: false, reason: res.error === 'wrong_answer' && res.reason ? res.reason : friendlyError(res.error) }
+    },
+    [partyAnswer],
+  )
+
   return {
     lobby,
+    game,
+    answer,
     busy: pending > 0 || status === 'connecting',
     error,
     inGame: !!lobby && lobby.status !== 'lobby' && me?.seat != null,

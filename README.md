@@ -38,7 +38,24 @@ settings (starting lives 1 to 5, starting tier) and Start (host only, from 2 pla
 presentational (`src/party/screens/`, driven by the view model in `src/party/types.ts`) and `usePartyController.ts` feeds them from the room connection. In the dev server, `?mock` swaps in a pretend room so the screens can be
 tried: `/party/?mock` (Host or Join make a room), `/party/?mock=lobby&players=8#KPZW` (straight to a lobby; also
 `&as=guest`, `&status=playing`, `&away=1`, `&error=...`, `&busy=1`; see `src/party/mock.ts`). Production builds leave the
-mock out. The game screen itself comes in a later pull request (while a game runs the page shows a placeholder).
+mock out.
+
+The **game screen** (`screens/GameScreen.tsx`, driven by `GameView` in `types.ts`) shows the player rail in turn order
+(starter sprite, name, pixel hearts for lives with the count for screen readers; the player whose turn it is is pressed in
+and carries the timer, out players are greyed with ✕ OUT; it scrolls sideways on phones and keeps the active player in
+view), the category card (round, tier and "N left", each part as a chip: types drawn like the Type tracker's labels,
+white chips for Stage, Gen, colour (with a swatch), ability, size and form), a text box with the turn ("Your turn! Name a
+Fire type, Stage 2!" or "Misty's turn: …"), the shared search box (live and focused only on your turn, reading "Misty is
+thinking…" otherwise; its suggestions are never filtered) and this round's answers, newest on top. The timer is an
+original pixel-art fuse bomb drawn in code (`fuseArt.ts`, like the Poké Ball): its fuse burns down with the seconds, a
+spark crackles on the tip, and in the last 5 s it flashes white and swells; the seconds also show as a number. It sits big
+beside the text box on your turn and small in the rail otherwise. An answer is checked on the page first with the
+category engine (`checkAnswer`): a wrong one never reaches the server, the box shakes and the reason ("Squirtle isn't a
+Fire type") shows under it for 1.5 s. Sounds (`sounds.ts`, synthesised and played at the player's volume through
+`playNotes` in `src/lib/sound.ts`): a tick each second, faster in the last 5, a chime for each valid answer and a buzz for
+a wrong one. Reduced motion stops the shake, flash, swell and spark. Try it with `/party/?mock=game#KPZW` (also
+`&players=8`, `&turn=them`, `&parts=1|2|3|words|pair|pure`, `&out=1`, `&round=11`, `&secs=4`, `&freeze=1`; see
+`src/party/mock.ts`). Time's up, round cleared and game over come in a later pull request.
 
 **How the page connects to a room** (`src/party/`). Actions (host, join, rejoin, settings, start, answer, remove, leave,
 play again) are `POST`s to the `party` Edge Function (`api.ts`). The room's state comes from Supabase Realtime: when a
@@ -59,7 +76,7 @@ once more about 400 ms later (the first call usually lands inside the server's 3
 e2e/smoke.spec.ts             Playwright browser smoke test (load, guess, win, mode switch, Endless Gens at 390px and 1280px)
 e2e/party.spec.ts             Playwright smoke test of the Party page (noindex, header, Help, #CODE routing, code boxes, nickname check)
 party/index.html              the Party page (second Vite entry, served at /party/, noindex)
-src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (picks the screen), screens/ (StartScreen, LobbyScreen), types.ts (lobby view model and the PartyController the room connection implements), codeBoxes.ts and nickname.ts (tested), mock.ts (dev-only pretend room), usePartyController.ts (maps the room connection to the screens), and the room connection: api.ts (Edge Function and RPC wrappers), client.ts (lazy supabase-js, snapshot, Realtime), state.ts (room reducer and selectors), clock.ts (server clock offset), session.ts (the saved seat), useParty.ts (the hook), PartyHeader, PartyHelpModal, route.ts (the #CODE route and invite link, tested)
+src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (picks the screen), screens/ (StartScreen, LobbyScreen, GameScreen with CategoryCard and FuseTimer), types.ts (lobby and game view models and the PartyController the room connection implements), game.ts (the game screen's pure helpers: timer maths, rail, turn text; tested), fuseArt.ts (the timer's pixel art), sounds.ts (the game's sound effects), party.css (Party-only styles), codeBoxes.ts and nickname.ts (tested), mock.ts (dev-only pretend room), usePartyController.ts (maps the room connection to the screens), and the room connection: api.ts (Edge Function and RPC wrappers), client.ts (lazy supabase-js, snapshot, Realtime), state.ts (room reducer and selectors), clock.ts (server clock offset), session.ts (the saved seat), useParty.ts (the hook), PartyHeader, PartyHelpModal, route.ts (the #CODE route and invite link, tested)
 scripts/fetchPokemonData.ts   builds the local Pokémon dataset from PokéAPI
 scripts/makeIcons.ts          builds the tab icon, home-screen icons and manifest icons from the pixel Poké Ball
 scripts/icons/pokeball.txt    the hand-drawn Poké Ball (16x16 and 32x32 grids, one letter per colour); its 16x16 grid is also drawn in-game, at 1x, by CaptureScene and PixelBall (the board's guess count)
