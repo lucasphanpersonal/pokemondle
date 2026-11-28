@@ -19,5 +19,5 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true
   },
-  "include": ["e2e", "playwright.config.ts", "playwright.party.config.ts"]
+  "include": ["e2e", "playwright.config.ts", "playwright.party.config.ts", "playwright.playtest.config.ts"]
 }
