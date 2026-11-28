@@ -1,37 +1,45 @@
 import { ART_H, ART_W, FUSE, fusePaths } from '../fuseArt.ts'
-import { fuseCells, type TimerState } from '../game.ts'
+import { fuseCells, timerState } from '../game.ts'
+import { useNow } from '../useNow.ts'
 
 interface FuseTimerProps {
-  /** The countdown now (timerState in game.ts), or null for the plain icon (no turn running, or the rail's marker). */
-  timer: TimerState | null
-  /** Pixels per art pixel: 3 for the big timer beside the search box, 1 for the rail. */
+  /** The turn's deadline in local epoch ms, or null for the plain icon (the rail's marker on your own turn). */
+  deadlineAt: number | null
+  /** The turn's whole length, so the fuse burns from full to nothing. */
+  seconds: number
+  /** Pixels per art pixel: 3 for the big timer beside the text box, 1 for the rail. */
   scale: number
-  /** Show the seconds as a number under the drawing (never colour or motion alone, design rule 8). */
-  showSeconds?: boolean
+  /** Show the seconds as a number (never motion or colour alone, design rule 8): under the drawing, or beside it. */
+  showSeconds?: 'below' | 'beside'
   /** No flashing, swelling or crackling spark (prefers-reduced-motion). The fuse still burns down and the number counts. */
   reduceMotion: boolean
-  /**
-   * The spark's frame (0 or 1): GameScreen flips it with its clock so the spark crackles. Task 11 hooks the time's-up
-   * burst onto `timer.phase === 'done'` (the drawing then shows a spent fuse).
-   */
-  frame?: 0 | 1
   className?: string
 }
 
 /**
  * The turn timer: an original pixel-art fuse bomb drawn in code (fuseArt.ts). The fuse burns down with the seconds and a
- * spark rides its tip; in the last 5 s the bomb flashes white twice a second and swells (to 1.25x), unless reduced
- * motion is on. The seconds also show as a number. The drawing is decoration: the number (or the label the caller
- * gives) carries the meaning for screen readers.
+ * spark crackles on its tip; in the last 5 s the bomb flashes white twice a second and swells (to 1.25x), unless reduced
+ * motion is on. It reads its own 50 ms clock (useNow), so only the timer redraws while the countdown runs. With
+ * `showSeconds` it is a role="timer" announcing the seconds left; the drawing itself is decoration.
  */
-export function FuseTimer({ timer, scale, showSeconds = false, reduceMotion, frame = 0, className = '' }: FuseTimerProps) {
+export function FuseTimer({ deadlineAt, seconds, scale, showSeconds, reduceMotion, className = '' }: FuseTimerProps) {
+  const now = useNow(deadlineAt !== null)
+  const timer = deadlineAt === null ? null : timerState(deadlineAt, seconds, now)
+  const frame = (Math.floor(now / 150) % 2) as 0 | 1
   const cells = timer ? fuseCells(timer.fuse, FUSE.length) : FUSE.length
   const lit = !!timer && timer.phase !== 'done'
   const flash = !reduceMotion && !!timer?.flash
   const swell = !reduceMotion && timer ? timer.swell : 1
-  const hurry = timer?.phase === 'hurry' || timer?.phase === 'done'
+  const hurry = timer !== null && timer.phase !== 'calm'
+  const big = scale >= 3
   return (
-    <span className={`inline-flex shrink-0 flex-col items-center ${className}`} data-testid="party-timer" data-phase={timer?.phase ?? 'idle'}>
+    <span
+      className={`inline-flex shrink-0 items-center ${showSeconds === 'beside' ? 'flex-row gap-1' : 'flex-col'} ${className}`}
+      data-testid="party-timer"
+      data-phase={timer?.phase ?? 'idle'}
+      role={showSeconds && timer ? 'timer' : undefined}
+      aria-label={showSeconds && timer ? `${timer.seconds} seconds left` : undefined}
+    >
       <svg
         viewBox={`0 0 ${ART_W} ${ART_H}`}
         width={ART_W * scale}
@@ -48,7 +56,8 @@ export function FuseTimer({ timer, scale, showSeconds = false, reduceMotion, fra
       </svg>
       {showSeconds && timer && (
         <span
-          className={`mt-1 leading-none ${scale >= 3 ? 'tx-16' : 'tx-10'} ${hurry ? 'text-ds-red-dark' : ''}`}
+          className={`leading-none ${big ? 'mt-1 tx-16' : 'tx-10'} ${hurry ? 'text-ds-red-dark' : ''}`}
+          aria-hidden="true"
           data-testid="party-timer-seconds"
         >
           {timer.seconds}

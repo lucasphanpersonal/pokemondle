@@ -50,7 +50,7 @@ describe('toGameView', () => {
     const view = toGameView('KPZW', room, players, category, answers, 'a', 123)!
     expect(view.players.map((p) => p.id)).toEqual(['a', 'b', 'c'])
     expect(view.players[2]).toMatchObject({ out: true, lives: 0 })
-    expect(view).toMatchObject({ code: 'KPZW', round: 2, tier: 'easy', turnPlayerId: 'b', deadlineAt: 123, seconds: 20, startLives: 3, meId: 'a' })
+    expect(view).toMatchObject({ code: 'KPZW', round: 2, tier: 'easy', turnPlayerId: 'b', turnNo: 5, deadlineAt: 123, seconds: 20, startLives: 3, meId: 'a' })
     expect(view.answers).toEqual([
       { id: '9', pokemonId: 4, playerId: 'a', nickname: 'A' },
       { id: '8', pokemonId: 37, playerId: 'gone', nickname: 'Someone' },

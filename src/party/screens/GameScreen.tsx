@@ -1,13 +1,29 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { ResultMark } from '../../components/ResultMark.tsx'
 import { SearchBar } from '../../components/SearchBar.tsx'
 import { SpriteImg } from '../../components/SpriteImg.tsx'
 import type { GuessResult } from '../../lib/game.ts'
 import { iconSources, POKEDEX, POKEDEX_BY_ID } from '../../lib/pokedex.ts'
+import { playSound } from '../../lib/sound.ts'
 import type { Pokemon } from '../../types/pokemon.ts'
-import { checkLocally, livesText, railPlayers, railScrollFor, tickKey, timerState, turnText, WRONG_MS, type RailPlayer, type TimerState } from '../game.ts'
+import {
+  checkLocally,
+  livesText,
+  nextTick,
+  railPlayers,
+  railScrollFor,
+  tickKey,
+  timerState,
+  timeUpDue,
+  turnKeyOf,
+  turnText,
+  WRONG_MS,
+  type RailPlayer,
+  type TickMemory,
+} from '../game.ts'
 import { playParty } from '../sounds.ts'
 import type { AnswerResult, GameAnswer, GameView } from '../types.ts'
+import { useNow } from '../useNow.ts'
 import { CategoryCard } from './CategoryCard.tsx'
 import { FuseTimer } from './FuseTimer.tsx'
 
@@ -20,12 +36,13 @@ import { FuseTimer } from './FuseTimer.tsx'
  * - `onAnswer(pokemonId)`: on this player's turn, after the answer passed the local check; resolves with the server's
  *   verdict (a refusal's reason shows under the box).
  * - `onLeave()`: Leave the room.
- * - `onTimeUp()`: optional, called once when this turn's countdown reaches zero on screen (task 11 hangs the burst on it;
- *   ending the turn on the server is the room connection's job).
+ * - `onTimeUp()`: optional, called once per turn when its countdown reaches zero on screen (task 11 hangs the burst on
+ *   it; ending the turn on the server is the room connection's job).
  * - `headingRef`: PartyApp focuses the heading (the category card's "Round N") when the screen changes.
  *
  * Phones get one column: the rail (scrolling sideways), the category card right above the turn box and search box, then
- * the answers. From 768 px the answers sit beside the card.
+ * the answers. From 768 px the answers sit beside the card. Only the timers and TurnEvents read the 50 ms clock, so the
+ * rest of the screen redraws when the room changes, not 20 times a second.
  */
 export interface GameScreenProps {
   view: GameView
@@ -40,41 +57,51 @@ export interface GameScreenProps {
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
-/** The clock the timers read: ticks every 50 ms while a turn is running. */
-function useNow(running: boolean): number {
-  const [now, setNow] = useState(() => Date.now())
+/** Whether `turn`'s deadline has passed: a timeout at the deadline flips it, so nothing polls the clock for it. */
+function useExpired(turn: string, deadlineAt: number | null): boolean {
+  const [expiredFor, setExpiredFor] = useState<string | null>(null)
   useEffect(() => {
-    if (!running) return
-    const id = setInterval(() => setNow(Date.now()), 50)
-    return () => clearInterval(id)
-  }, [running])
-  return now
+    if (deadlineAt === null) return
+    const t = setTimeout(() => setExpiredFor(turn), Math.max(0, deadlineAt - Date.now()))
+    return () => clearTimeout(t)
+  }, [turn, deadlineAt])
+  return expiredFor === turn
+}
+
+/**
+ * The countdown's sounds and time's up, drawn as nothing: ticks once a second, twice a second in the last 5 (none on a
+ * turn's first draw), and onTimeUp once per turn.
+ */
+function TurnEvents({ turn, deadlineAt, seconds, onTimeUp }: { turn: string; deadlineAt: number | null; seconds: number; onTimeUp?: () => void }) {
+  const now = useNow(deadlineAt !== null)
+  const timer = deadlineAt === null ? null : timerState(deadlineAt, seconds, now)
+  const tick = timer ? tickKey(timer.remainingMs) : null
+  const memory = useRef<TickMemory | null>(null)
+  useEffect(() => {
+    const next = nextTick(memory.current, turn, tick)
+    memory.current = next.memory
+    if (next.play) playParty(next.play)
+  }, [turn, tick])
+
+  const done = timer?.phase === 'done'
+  const announced = useRef<string | null>(null)
+  useEffect(() => {
+    if (!timeUpDue(announced.current, turn, done)) return
+    announced.current = turn
+    onTimeUp?.()
+  }, [turn, done, onTimeUp])
+  return null
 }
 
 export function GameScreen({ view, onAnswer, onLeave, onTimeUp, busy, error, headingRef }: GameScreenProps) {
   const [reduceMotion] = useState(prefersReducedMotion)
-  const now = useNow(view.deadlineAt !== null)
-  const timer: TimerState | null = view.deadlineAt === null ? null : timerState(view.deadlineAt, view.seconds, now)
-  const frame = (Math.floor(now / 150) % 2) as 0 | 1
   const turn = turnText(view)
-  const rail = railPlayers(view)
-
-  // Ticks: one a second, two a second in the last 5 (tickKey changes); none on the first draw of a turn.
-  const lastTick = useRef<string | null | undefined>(undefined)
-  const key = timer ? tickKey(timer.remainingMs) : null
-  useEffect(() => {
-    if (lastTick.current !== undefined && key !== null && key !== lastTick.current) playParty(key.startsWith('h') ? 'tock' : 'tick')
-    lastTick.current = key
-  }, [key])
-
-  // Time's up, once per turn.
-  const doneFor = useRef<number | null>(null)
-  useEffect(() => {
-    if (timer?.phase === 'done' && view.deadlineAt !== null && doneFor.current !== view.deadlineAt) {
-      doneFor.current = view.deadlineAt
-      onTimeUp?.()
-    }
-  })
+  const turnKey = turnKeyOf(view)
+  const rail = useMemo(
+    () => railPlayers({ players: view.players, turnPlayerId: view.turnPlayerId, meId: view.meId, startLives: view.startLives }),
+    [view.players, view.turnPlayerId, view.meId, view.startLives],
+  )
+  const expired = useExpired(turnKey, view.deadlineAt)
 
   // A new answer at the top of the list chimes (not the ones already there when the screen opened).
   const topAnswer = view.answers[0]?.id
@@ -84,41 +111,65 @@ export function GameScreen({ view, onAnswer, onLeave, onTimeUp, busy, error, hea
     seenTop.current = topAnswer
   }, [topAnswer])
 
-  // A wrong answer: the box shakes and its reason shows for WRONG_MS. `n` restarts the shake for the same reason twice.
-  // A new turn drops the last turn's reason (it belongs to the turn it was shown in).
-  const turnId = `${view.round}|${view.turnPlayerId}|${view.deadlineAt}`
+  // A wrong answer: the reason shows for WRONG_MS, and only during the turn it was given in.
   const [wrongState, setWrong] = useState<{ reason: string; n: number; turn: string } | null>(null)
-  const wrong = wrongState?.turn === turnId ? wrongState : null
+  const wrong = wrongState?.turn === turnKey ? wrongState : null
   useEffect(() => {
     if (!wrongState) return
     const t = setTimeout(() => setWrong(null), WRONG_MS)
     return () => clearTimeout(t)
   }, [wrongState])
-  const showWrong = (reason: string) => {
+  const showWrong = (reason: string, forTurn: string) => {
     playParty('buzz')
-    setWrong((w) => ({ reason, n: (w?.n ?? 0) + 1, turn: turnId }))
+    setWrong((w) => ({ reason, n: (w?.n ?? 0) + 1, turn: forTurn }))
   }
-  const [sending, setSending] = useState(false)
 
-  const live = turn.mine && timer !== null && timer.phase !== 'done'
+  // The box shakes on each wrong answer: the class is taken off and put back on the wrapper, so the animation restarts
+  // without remounting the search box (which would lose what the player is typing).
+  const shakeRef = useRef<HTMLDivElement>(null)
+  const shakeN = wrongState?.n
+  useEffect(() => {
+    const el = shakeRef.current
+    if (!el || shakeN === undefined || reduceMotion) return
+    el.classList.remove('party-shake')
+    void el.offsetWidth
+    el.classList.add('party-shake')
+  }, [shakeN, reduceMotion])
+
+  // After an answer is sent the box stays locked for the rest of the turn (a valid one moves the turn on), unless the
+  // server refuses it.
+  const [sentFor, setSentFor] = useState<string | null>(null)
+  const live = turn.mine && view.deadlineAt !== null && !expired && sentFor !== turnKey
+
   const onGuess = (pokemon: Pokemon): GuessResult => {
-    if (!live || sending) return 'game-over'
+    if (!live) return 'game-over'
     const check = checkLocally(view.category, pokemon, view.answers, POKEDEX_BY_ID)
     if (!check.ok) {
-      showWrong(check.reason)
+      showWrong(check.reason, turnKey)
       return 'ok'
     }
-    setSending(true)
+    playSound('select')
+    const forTurn = turnKey
+    setSentFor(forTurn)
     void onAnswer(pokemon.id).then((res) => {
-      setSending(false)
-      if (!res.ok) showWrong(res.reason)
+      if (res.ok) return
+      setSentFor((s) => (s === forTurn ? null : s))
+      showWrong(res.reason, forTurn)
     })
     return 'ok'
   }
 
   return (
     <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_18rem] md:items-start" data-screen="game">
-      <PlayerRail players={rail} startLives={view.startLives} timer={timer} reduceMotion={reduceMotion} frame={frame} mineTurn={turn.mine} />
+      <TurnEvents turn={turnKey} deadlineAt={view.deadlineAt} seconds={view.seconds} onTimeUp={onTimeUp} />
+      <PlayerRail
+        players={rail}
+        startLives={view.startLives}
+        deadlineAt={view.deadlineAt}
+        seconds={view.seconds}
+        reduceMotion={reduceMotion}
+        mineTurn={turn.mine}
+      />
 
       <div className="flex min-w-0 flex-col gap-4">
         <CategoryCard category={view.category} tier={view.tier} round={view.round} left={view.left} headingRef={headingRef} />
@@ -126,27 +177,25 @@ export function GameScreen({ view, onAnswer, onLeave, onTimeUp, busy, error, hea
         <div className="flex flex-col gap-1.5 sm:gap-2" data-testid="party-turn">
           <div className="flex items-stretch gap-1.5 sm:gap-2">
             {turn.mine && (
-              <div className="ds-box flex shrink-0 items-center justify-center px-2 py-1" role="timer" aria-label={timer ? `${timer.seconds} seconds left` : undefined}>
-                <FuseTimer timer={timer} scale={3} showSeconds reduceMotion={reduceMotion} frame={frame} />
+              <div className="ds-box flex shrink-0 items-center justify-center px-2 py-1">
+                <FuseTimer deadlineAt={view.deadlineAt} seconds={view.seconds} scale={3} showSeconds="below" reduceMotion={reduceMotion} />
               </div>
             )}
-            <p
-              className={`ds-box flex min-w-0 flex-1 items-center px-3 py-2 tx-10 leading-5 sm:px-4 ${turn.mine ? '' : 'text-ds-ink'}`}
-              role="status"
-              data-testid="party-prompt"
-            >
+            <p className="ds-box flex min-w-0 flex-1 items-center px-3 py-2 tx-10 leading-5 sm:px-4" role="status" data-testid="party-prompt">
               {turn.prompt}
             </p>
           </div>
-          <div key={wrong?.n ?? 0} className={wrong && !reduceMotion ? 'party-shake' : undefined} data-testid="party-search">
+          {/* Above the content after it: the shake leaves a transform (a new stacking context), and the suggestions must stay on top. */}
+          <div ref={shakeRef} className="relative z-30" data-testid="party-search">
             <SearchBar
               pokedex={POKEDEX}
               // Suggestions are never filtered: not to the category, not even to what was said (that would give answers away).
               guessedIds={NO_IDS}
               onGuess={onGuess}
               disabled={!live}
-              doneText={turn.mine ? 'Time’s up!' : turn.waiting}
+              doneText={turn.mine ? (expired ? 'Time’s up!' : 'Sending…') : turn.waiting}
               focusWhenEnabled
+              pickSound={false}
             />
           </div>
           {/* The reason shows for WRONG_MS, then the line goes (the live region stays for the next one). */}
@@ -185,15 +234,15 @@ const NO_IDS: number[] = []
 interface PlayerRailProps {
   players: RailPlayer[]
   startLives: number
-  timer: TimerState | null
+  deadlineAt: number | null
+  seconds: number
   reduceMotion: boolean
-  frame: 0 | 1
   /** On this browser's turn the big timer sits by the search box, so the rail's active tile carries only the icon. */
   mineTurn: boolean
 }
 
 /** The players in turn order. The active one is pressed in and carries the timer; out players are greyed with ✕ OUT. */
-function PlayerRail({ players, startLives, timer, reduceMotion, frame, mineTurn }: PlayerRailProps) {
+const PlayerRail = memo(function PlayerRail({ players, startLives, deadlineAt, seconds, reduceMotion, mineTurn }: PlayerRailProps) {
   const railRef = useRef<HTMLOListElement>(null)
   const active = players.find((p) => p.isTurn)?.id
   // Keep the player whose turn it is in view: the rail scrolls sideways on phones.
@@ -208,27 +257,33 @@ function PlayerRail({ players, startLives, timer, reduceMotion, frame, mineTurn 
     <section className="ds-box min-w-0 px-2 py-2 md:col-span-2" aria-label="Players">
       <ol ref={railRef} className="party-rail flex gap-1.5 overflow-x-auto pb-1 [justify-content:safe_center] sm:gap-2" data-testid="party-rail">
         {players.map((p) => (
-          <RailTile key={p.id} player={p} startLives={startLives} timer={p.isTurn ? timer : null} reduceMotion={reduceMotion} frame={frame} iconOnly={mineTurn} />
+          <RailTile
+            key={p.id}
+            player={p}
+            startLives={startLives}
+            deadlineAt={p.isTurn && !mineTurn ? deadlineAt : null}
+            seconds={seconds}
+            reduceMotion={reduceMotion}
+          />
         ))}
       </ol>
     </section>
   )
-}
+})
 
 function RailTile({
   player: p,
   startLives,
-  timer,
+  deadlineAt,
+  seconds,
   reduceMotion,
-  frame,
-  iconOnly,
 }: {
   player: RailPlayer
   startLives: number
-  timer: TimerState | null
+  /** The live countdown on someone else's turn; null shows the timer as a plain icon (your own turn). */
+  deadlineAt: number | null
+  seconds: number
   reduceMotion: boolean
-  frame: 0 | 1
-  iconOnly: boolean
 }) {
   const status = p.out ? 'out' : p.isTurn ? 'turn' : p.online ? 'waiting' : 'away'
   return (
@@ -261,18 +316,13 @@ function RailTile({
             <span>OUT</span>
           </>
         ) : p.isTurn ? (
-          iconOnly || !timer ? (
+          deadlineAt === null ? (
             <>
-              <FuseTimer timer={null} scale={1} reduceMotion />
+              <FuseTimer deadlineAt={null} seconds={seconds} scale={1} reduceMotion />
               <span>Turn</span>
             </>
           ) : (
-            <span className="flex items-center gap-1" role="timer" aria-label={`${timer.seconds} seconds left`}>
-              <FuseTimer timer={timer} scale={1} reduceMotion={reduceMotion} frame={frame} />
-              <span className={`tx-10 ${timer.phase !== 'calm' ? 'text-ds-red-dark' : ''}`} aria-hidden="true">
-                {timer.seconds}
-              </span>
-            </span>
+            <FuseTimer deadlineAt={deadlineAt} seconds={seconds} scale={1} showSeconds="beside" reduceMotion={reduceMotion} />
           )
         ) : !p.online ? (
           <span className="text-ds-frame">Away</span>

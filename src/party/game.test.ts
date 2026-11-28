@@ -7,6 +7,9 @@ import {
   fuseCells,
   HURRY_MS,
   livesText,
+  nextTick,
+  timeUpDue,
+  turnKeyOf,
   railPlayers,
   railScrollFor,
   sortedParts,
@@ -179,5 +182,46 @@ describe('the fuse timer art', () => {
 describe('party sounds', () => {
   it('has notes for every effect', () => {
     for (const name of ['tick', 'tock', 'chime', 'buzz'] as const) expect(partyNotes(name).length).toBeGreaterThan(0)
+  })
+})
+
+describe('turn identity', () => {
+  it('names a turn by round, turn number and player, not by its deadline', () => {
+    const a = turnKeyOf({ round: 2, turnNo: 5, turnPlayerId: 'm' })
+    expect(turnKeyOf({ round: 2, turnNo: 5, turnPlayerId: 'm' })).toBe(a)
+    expect(turnKeyOf({ round: 2, turnNo: 6, turnPlayerId: 'm' })).not.toBe(a)
+    expect(turnKeyOf({ round: 3, turnNo: 5, turnPlayerId: 'm' })).not.toBe(a)
+    expect(turnKeyOf({ round: 2, turnNo: 5, turnPlayerId: null })).not.toBe(a)
+  })
+})
+
+describe('nextTick', () => {
+  it('stays quiet on the first draw of a turn, then ticks on each new tick', () => {
+    let m = nextTick(null, 't1', 's20')
+    expect(m.play).toBeNull()
+    m = nextTick(m.memory, 't1', 's20')
+    expect(m.play).toBeNull()
+    m = nextTick(m.memory, 't1', 's19')
+    expect(m.play).toBe('tick')
+    m = nextTick(m.memory, 't1', 'h10')
+    expect(m.play).toBe('tock')
+    // A new turn starts quietly, even though its tick differs from the last turn's.
+    m = nextTick(m.memory, 't2', 's17')
+    expect(m.play).toBeNull()
+    expect(nextTick(m.memory, 't2', null).play).toBeNull()
+  })
+})
+
+describe('timeUpDue', () => {
+  it('fires once per turn, however often the done countdown is drawn', () => {
+    let announced: string | null = null
+    let fired = 0
+    for (const [turn, done] of [['t1', false], ['t1', true], ['t1', true], ['t1', true], ['t2', false], ['t2', true], ['t2', true]] as const) {
+      if (timeUpDue(announced, turn, done)) {
+        announced = turn
+        fired++
+      }
+    }
+    expect(fired).toBe(2)
   })
 })

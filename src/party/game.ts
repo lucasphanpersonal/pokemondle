@@ -152,3 +152,32 @@ export const checkLocally = (
 
 /** How long a wrong answer's reason stays under the search box. */
 export const WRONG_MS = 1500
+
+// ---------------------------------------------------------------------------------------------------------------
+// Turn identity and the countdown's events
+
+/**
+ * One turn's identity: the round, the server's turn number and whose turn it is. It leaves out the deadline, which
+ * shifts by a few ms whenever the room connection re-estimates the server clock.
+ */
+export const turnKeyOf = (view: Pick<GameView, 'round' | 'turnNo' | 'turnPlayerId'>): string =>
+  `${view.round}|${view.turnNo}|${view.turnPlayerId ?? ''}`
+
+/** What the tick sound remembers between draws: the turn and its last tick. */
+export interface TickMemory {
+  turn: string
+  tick: string | null
+}
+
+/**
+ * Whether to play a tick now, and what to remember. A tick plays when the countdown moves into a new tick of the same
+ * turn; the first draw of a turn (a new turn, or the screen opening mid-turn) only remembers where it is.
+ */
+export function nextTick(prev: TickMemory | null, turn: string, tick: string | null): { play: 'tick' | 'tock' | null; memory: TickMemory } {
+  const memory = { turn, tick }
+  if (!prev || prev.turn !== turn || tick === null || tick === prev.tick) return { play: null, memory }
+  return { play: tick.startsWith('h') ? 'tock' : 'tick', memory }
+}
+
+/** Whether time's up should be announced for `turn`: once per turn, the first time its countdown reads done. */
+export const timeUpDue = (announcedFor: string | null, turn: string, done: boolean): boolean => done && announcedFor !== turn

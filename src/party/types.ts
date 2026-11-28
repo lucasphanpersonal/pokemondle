@@ -108,6 +108,11 @@ export interface GameView {
   meId: string
   /** party_rooms.turn_player_id: whose turn it is, or null when no turn is running. */
   turnPlayerId: string | null
+  /**
+   * party_rooms.turn_no: the server's turn counter. With round and turnPlayerId it names the turn, so a wrong answer's
+   * reason, the ticks and time's up belong to one turn even when deadlineAt shifts with a new clock estimate.
+   */
+  turnNo: number
   /** party_rooms.deadline in local epoch ms (the Date.now() scale), or null when no turn is running. */
   deadlineAt: number | null
   /** party_rooms.turn_seconds: the whole length of this turn, so the fuse burns from full down to nothing. */

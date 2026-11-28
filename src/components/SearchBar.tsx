@@ -20,6 +20,8 @@ interface SearchBarProps {
   doneWide?: boolean
   /** Move focus into the box whenever it becomes enabled (Party: when the turn comes to this player). */
   focusWhenEnabled?: boolean
+  /** Play the select sound on an accepted pick (default). Party plays its own sounds instead. */
+  pickSound?: boolean
 }
 
 const MAX_SUGGESTIONS = 8
@@ -29,7 +31,7 @@ const MAX_SUGGESTIONS = 8
  * can be submitted. Keyboard: type, ↑/↓ to move, Enter to guess, Esc to close.
  * Touch: tap a suggestion.
  */
-export function SearchBar({ pokedex, guessedIds, onGuess, disabled, doneText = 'You got it!', doneAction, doneWide, focusWhenEnabled }: SearchBarProps) {
+export function SearchBar({ pokedex, guessedIds, onGuess, disabled, doneText = 'You got it!', doneAction, doneWide, focusWhenEnabled, pickSound = true }: SearchBarProps) {
   const done = disabled && !!doneAction
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -58,7 +60,7 @@ export function SearchBar({ pokedex, guessedIds, onGuess, disabled, doneText = '
       setMessage(`You already guessed ${pokemon.name}.`)
       return
     }
-    if (result === 'ok') playSound('select')
+    if (result === 'ok' && pickSound) playSound('select')
     setMessage(null)
     setQuery('')
     setOpen(false)

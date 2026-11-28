@@ -57,9 +57,12 @@ export function toGameView(
     tier: category.tier,
     category: category.parts,
     left: speciesLeftFor(category.parts, said, POKEDEX, POKEDEX_BY_ID),
+    // TODO(presence): there is no presence channel yet, so everyone shows as online; a player who drops is removed by the
+    // server after 60 s. The rail already draws "Away" for online: false.
     players: seated.map((p) => ({ id: p.id, nickname: p.nickname, icon: p.icon, lives: p.lives, out: p.is_out, online: true })),
     meId,
     turnPlayerId: room.turn_player_id,
+    turnNo: room.turn_no,
     deadlineAt,
     seconds: room.turn_seconds ?? category.seconds,
     startLives: room.lives,

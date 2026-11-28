@@ -96,6 +96,7 @@ function gameFor(lobby: LobbyView, q: URLSearchParams): GameView {
     players,
     meId: lobby.meId,
     turnPlayerId: players[turnAt].id,
+    turnNo: 1,
     deadlineAt: Date.now() + secs * 1000,
     seconds: tier.seconds,
     startLives: lobby.settings.lives,
@@ -122,6 +123,7 @@ function passTurn(game: GameView, by: string, pokemonId: number, n: number): Gam
     answers,
     left: speciesLeftFor(game.category, answers, POKEDEX, POKEDEX_BY_ID),
     turnPlayerId: nextLiving(game, by),
+    turnNo: game.turnNo + 1,
     deadlineAt: Date.now() + game.seconds * 1000,
   }
 }
@@ -173,6 +175,7 @@ export function useMockParty(route: PartyRoute): PartyController & { inGame: boo
               ...next,
               left: speciesLeftFor(g.category, [], POKEDEX, POKEDEX_BY_ID),
               turnPlayerId: failedOut ? nextLiving(next, turn) : turn,
+              turnNo: g.turnNo + 1,
               deadlineAt: Date.now() + g.seconds * 1000,
             }
           }),
