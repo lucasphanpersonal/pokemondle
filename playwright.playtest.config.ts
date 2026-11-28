@@ -14,6 +14,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4173/',
     trace: 'off',
+    actionTimeout: 10_000,
     launchOptions: { executablePath },
   },
   webServer: {

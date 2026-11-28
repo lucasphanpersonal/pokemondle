@@ -20,9 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Run 3 already gave a full 4p-3 (with video) and 8p-3; this run repeats the games whose harness hung after
+          # game over, plus a second 8-player game.
           - game: 2p-3
-          - game: 4p-3
-            video: '1'
           - game: 8p-3
           - game: 4p-1
           - game: 4p-5
@@ -83,7 +83,7 @@ jobs:
       - name: Publish results to a branch
         if: always()
         env:
-          RESULTS_BRANCH: claude/project-thread-qb76d2-party-playtest-results-${{ matrix.game }}
+          RESULTS_BRANCH: claude/project-thread-qb76d2-party-playtest-results-${{ matrix.game }}-r${{ github.run_number }}
         run: |
           [ -d test-results/playtest ] || exit 0
           cp -r test-results/playtest "$RUNNER_TEMP/results"

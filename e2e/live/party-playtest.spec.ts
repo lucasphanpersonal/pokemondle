@@ -196,12 +196,14 @@ function wrongPick(category: Category, used: Set<number>): Pokemon {
 
 async function typeAndEnter(b: Bot, box: Locator, name: string): Promise<boolean> {
   try {
-    await box.fill('')
-    await box.pressSequentially(name, { delay: PROFILE[b.skill].typeMs })
+    // Short action timeouts: the box can lock (turn over, game over) while a bot is typing, and an action on a
+    // disabled box would otherwise wait for ever.
+    await box.fill('', { timeout: 3000 })
+    await box.pressSequentially(name, { delay: PROFILE[b.skill].typeMs, timeout: 3000 + name.length * PROFILE[b.skill].typeMs })
     const first = b.page.getByRole('option').first()
     await expect(first).toContainText(name, { timeout: 2000 })
     if (!(await box.isEnabled())) return false
-    await box.press('Enter')
+    await box.press('Enter', { timeout: 3000 })
     return true
   } catch (e) {
     b.errors.push(`type ${name}: ${(e as Error).message.split('\n')[0]}`)
@@ -711,7 +713,7 @@ test(`playtest ${GAME}`, async ({ browser }) => {
   const end = await observer()
   stop = true
   const screenCounters = await screensDone
-  await Promise.all(loops)
+  await Promise.race([Promise.all(loops), sleep(20_000)])
   const gameMs = Date.now() - gameStart
 
   // ---- Game over on every screen.
