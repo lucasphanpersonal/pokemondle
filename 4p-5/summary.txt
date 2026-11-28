@@ -1,0 +1,28 @@
+PLAYTEST 4p-5: finished, Ash won in 6.6 min, 21 rounds, 42 turns
+  Easy at round 1, 0 min
+  Medium at round 4, 1 min
+  Hard at round 7, 2.6 min
+  Expert at round 11, 4 min
+  easy    20s: 3 rounds (3 cleared, 0 exhausted), 12 turns, 0% timeouts, used median 5.5s p90 6s, avg round 20.9s
+  medium  17s: 3 rounds (2 cleared, 0 exhausted), 11 turns, 9.1% timeouts, used median 7.6s p90 12.6s, avg round 31.9s
+  hard    14s: 4 rounds (1 cleared, 0 exhausted), 7 turns, 42.9% timeouts, used median 10.7s p90 11.2s, avg round 20.9s
+  expert  12s: 11 rounds (0 cleared, 0 exhausted), 12 turns, 91.7% timeouts, used median 7s p90 7s, avg round 13.2s
+  rounds lost by their first player (0 answers): 13; loss streaks: Misty lost 5 rounds in a row from round 12; May lost 5 rounds in a row from round 17
+  laps ending with <=3 left: 0 of 6; deck looped: false; repeated categories: 0
+  expert pool < 2x alive: 1 rounds
+  wait between own turns: median 15.8s, p90 58.7s, max 98.8s
+  answer on other screens: median 825 ms, p95 1456 ms; next box live: median 837 ms, p95 1621 ms
+  timer drift (shown - server, s): median 0.5, min 0.1, max 1 over 540 reads
+  screen checks: {"checks":135,"twoLive":0,"wrongLive":0,"notLive":0,"railDiff":0,"roundDiff":0,"leftDiff":0}; moments missed: 0; also-fit disagreements: 0
+  problems: 2; console errors/warnings: 0
+  Ash     strong  desktop lives 5, 8 answers in 8 turns, 3 wrong, 0 blank, 0 stumped, 0 too slow, 0 refused
+  Misty   average phone   lives 0 OUT, 6 answers in 11 turns, 4 wrong, 0 blank, 0 stumped, 5 too slow, 0 refused
+  Brock   weak    tablet  lives 0 OUT, 6 answers in 11 turns, 5 wrong, 1 blank, 4 stumped, 0 too slow, 0 refused
+  May     average phone   lives 0 OUT, 7 answers in 12 turns, 5 wrong, 0 blank, 1 stumped, 2 too slow, 0 refused
+
+PROBLEMS
+31.5s lobby-stale: Ash's lobby lists 1 of 4 players 30 s after the last join; reloading it
+428.4s bot-crash: May: locator.isEnabled: Timeout 10000ms exceeded.
+
+CONSOLE
+
