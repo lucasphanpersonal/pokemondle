@@ -808,6 +808,25 @@ test(`playtest ${GAME}`, async ({ browser }) => {
     deckLooped: rounds.length > deck.length,
     repeatedCategories: rounds.length - new Set(rounds.map((r) => r.key)).size,
     lapsEndingWith3OrFewerLeft: `${lowLeft.length} of ${lapEnds.length}`,
+    // The failed player starts the next round: how often one player loses several rounds in a row.
+    lossStreaks: (() => {
+      const out: string[] = []
+      let who = ''
+      let n = 0
+      let from = 0
+      for (const r of [...rounds, { end: 'end', round: 0 } as RoundRec]) {
+        const loser = r.end === 'timeout' ? (r.loser ?? '') : ''
+        if (loser && loser === who) n++
+        else {
+          if (n >= 3) out.push(`${who} lost ${n} rounds in a row from round ${from}`)
+          who = loser
+          n = loser ? 1 : 0
+          from = r.round
+        }
+      }
+      return out
+    })(),
+    zeroAnswerRounds: rounds.filter((r) => r.end === 'timeout' && r.answers === 0).length,
     expertPoolUnder2xAlive: unfair.map((r) => `r${r.round} ${r.category} pool ${r.pool} vs ${r.alive} alive (${r.end})`),
     livesLostPerRound: rounds.map((r) => (r.end === 'timeout' ? 1 : 0)),
     waitBetweenOwnTurnsS: { median: r1(pct(waits, 0.5)), p90: r1(pct(waits, 0.9)), max: r1(Math.max(0, ...waits)) },
@@ -847,6 +866,7 @@ test(`playtest ${GAME}`, async ({ browser }) => {
       (t) =>
         `  ${t.tier.padEnd(7)} ${t.seconds}s: ${t.rounds} rounds (${t.cleared} cleared, ${t.exhausted} exhausted), ${t.turns} turns, ${t.timeoutRate}% timeouts, used median ${t.usedMedianS}s p90 ${t.usedP90S}s, avg round ${t.avgRoundS}s`,
     ),
+    `  rounds lost by their first player (0 answers): ${summary.zeroAnswerRounds}; loss streaks: ${summary.lossStreaks.join('; ') || 'none'}`,
     `  laps ending with <=3 left: ${summary.lapsEndingWith3OrFewerLeft}; deck looped: ${summary.deckLooped}; repeated categories: ${summary.repeatedCategories}`,
     `  expert pool < 2x alive: ${unfair.length} rounds`,
     `  wait between own turns: median ${summary.waitBetweenOwnTurnsS.median}s, p90 ${summary.waitBetweenOwnTurnsS.p90}s, max ${summary.waitBetweenOwnTurnsS.max}s`,

@@ -14,6 +14,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.head_ref == 'claude/project-thread-qb76d2-party-playtest'
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -76,6 +78,22 @@ jobs:
       - name: Function errors
         if: always()
         run: grep -iE 'error|exception' "$RUNNER_TEMP/serve.log" | tail -50 || true
+      # Artifacts can't be downloaded from the agent's sandbox, so the results also go to a throwaway branch per game
+      # (orphan, results only; delete after the playtest). Uses the job's own GITHUB_TOKEN, no repository secrets.
+      - name: Publish results to a branch
+        if: always()
+        env:
+          RESULTS_BRANCH: claude/project-thread-qb76d2-party-playtest-results-${{ matrix.game }}
+        run: |
+          [ -d test-results/playtest ] || exit 0
+          cp -r test-results/playtest "$RUNNER_TEMP/results"
+          cd "$RUNNER_TEMP/results"
+          git init -q -b results
+          git config user.name "github-actions[bot]"
+          git config user.email "41898729+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Playtest results ${{ matrix.game }} (run ${{ github.run_id }})"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "results:refs/heads/$RESULTS_BRANCH"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
