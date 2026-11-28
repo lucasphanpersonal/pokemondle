@@ -46,7 +46,9 @@ jobs:
           exit 1
       - name: Build the site against the local stack
         run: |
-          VITE_SUPABASE_URL="$PARTY_API_URL" VITE_SUPABASE_ANON_KEY="$PARTY_ANON_KEY" npm run build
+          # Every Supabase address .env.production sets is overridden, analytics included (the local track function).
+          VITE_SUPABASE_URL="$PARTY_API_URL" VITE_SUPABASE_ANON_KEY="$PARTY_ANON_KEY" \
+            VITE_TRACK_URL="$PARTY_API_URL/functions/v1/track" npm run build
           if grep -rq 'inxvlunfwsssifvjkgtz' dist/; then echo 'The build points at the live project'; exit 1; fi
       - name: psql (to force short timers in the local database)
         run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
