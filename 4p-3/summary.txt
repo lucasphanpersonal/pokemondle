@@ -1,0 +1,28 @@
+PLAYTEST 4p-3: finished, Ash won in 4.9 min, 16 rounds, 36 turns
+  Easy at round 1, 0 min
+  Medium at round 4, 0.9 min
+  Hard at round 7, 2.2 min
+  Expert at round 11, 3.5 min
+  easy    20s: 3 rounds (3 cleared, 0 exhausted), 12 turns, 0% timeouts, used median 4.5s p90 6.5s, avg round 19.2s
+  medium  17s: 3 rounds (2 cleared, 0 exhausted), 9 turns, 11.1% timeouts, used median 9s p90 12.8s, avg round 25.5s
+  hard    14s: 4 rounds (1 cleared, 0 exhausted), 8 turns, 37.5% timeouts, used median 5.5s p90 9.5s, avg round 19.3s
+  expert  12s: 6 rounds (1 cleared, 0 exhausted), 7 turns, 71.4% timeouts, used median 11.3s p90 11.3s, avg round 14.2s
+  rounds lost by their first player (0 answers): 8; loss streaks: Brock lost 3 rounds in a row from round 6; Misty lost 3 rounds in a row from round 10
+  laps ending with <=3 left: 0 of 7; deck looped: false; repeated categories: 0
+  expert pool < 2x alive: 0 rounds
+  wait between own turns: median 14.3s, p90 52.1s, max 62.8s
+  answer on other screens: median 1192 ms, p95 1606 ms; next box live: median 1135 ms, p95 1594 ms
+  timer drift (shown - server, s): median 0.5, min 0, max 1 over 408 reads
+  screen checks: {"checks":102,"twoLive":0,"wrongLive":0,"notLive":0,"railDiff":0,"roundDiff":0,"leftDiff":0}; moments missed: 0; also-fit disagreements: 0
+  problems: 1; console errors/warnings: 2
+  Ash     strong  desktop lives 3, 8 answers in 8 turns, 2 wrong, 0 blank, 0 stumped, 0 too slow, 0 refused
+  Misty   average phone   lives 0 OUT, 6 answers in 9 turns, 6 wrong, 0 blank, 0 stumped, 3 too slow, 0 refused
+  Brock   weak    tablet  lives 0 OUT, 5 answers in 8 turns, 3 wrong, 0 blank, 3 stumped, 0 too slow, 0 refused
+  May     average phone   lives 0 OUT, 8 answers in 11 turns, 2 wrong, 0 blank, 2 stumped, 0 too slow, 0 refused
+
+PROBLEMS
+31.8s lobby-stale: Ash's lobby lists 1 of 4 players 30 s after the last join; reloading it
+
+CONSOLE
+55.4s Brock(tablet) error: Failed to load resource: the server responded with a status of 404 ()
+55.5s Brock(tablet) error: Failed to load resource: the server responded with a status of 404 ()
