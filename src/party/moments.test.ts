@@ -67,6 +67,17 @@ describe('toRoundEnd', () => {
     })
   })
 
+  it("takes what was said from the server's event when it has the list, so a screen that missed an answer agrees", () => {
+    const event: RoomEvent = { kind: 'timeout', round: 3, player_id: 'b', lives: 1, out: false, deck_no: 3, said: [4, 37, 58] }
+    // This screen received only two of the round's three answers, or none at all (a snapshot read after the round).
+    expect(toRoundEnd(event, src)).toMatchObject({ saidIds: [4, 37, 58] })
+    const missed = toRoundEnd(event, { ...src, answers: [] })
+    expect(missed).toMatchObject({ saidIds: [4, 37, 58] })
+    const ids = (end: RoundEnd | null) => alsoFitIds(end as TimeoutEnd, POKEDEX, POKEDEX_BY_ID)
+    expect(ids(missed)).toEqual(ids(toRoundEnd(event, src)))
+    expect(ids(missed)).not.toContain(58)
+  })
+
   it('names a player it cannot find "Someone" and copes with a missing category', () => {
     const event: RoomEvent = { kind: 'timeout', round: 3, player_id: 'zz', lives: 0, out: true, deck_no: 9 }
     expect(toRoundEnd(event, src)).toMatchObject({ nickname: 'Someone', out: true, category: null })

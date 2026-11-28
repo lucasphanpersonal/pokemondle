@@ -1,0 +1,67 @@
+# Two-player Party browser test on every pull request (e2e/live/, playwright.party.config.ts).
+# Starts a LOCAL Supabase stack (database, Realtime, the party Edge Function), builds the site pointed at it and plays a
+# whole game in two browser contexts. No secrets, and it never touches the live project: the build check below fails
+# if the live project's address ends up in the bundle.
+name: Party e2e
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  party-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 3.1.0
+      - run: supabase start -x studio,imgproxy,vector,logflare,mailpit,supavisor
+      - name: Local stack addresses and keys
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|PUBLISHABLE_KEY|DB_URL)=' | sed 's/^/export /')"
+          {
+            echo "PARTY_API_URL=$API_URL"
+            echo "PARTY_ANON_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}"
+            echo "PARTY_DB_URL=$DB_URL"
+          } >> "$GITHUB_ENV"
+      - name: Serve the Edge Functions
+        run: |
+          echo "ALLOWED_ORIGINS=http://localhost:4173" > "$RUNNER_TEMP/functions.env"
+          nohup supabase functions serve --env-file "$RUNNER_TEMP/functions.env" > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -H "apikey: $PARTY_ANON_KEY" -o /dev/null -w '%{http_code}' -X POST "$PARTY_API_URL/functions/v1/party" || true)
+            [ "$code" = "403" ] && exit 0
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/serve.log"
+          exit 1
+      - name: Build the site against the local stack
+        run: |
+          # Every Supabase address .env.production sets is overridden, analytics included (the local track function).
+          VITE_SUPABASE_URL="$PARTY_API_URL" VITE_SUPABASE_ANON_KEY="$PARTY_ANON_KEY" \
+            VITE_TRACK_URL="$PARTY_API_URL/functions/v1/track" npm run build
+          if grep -rq 'inxvlunfwsssifvjkgtz' dist/; then echo 'The build points at the live project'; exit 1; fi
+      - name: psql (to force short timers in the local database)
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test -c playwright.party.config.ts
+      - name: Function log
+        if: failure()
+        run: cat "$RUNNER_TEMP/serve.log" || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: party-e2e-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

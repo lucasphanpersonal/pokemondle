@@ -20,10 +20,12 @@ npm run icons      # rebuild the site icons in public/ from scripts/icons/pokeba
 npm run font       # rebuild the ♀/♂ pixel font (needs Python 3: pip install fonttools brotli)
 ```
 
-### The Party page (in progress)
+### The Party page
 
-Party, the multiplayer mode, is being built on its own page at `/party/` (`party/index.html`, a second Vite entry). For
-now nothing in the main game links to it, and it carries `noindex`, so only people with the address reach it. To work
+Party, the multiplayer mode, lives on its own page at `/party/` (`party/index.html`, a second Vite entry): share
+https://pokemondle.io/party/ (or the GitHub Pages fallback https://lucasphanpersonal.github.io/pokemondle/party/). For
+now nothing in the main game links to it, and it carries `noindex`, so only people with the address reach it. Its Help
+(`PartyHelpModal.tsx`) explains the rules; the main game's Help says nothing about Party until it gets a button. To work
 on it locally, run `npm run dev` and open http://localhost:5173/party/ (or `npm run build && npm run preview`, then
 http://localhost:4173/party/). A room code rides in the address: `/party/#KPZW` is room KPZW (4 letters from 20, no
 vowels and no L; lower case is accepted), and anything else falls back to the start screen with a note. The page has its
@@ -63,11 +65,13 @@ often or late the event arrives (`moments.ts`, keyed by game and round; an event
 not replayed). **Time's up** (about 2.5 s): the fuse bomb flashes and bursts in a pixel explosion drawn in code
 (`burstGrid` in `fuseArt.ts`) with a pop, "Time's up! Brock lost a life." (or "…is out!", "You…" on their own screen)
 types out, then "Also fit:" shows three species that fit and nobody said, picked by `alsoFit` with a seed every screen
-shares (room id, game and round), so everyone sees the same three. The countdown reaching zero on screen starts the
+shares (room id, game and round) and the round's answers as the server lists them in the event, so everyone sees the
+same three (the names as one line that wraps between words, then the sprites). The countdown reaching zero on screen starts the
 burst straight away; the server's event then fills in the words (if it doesn't come within 1.5 s, the burst goes away).
 **Round cleared** (about 1.5 s): a fanfare, "Round cleared!" and the new tier when it changed ("Now: Hard"), then the
-new category card slides in. The panel covers the card's place (growing upwards over the rail on phones), so the turn
-box and search box never move and the next player can answer at once: a moment never blocks input. Reduced motion
+new category card slides in. The panel covers the card's place (below 1024 px the time's up panel is kept short and
+also takes half of the gap under the card, so it stays clear of the rail's cards), so the turn box and search box never
+move and the next player can answer at once: a moment never blocks input. Reduced motion
 skips the flash, burst, typing and slide and shows the text states as they are. The **game over** screen
 (`screens/GameOverScreen.tsx`, `GameOverView` in `types.ts`) shows the winner's sprite and name, the time's up that
 ended the game once more, a table of answers given and lives lost per player (players who left are listed as "Left"),
@@ -92,7 +96,9 @@ folded into one follow-up with the latest choice, and Start waits for it. The pl
 `localStorage['pokemondle:party']`, and a reload on the same `#CODE` rejoins with it. While in a room the page calls
 `party_heartbeat` every 4 s, estimates the server clock from every reply's `server_time` (`clock.ts`, smallest round trip
 wins) so the countdown matches on every screen, and when the countdown reaches zero calls `party_timeout(room, turn_no)`,
-once more about 400 ms later (the first call usually lands inside the server's 300 ms grace). With
+once more about 400 ms later (the first call usually lands inside the server's 300 ms grace). If a room just hosted or
+joined hasn't connected within 10 s (Realtime blocked by a firewall or a security header without `wss://`), the seat is
+given up and the start screen says "Can't reach the party server right now." instead of waiting quietly. With
 `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY` empty the page says Party isn't available and never creates a client.
 
 ## Project layout
@@ -100,6 +106,7 @@ once more about 400 ms later (the first call usually lands inside the server's 3
 ```
 e2e/smoke.spec.ts             Playwright browser smoke test (load, guess, win, mode switch, Endless Gens at 390px and 1280px)
 e2e/party.spec.ts             Playwright smoke test of the Party page (noindex, header, Help, #CODE routing, code boxes, nickname check)
+e2e/live/                     two-player Party game against a local Supabase stack (playwright.party.config.ts, .github/workflows/party-e2e.yml)
 party/index.html              the Party page (second Vite entry, served at /party/, noindex)
 src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (picks the screen), screens/ (StartScreen, LobbyScreen, GameScreen with CategoryCard, FuseTimer and RoundMoments (time's up, round cleared), GameOverScreen), types.ts (lobby, game and game over view models and the PartyController the room connection implements), game.ts (the game screen's pure helpers: timer maths, rail, turn text; tested), moments.ts (the end of a round and the game over results: event mapping, shared Also fit seed, timelines, hardest category; tested), fuseArt.ts (the timer's pixel art and its burst), sounds.ts (the game's sound effects), party.css (Party-only styles), codeBoxes.ts and nickname.ts (tested), mock.ts (dev-only pretend room), usePartyController.ts (maps the room connection to the screens), and the room connection: api.ts (Edge Function and RPC wrappers), client.ts (lazy supabase-js, snapshot, Realtime), state.ts (room reducer and selectors), optimistic.ts (the host's settings shown before the server confirms them; tested), clock.ts (server clock offset), session.ts (the saved seat), useParty.ts (the hook), PartyHeader, PartyHelpModal, route.ts (the #CODE route and invite link, tested)
 scripts/fetchPokemonData.ts   builds the local Pokémon dataset from PokéAPI
@@ -468,6 +475,15 @@ One-time setup: in the repo's **Settings → Pages → Build and deployment**, s
 **GitHub Actions**. GitHub Pages needs the repository to be public on a free plan.
 
 Pull requests run the same lint, test and build checks (`.github/workflows/ci.yml`) without deploying, then a Playwright browser smoke test of the production build (`e2e/`, at 390px and 1280px; a failing run uploads its report as an artifact).
+Every pull request also runs the two-player Party test (`.github/workflows/party-e2e.yml`): it starts a local Supabase
+stack (`supabase start`, the party Edge Function served with `supabase functions serve`), builds the site with
+`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` pointing at it, and plays a whole game in two browser contexts
+(`e2e/live/`, `playwright.party.config.ts`): host, join by the invite link, a wrong answer, a cleared lap, two timeouts
+with a forced 5 s timer (set in the local database with `psql`, which only the local stack allows), the same "Also fit"
+on both screens, a winner and Play again; plus Host with Realtime blocked showing "Can't reach the party server right
+now". No secrets, never the live project (the job fails if the build points at it). Locally, with Docker: `npx supabase
+start`, serve the functions with `ALLOWED_ORIGINS=http://localhost:4173`, build with those two variables, then
+`PARTY_API_URL=... PARTY_ANON_KEY=... PARTY_DB_URL=... npx playwright test -c playwright.party.config.ts`.
 
 ## Analytics (Supabase)
 

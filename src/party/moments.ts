@@ -78,7 +78,9 @@ export function toRoundEnd(event: RoomEvent | null | undefined, src: RoundEndSou
       lives: event.lives,
       out: event.out,
       category: category?.parts ?? null,
-      saidIds: src.answers.filter((a) => a.round === event.round).map((a) => a.pokemon_id),
+      // The server's list when the event has one, so every screen excludes the same answers whatever reached it;
+      // else the answers this browser received.
+      saidIds: Array.isArray(event.said) ? event.said : src.answers.filter((a) => a.round === event.round).map((a) => a.pokemon_id),
       seed: alsoFitSeed(src.roomId, src.gameNo, event.round),
     }
   }

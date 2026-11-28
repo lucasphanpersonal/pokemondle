@@ -120,6 +120,15 @@ select is((pg_temp.room((select id from r1))).round, 3, 'timeout ends the round'
 select is(pg_temp.turn((select id from r1)), (select a from s), 'the failed player starts the next round');
 select is((select result from public.party_categories where room_id = (select id from r1) and deck_no = 2), 'failed',
   'deck entry 2 marked failed');
+select is((pg_temp.room((select id from r1))).last_event->'said', '[]'::jsonb, 'timeout event: nobody answered that round');
+
+-- The timeout event names the round's answers (migration 20261128140000), so every screen shows the same "Also fit".
+create temp table rs as select pg_temp.mkroom(array['Gary', 'Erika']) as id;
+create temp table ss as select pg_temp.at_seat((select id from rs), 0) as a, pg_temp.at_seat((select id from rs), 1) as b;
+select is((pg_temp.ans((select id from rs), (select a from ss), 10)->>'result'), 'passed', 'said: a passes');
+select pg_temp.expire((select id from rs), 1000);
+select is((public.party_timeout((select id from rs))->'said'), '[10]'::jsonb, 'timeout reply lists the round''s answers');
+select is((pg_temp.room((select id from rs))).last_event->'said', '[10]'::jsonb, 'last_event lists the round''s answers');
 
 -- ------------------------------------------------------------ late answer ----
 select pg_temp.expire((select id from r1), 301);
