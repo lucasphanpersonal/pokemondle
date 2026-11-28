@@ -3,6 +3,7 @@ import { POKEDEX, POKEDEX_BY_ID } from '../lib/pokedex.ts'
 import { friendlyError } from './api.ts'
 import { speciesLeftFor } from './game.ts'
 import { hardestCleared, resultPlayers, toRoundEnd } from './moments.ts'
+import { shownSettings, type SettingsDraft } from './optimistic.ts'
 import type { AnswerRow, CategoryRow, PartyState, PlayerRow, RoomRow } from './state.ts'
 import type { AnswerResult, GameOverView, GameView, LobbyPlayer, LobbyView, PartyController, PartySettings, RoundEnd } from './types.ts'
 import { PARTY_UNREACHABLE, useParty } from './useParty.ts'
@@ -12,7 +13,13 @@ export const UNAVAILABLE_TEXT = "Party isn't available right now."
 export const LOST_SEAT_TEXT = 'You are no longer in this room.'
 
 /** Maps the room rows to what the lobby shows: present players only, longest-joined first. */
-export function toLobbyView(code: string, room: RoomRow, players: readonly PlayerRow[], meId: string): LobbyView {
+export function toLobbyView(
+  code: string,
+  room: RoomRow,
+  players: readonly PlayerRow[],
+  meId: string,
+  draft: SettingsDraft | null = null,
+): LobbyView {
   const present: LobbyPlayer[] = players.map((p) => ({
     id: p.id,
     nickname: p.nickname,
@@ -26,9 +33,11 @@ export function toLobbyView(code: string, room: RoomRow, players: readonly Playe
     players: present,
     meId,
     hostId: room.host_id,
-    settings: { lives: room.lives, startTier: room.start_tier },
+    settings: settingsView(shownSettings(room, draft)),
   }
 }
+
+const settingsView = (s: SettingsDraft): PartySettings => ({ lives: s.lives, startTier: s.start_tier })
 
 /**
  * Maps the room rows to what the game screen shows, or null when no game is running (or its category hasn't arrived).
@@ -140,7 +149,7 @@ export function usePartyController(routeCode: string | null): PartyScreenControl
     else void run(task)
   }
 
-  const lobby = session && room ? toLobbyView(session.code, room, players, session.player_id) : null
+  const lobby = session && room ? toLobbyView(session.code, room, players, session.player_id, party.settingsDraft) : null
   const error = actionError ?? (status === 'error' ? `${PARTY_UNREACHABLE}.` : party.lost ? LOST_SEAT_TEXT : undefined)
 
   const roundEnd = useMemo(() => roundEndOf(party.state, party.category), [party.state, party.category])
@@ -173,7 +182,14 @@ export function usePartyController(routeCode: string | null): PartyScreenControl
     inGame: !!lobby && (lobby.status === 'over' || (lobby.status === 'playing' && me?.seat != null)),
     host: (nickname) => guard(() => party.host(nickname)),
     join: (code, nickname) => guard(() => party.join(code, nickname)),
-    changeSettings: (s: PartySettings) => guard(() => party.settings(s.lives, s.startTier)),
+    // Not counted as busy: the tap shows at once and the toggles stay usable (useParty sends only the latest tap).
+    changeSettings: (s: PartySettings) => {
+      if (unavailable) return setActionError(UNAVAILABLE_TEXT)
+      setActionError(undefined)
+      void party.settings(s.lives, s.startTier).then((res) => {
+        if (!res.ok) setActionError(friendlyError(res.error))
+      })
+    },
     start: () => guard(party.start),
     remove: (id) => guard(() => party.remove(id)),
     playAgain: () => guard(party.playAgain),

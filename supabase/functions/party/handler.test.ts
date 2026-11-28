@@ -24,11 +24,14 @@ interface Fake {
   state: { room: RoomRow | null; category: Category | null; used: number[]; players: number; hash: string | null; allowHit: boolean }
   /** Queue of replies for the next SQL calls (default: {ok:true}). */
   replies: RpcResult[]
+  /** How many times the answer context was read. */
+  reads: () => number
 }
 
 function fake(): Fake {
   const calls: Call[] = []
   const replies: RpcResult[] = []
+  let contextReads = 0
   const state: Fake['state'] = {
     room: { status: 'playing', start_tier: 'easy', game_no: 1, round: 1, category_no: 1, turn_player_id: ME },
     category: [{ kind: 'type', value: 'Fire' }],
@@ -46,15 +49,20 @@ function fake(): Fake {
       return replies.shift() ?? { data: { ok: true }, error: null }
     },
     getRoom: async () => state.room,
-    getCategory: async () => state.category,
-    getUsedSpecies: async () => state.used,
+    getAnswerContext: async () => {
+      contextReads++
+      const r = state.room
+      if (!r) return null
+      const { status, game_no, round, category_no, turn_player_id } = r
+      return { status, game_no, round, category_no, turn_player_id, parts: category_no === null ? null : state.category, used: state.used }
+    },
     countPresent: async () => state.players,
     networkHash: async () => state.hash,
     caps: { create: { limit: 2, window: '1 hour' }, join: { limit: 5, window: '1 hour' } },
     randomSeed: () => 42,
     now: () => 1_700_000_000_000,
   }
-  return { deps, calls, state, replies }
+  return { deps, calls, state, replies, reads: () => contextReads }
 }
 
 const post = (body: unknown, origin: string | null = ORIGIN) => ({
@@ -366,6 +374,24 @@ describe('answer', () => {
         },
       },
     ])
+  })
+
+  it('checks an answer with one read and one write, and passes the returned rows through', async () => {
+    const f = fake()
+    const room = { id: ROOM, turn_no: 3, last_activity: '2026-11-27T12:00:00Z' }
+    const answer = { id: 7, room_id: ROOM, player_id: ME, pokemon_id: 4, species: 4 }
+    f.replies.push(ok({ result: 'passed', round: 1, turn_player_id: OTHER, deadline: '2026-11-27T12:00:20Z', turn_no: 3, room, answer }))
+    const r = await run(f, { action: 'answer', ...auth, pokemon_id: byName('Charmander').id })
+    expect(f.reads()).toBe(1)
+    expect(sqlCalls(f)).toHaveLength(1)
+    expect(r.body).toMatchObject({ ok: true, room, answer })
+  })
+
+  it('a wrong answer costs one read and no write', async () => {
+    const f = fake()
+    await run(f, { action: 'answer', ...auth, pokemon_id: byName('Squirtle').id })
+    expect(f.reads()).toBe(1)
+    expect(f.calls).toHaveLength(0)
   })
 
   it('sets p_pool_exhausted when this answer uses up the last species', async () => {

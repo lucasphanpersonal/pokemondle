@@ -179,7 +179,9 @@ the Edge Function can call does that, so it can't happen on the live project.
 
 ## Party database
 
-Migration `20261127200000_party.sql`. The SQL functions own the turn rules (whose turn, deadline, lives, round cleared, next
+Migrations `20261127200000_party.sql` and `20261128130000_party_fast_replies.sql` (one-read answer context, rows in the
+settings and answer replies). The function needs the second migration (it calls `party_answer_context`), so the
+migration must land before the function: `supabase-deploy.yml` runs `supabase db push` before `supabase functions deploy`. The SQL functions own the turn rules (whose turn, deadline, lives, round cleared, next
 category, winner), so the Edge Function, the clients' timeout calls and the cron job can never disagree. Every change runs in one
 transaction that locks the room row (`select ... for update`).
 
@@ -211,7 +213,7 @@ messages. On a `party_rooms` update where `game_no` changed, or status went back
 mid-lap), `{"kind":"timeout","round","player_id","lives","out","deck_no","said"}`, `{"kind":"gone","round","player_id","reason"}`. When the
 event ended the game it also has `"over":true,"winner_id"`. "Also fit" for a failed round: the category is the `party_categories` row
 with that `deck_no`, the used species are the `said` pokemon ids (that round's `party_answers`, oldest first; added by migration
-`20261128120000_party_timeout_said.sql` so every screen excludes the same answers whatever reached it).
+`20261128140000_party_timeout_said.sql` so every screen excludes the same answers whatever reached it).
 
 ### Tokens
 
@@ -231,9 +233,10 @@ doesn't match the player (or a player not in that room, or already gone where it
 | `party_create(p_nickname text, p_lives int = 3, p_start_tier text = 'easy')` | service | `{ok, room_id, code, player_id, token, nickname, icon, status}`; `bad_nickname`, `bad_settings` |
 | `party_join(p_code text, p_nickname text)` | service | same shape (nickname made unique: "Ash 2"); `no_room`, `bad_nickname`, `room_full` (8 present). Joining a game in progress watches (`seat` null) until the next game. |
 | `party_rejoin(p_player_id uuid, p_token text)` | service | `{ok, room_id, code, player_id, nickname, icon, status, server_time}` (no token); `bad_token`. Counts as a heartbeat. |
-| `party_settings(p_room_id, p_player_id, p_token, p_lives int, p_start_tier text)` | service | `{ok}`; `not_host`, `not_lobby`, `bad_settings` |
+| `party_settings(p_room_id, p_player_id, p_token, p_lives int, p_start_tier text)` | service | `{ok, room}` (`room`: the `party_rooms` row after the change); `not_host`, `not_lobby`, `bad_settings` |
 | `party_start(p_room_id, p_player_id, p_token, p_deck jsonb)` | service | `{ok, game_no, players}`; `not_host`, `not_lobby`, `too_few_players` (< 2 present), `bad_deck` |
-| `party_apply_answer(p_room_id, p_player_id, p_token, p_pokemon_id int, p_species int, p_pool_exhausted boolean = false)` | service | `{ok, result: 'passed' or 'cleared', round, turn_player_id, deadline, turn_no}`; `not_playing`, `not_your_turn`, `already_used`, `bad_answer`, `too_late` (see below) |
+| `party_apply_answer(p_room_id, p_player_id, p_token, p_pokemon_id int, p_species int, p_pool_exhausted boolean = false)` | service | `{ok, result: 'passed' or 'cleared', round, turn_player_id, deadline, turn_no, room, answer}` (`room`: the `party_rooms` row after the answer; `answer`: the `party_answers` row it added); `not_playing`, `not_your_turn`, `already_used`, `bad_answer`, `too_late` (see below) |
+| `party_answer_context(p_room_id uuid)` | service | read only: `{status, game_no, round, category_no, turn_player_id, parts, used}` (`parts`: the current category, null if none; `used`: this round's species), or null for an unknown room. What checking an answer needs, in one read. |
 | `party_leave(p_room_id, p_player_id, p_token)` | service | `{ok}`; `bad_token` |
 | `party_remove(p_room_id, p_player_id, p_token, p_target_id uuid)` | service | `{ok}`; `not_host`, `no_player` (unknown, self, or already removed) |
 | `party_play_again(p_room_id, p_player_id, p_token)` | service | `{ok}` (room back to `lobby`); `not_host`, `not_over`. Then call `party_start` with a new deck. |
@@ -289,12 +292,12 @@ What the function must do, and what it can rely on SQL for:
    ASCII letters, digits and single spaces), but the function should send its own friendly message first.
 2. **Tokens.** Pass the raw token from the request straight to the SQL function. Never hash, log or store it. Only create and join
    return a token.
-3. **Start.** Read the room (`start_tier`) and count the present players (`gone_at is null`, at most 8), deal with
+3. **Start.** Read the room (`start_tier`) and count the present players (`gone_at is null`, at most 8) at the same time, deal with
    `dealDeck(seed, players, dataset, { startTier })`, and send `p_deck = deck.map(e => ({ parts: e.category, tier: e.tier,
    pool: e.pool, seconds: <the tier's seconds from partyConfig> }))` to `party_start`. Host, lobby and player-count checks are SQL's.
-4. **Answer.** Read the room (`status`, `game_no`, `round`, `category_no`, `turn_player_id`), the category (`party_categories` where
-   `room_id`, `game_no` and `deck_no = category_no`) and the species already used (`party_answers` where `room_id`, `game_no`,
-   `round`). Run `checkAnswer(category, pokemon, usedSpecies)`. If it fails, reply with its reason and **do not call SQL** (a wrong
+4. **Answer.** Read the room's turn, the current category and the species already used this round with one call,
+   `party_answer_context(room)` (it used to be three selects in a row). Run `checkAnswer(category, pokemon, usedSpecies)`. If
+   it fails, reply with its reason and **do not call `party_apply_answer`** (a wrong
    answer costs time, not a life, and nothing is written). If it fits, compute `p_pool_exhausted` = no unused species fits once this
    one is added (`speciesLeft(...) === 0`), and call `party_apply_answer(room, player, token, pokemon.id, pokemon.dexNumber,
    exhausted)`. SQL then decides the turn, the deadline (with the grace), the "already used" race, lives and rounds, so a stale read
@@ -304,6 +307,8 @@ What the function must do, and what it can rely on SQL for:
    `bad_settings`, `bad_deck`, `bad_answer` 400. A thrown SQL error is a 500.
 6. **Not the function's job:** timeouts (clients call `party_timeout` at zero, cron backs them up), heartbeats (clients call
    `party_heartbeat` every 4 s; it returns `server_time` for the clock offset), and Realtime (clients subscribe to the tables).
+   Settings and answer replies also carry the rows they wrote (`room`, `answer`), so the player who acted sees the change
+   without waiting for Realtime; everyone else still gets it from Realtime.
 
 **For the client (task 6):** a `party_timeout` call made exactly when the countdown hits zero lands inside the 300 ms grace and
 returns `acted: false`. That is expected, not an error. Call it again about 400 ms after zero (pass `p_turn_no` so a late retry
@@ -346,9 +351,9 @@ Actions (`auth` = `room_id`, `player_id`, `token` as returned by create or join)
 | `create` | `nickname`, optional `lives` (default 3), optional `start_tier` (default `easy`) | `{ok, room_id, code, player_id, token, nickname, icon, status: 'lobby'}`. **The only time the token is returned (with join): store it.** | `429 rate_limited` (per network), `bad_nickname`, `bad_settings` |
 | `join` | `code`, `nickname` | same shape; the nickname may come back changed ("Ash 2"). Joining a running game watches until the next one. | `429 rate_limited`, `bad_code`, `404 no_room`, `bad_nickname`, `409 room_full` |
 | `rejoin` | `player_id`, `token` | `{ok, room_id, code, player_id, nickname, icon, status}` (no token); counts as a heartbeat | `401 bad_token` |
-| `settings` | auth, `lives`, `start_tier` | `{ok}` | `403 not_host`, `409 not_lobby`, `bad_settings` |
+| `settings` | auth, `lives`, `start_tier` | `{ok, room}` (the room row after the change) | `403 not_host`, `409 not_lobby`, `bad_settings` |
 | `start` | auth | `{ok, game_no, players}`; deals the deck (seeded random, sized for the players present, from the room's `start_tier`) | `401 bad_token`, `403 not_host`, `404 no_room`, `409 not_lobby`, `409 too_few_players` |
-| `answer` | auth, `pokemon_id` | `{ok, result: 'passed' or 'cleared', round, turn_player_id, deadline, turn_no}` (see below) | see below |
+| `answer` | auth, `pokemon_id` | `{ok, result: 'passed' or 'cleared', round, turn_player_id, deadline, turn_no, room, answer}` (see below) | see below |
 | `remove` | auth, `target_id` | `{ok}` | `403 not_host`, `404 no_player` (unknown, self, or already gone) |
 | `leave` | auth | `{ok}`; the token stops working | `401 bad_token` |
 | `play_again` | auth | `{ok}`; the room goes back to the lobby (the host then calls `start` again) | `403 not_host`, `409 not_over` |
@@ -360,7 +365,9 @@ first.
   (`part`, the failed `Part` JSON, only when `why` is `part`). Nothing is written and the timer keeps running: show `reason` and let them try again.
   `why: "used"` means the species was already said this round.
 - A valid answer is passed to `party_apply_answer`, and its result is returned: `result: 'passed'` (next player's turn, new `deadline`) or
-  `'cleared'` (a full lap, or the pool ran out: no life lost, next round). Read the new room state from Realtime.
+  `'cleared'` (a full lap, or the pool ran out: no life lost, next round), with `room` (the room row after it) and `answer` (the
+  answer row): the page applies them at once, and Realtime brings the same rows to everyone a moment later. The function makes
+  one read (`party_answer_context`) and, for a fitting answer, one write; a wrong answer costs the read only.
 - `409 too_late`: the answer arrived after `deadline + 300 ms`. The turn is timed out in the same transaction; the reply carries
   `timeout` (the timeout result). `409 already_used` is the same race lost to another request. `403 not_your_turn`, `409 not_playing`,
   `404 no_room`, `400 bad_answer` (unknown Pokémon id) change nothing.

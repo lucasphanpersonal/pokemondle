@@ -85,10 +85,14 @@ everyone a white Leave; guests see "Waiting for the host…". No share button or
 **How the page connects to a room** (`src/party/`). Actions (host, join, rejoin, settings, start, answer, remove, leave,
 play again) are `POST`s to the `party` Edge Function (`api.ts`). The room's state comes from Supabase Realtime: when a
 room opens, `@supabase/supabase-js` is loaded with a dynamic import (`client.ts`, its own chunk, so the game's bundle
-doesn't grow), the page reads the room's rows with selects (anon may select the four public tables), subscribes to
-Postgres Changes filtered by the room id, and reads the rows again on every (re)subscribe, so a dropped connection heals
-itself. `state.ts` is a pure reducer over those rows (idempotent, tolerant of out-of-order events, ignores rows of other
-games) plus selectors. The player's seat (`code`, `room_id`, `player_id`, secret `token`) is kept in
+doesn't grow), the page reads the room's rows with four selects sent together (anon may select the four public tables),
+subscribes to Postgres Changes filtered by the room id, and reads the rows again on every (re)subscribe, so a dropped
+connection heals itself. `state.ts` is a pure reducer over those rows (idempotent, tolerant of out-of-order events, ignores
+rows of other games) plus selectors. The player's own actions don't wait for Realtime: the `answer` and `settings` replies
+carry the rows they wrote (the room, and the answer), and the reducer applies them at once as one more copy of those rows
+(the Realtime copy that follows changes nothing, and the in-between versions of the same transaction can't replace it). A
+host's tap on a lobby setting shows pressed straight away (`optimistic.ts`): taps made while a change is on its way are
+folded into one follow-up with the latest choice, and Start waits for it. The player's seat (`code`, `room_id`, `player_id`, secret `token`) is kept in
 `localStorage['pokemondle:party']`, and a reload on the same `#CODE` rejoins with it. While in a room the page calls
 `party_heartbeat` every 4 s, estimates the server clock from every reply's `server_time` (`clock.ts`, smallest round trip
 wins) so the countdown matches on every screen, and when the countdown reaches zero calls `party_timeout(room, turn_no)`,
@@ -104,7 +108,7 @@ e2e/smoke.spec.ts             Playwright browser smoke test (load, guess, win, m
 e2e/party.spec.ts             Playwright smoke test of the Party page (noindex, header, Help, #CODE routing, code boxes, nickname check)
 e2e/live/                     two-player Party game against a local Supabase stack (playwright.party.config.ts, .github/workflows/party-e2e.yml)
 party/index.html              the Party page (second Vite entry, served at /party/, noindex)
-src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (picks the screen), screens/ (StartScreen, LobbyScreen, GameScreen with CategoryCard, FuseTimer and RoundMoments (time's up, round cleared), GameOverScreen), types.ts (lobby, game and game over view models and the PartyController the room connection implements), game.ts (the game screen's pure helpers: timer maths, rail, turn text; tested), moments.ts (the end of a round and the game over results: event mapping, shared Also fit seed, timelines, hardest category; tested), fuseArt.ts (the timer's pixel art and its burst), sounds.ts (the game's sound effects), party.css (Party-only styles), codeBoxes.ts and nickname.ts (tested), mock.ts (dev-only pretend room), usePartyController.ts (maps the room connection to the screens), and the room connection: api.ts (Edge Function and RPC wrappers), client.ts (lazy supabase-js, snapshot, Realtime), state.ts (room reducer and selectors), clock.ts (server clock offset), session.ts (the saved seat), useParty.ts (the hook), PartyHeader, PartyHelpModal, route.ts (the #CODE route and invite link, tested)
+src/party/                    the Party page's app: main.tsx (entry), PartyApp.tsx (picks the screen), screens/ (StartScreen, LobbyScreen, GameScreen with CategoryCard, FuseTimer and RoundMoments (time's up, round cleared), GameOverScreen), types.ts (lobby, game and game over view models and the PartyController the room connection implements), game.ts (the game screen's pure helpers: timer maths, rail, turn text; tested), moments.ts (the end of a round and the game over results: event mapping, shared Also fit seed, timelines, hardest category; tested), fuseArt.ts (the timer's pixel art and its burst), sounds.ts (the game's sound effects), party.css (Party-only styles), codeBoxes.ts and nickname.ts (tested), mock.ts (dev-only pretend room), usePartyController.ts (maps the room connection to the screens), and the room connection: api.ts (Edge Function and RPC wrappers), client.ts (lazy supabase-js, snapshot, Realtime), state.ts (room reducer and selectors), optimistic.ts (the host's settings shown before the server confirms them; tested), clock.ts (server clock offset), session.ts (the saved seat), useParty.ts (the hook), PartyHeader, PartyHelpModal, route.ts (the #CODE route and invite link, tested)
 scripts/fetchPokemonData.ts   builds the local Pokémon dataset from PokéAPI
 scripts/makeIcons.ts          builds the tab icon, home-screen icons and manifest icons from the pixel Poké Ball
 scripts/icons/pokeball.txt    the hand-drawn Poké Ball (16x16 and 32x32 grids, one letter per colour); its 16x16 grid is also drawn in-game, at 1x, by CaptureScene and PixelBall (the board's guess count)
@@ -130,6 +134,7 @@ supabase/functions/_shared/network.ts  salted daily IP hash helpers shared by tr
 supabase/functions/_shared/party/  generated server copy of the Party engine and pokemon.json (do not edit; run npm run party:sync)
 src/data/pokemon.json         generated dataset (committed, so the app needs no API at runtime)
 supabase/migrations/20261127200000_party.sql  Party rooms, players, deck, answers and the turn rules in SQL (see supabase/README.md, "Party database"); tested in supabase/tests/database/
+supabase/migrations/20261128130000_party_fast_replies.sql  Party: party_answer_context (one read to check an answer) and the rows party_settings / party_apply_answer return
 ```
 
 ## How the game plays

@@ -21,7 +21,7 @@ export type RoomEvent =
       lives: number
       out: boolean
       deck_no: number
-      /** The pokemon ids answered in that round, oldest first (from migration 20261128120000; older events lack it). */
+      /** The pokemon ids answered in that round, oldest first (from migration 20261128140000; older events lack it). */
       said?: number[]
       over?: boolean
       winner_id?: string
@@ -97,6 +97,12 @@ export interface PartyState {
   players: Readonly<Record<string, PlayerRow>>
   categories: Readonly<Record<string, CategoryRow>>
   answers: Readonly<Record<string, AnswerRow>>
+  /**
+   * The room row a server reply handed back (the end state of the transaction that wrote it), until Realtime brings
+   * the same row. Realtime also sends the in-between versions that transaction wrote (one per UPDATE): those must not
+   * replace it, or e.g. a round-cleared event would flicker away. See applyReplyRows.
+   */
+  replyRoom: RoomRow | null
 }
 
 export type PartyAction =
@@ -110,6 +116,8 @@ export type PartyAction =
       answers: readonly AnswerRow[]
     }
   | { type: 'change'; table: PartyTable; event: ChangeKind; row: Record<string, unknown> }
+  /** Rows a server reply returned (party_settings, party_apply_answer): applied at once, ahead of Realtime. */
+  | { type: 'reply'; room?: unknown; answers?: readonly unknown[] }
 
 export const initialPartyState = (roomId: string | null = null): PartyState => ({
   roomId,
@@ -117,6 +125,7 @@ export const initialPartyState = (roomId: string | null = null): PartyState => (
   players: {},
   categories: {},
   answers: {},
+  replyRoom: null,
 })
 
 const categoryKey = (c: { game_no: number; deck_no: number }) => `${c.game_no}:${c.deck_no}`
@@ -141,6 +150,48 @@ function isStaleRoom(cur: RoomRow, next: RoomRow): boolean {
   const b = ms(next.last_activity)
   if (Number.isFinite(a) && Number.isFinite(b) && a !== b) return b < a
   return next.turn_no < cur.turn_no
+}
+
+/** True when `next` is strictly newer than `cur` (a later transaction); a tie is not newer. */
+function isNewerRoom(cur: RoomRow, next: RoomRow): boolean {
+  if (next.game_no !== cur.game_no) return next.game_no > cur.game_no
+  const a = ms(cur.last_activity)
+  const b = ms(next.last_activity)
+  if (Number.isFinite(a) && Number.isFinite(b) && a !== b) return b > a
+  return next.turn_no > cur.turn_no
+}
+
+/** Written by the same transaction: within one transaction now() (so last_activity) and turn_no don't change. */
+function sameTransaction(a: RoomRow, b: RoomRow): boolean {
+  const x = ms(a.last_activity)
+  const y = ms(b.last_activity)
+  return a.game_no === b.game_no && a.turn_no === b.turn_no && Number.isFinite(x) && x === y
+}
+
+/** JSON with sorted keys, so two copies of last_event compare equal whatever their key order. */
+function stable(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>
+    return `{${Object.keys(o)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stable(o[k])}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(v ?? null)
+}
+
+const ROOM_FIELDS = ['id', 'host_id', 'status', 'lives', 'start_tier', 'game_no', 'round', 'category_no', 'turn_player_id',
+  'turn_no', 'turn_seconds', 'winner_id'] as const
+const ROOM_TIMES = ['turn_started_at', 'deadline', 'last_activity'] as const
+
+/** The same version of the room (timestamps compared as instants: a reply and Realtime may format them differently). */
+export function sameRoom(a: RoomRow, b: RoomRow): boolean {
+  return (
+    ROOM_FIELDS.every((k) => (a[k] ?? null) === (b[k] ?? null)) &&
+    ROOM_TIMES.every((k) => (a[k] ?? null) === (b[k] ?? null) || ms(a[k] ?? undefined) === ms(b[k] ?? undefined)) &&
+    stable(a.last_event) === stable(b.last_event)
+  )
 }
 
 /** Rows of games before the room's current one are of no use; drop them. */
@@ -179,23 +230,58 @@ export function partyReducer(state: PartyState, action: PartyAction): PartyState
       const answers: Record<string, AnswerRow> = {}
       for (const a of action.answers) if (a.room_id === action.roomId) answers[String(a.id)] = a
       // A room event that already arrived may be newer than a snapshot read just before it.
-      const room = state.roomId === action.roomId && state.room && action.room && isStaleRoom(state.room, action.room) ? state.room : action.room
-      return prune({ roomId: action.roomId, room, players, categories, answers })
+      const keep = state.roomId === action.roomId && state.room && action.room && isStaleRoom(state.room, action.room)
+      const room = keep ? state.room : action.room
+      // A snapshot is a committed state, never an in-between one: it settles a reply row (unless it is older).
+      const replyRoom = keep && state.room === state.replyRoom ? state.replyRoom : null
+      return prune({ roomId: action.roomId, room, players, categories, answers, replyRoom })
     }
     case 'change':
       return applyChange(state, action)
+    case 'reply':
+      return applyReplyRows(state, action)
   }
 }
+
+/**
+ * Rows from a server reply. The room row is the end state of the reply's transaction, so it is applied when it is
+ * strictly newer than the room we have or replaces an in-between version of the same transaction (Realtime may already
+ * have brought the same row, or something later: then it is dropped), and then kept against the in-between versions
+ * Realtime sends after it. (A later transaction that changes neither last_activity nor turn_no, such as the host
+ * passing on in the lobby, looks like the same transaction; it is rare and the next room change corrects it.) Answers are insert-only rows,
+ * keyed by id, so the Realtime copy that follows changes nothing.
+ */
+function applyReplyRows(state: PartyState, { room, answers }: Extract<PartyAction, { type: 'reply' }>): PartyState {
+  let next = state
+  if (isRecord(room) && isRoom(room) && (state.roomId === null || room.id === state.roomId)) {
+    const cur = state.room
+    // Newer, or an in-between version of the same transaction (Realtime was quicker with part of it): take the reply's.
+    if (!cur || isNewerRoom(cur, room) || (sameTransaction(cur, room) && !sameRoom(cur, room))) {
+      next = prune({ ...next, room, replyRoom: room })
+    }
+  }
+  for (const row of answers ?? []) {
+    if (isRecord(row)) next = applyChange(next, { type: 'change', table: 'party_answers', event: 'INSERT', row })
+  }
+  return next
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 
 function applyChange(state: PartyState, { table, event, row }: Extract<PartyAction, { type: 'change' }>): PartyState {
   const del = event === 'DELETE'
   switch (table) {
     case 'party_rooms': {
       if (state.roomId !== null && row.id !== state.roomId) return state
-      if (del) return state.room ? prune({ ...state, room: null }) : state
+      if (del) return state.room ? prune({ ...state, room: null, replyRoom: null }) : state
       if (!isRoom(row)) return state
+      const held = state.replyRoom
+      if (held && state.room === held && sameTransaction(held, row)) {
+        // Realtime's copy of the reply's row settles it; an in-between version of that transaction is dropped.
+        return sameRoom(held, row) ? { ...state, room: row, replyRoom: null } : state
+      }
       if (state.room && isStaleRoom(state.room, row)) return state
-      return prune({ ...state, room: row })
+      return prune({ ...state, room: row, replyRoom: null })
     }
     case 'party_players': {
       if (del) {

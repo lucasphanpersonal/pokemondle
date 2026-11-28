@@ -122,7 +122,7 @@ select is((select result from public.party_categories where room_id = (select id
   'deck entry 2 marked failed');
 select is((pg_temp.room((select id from r1))).last_event->'said', '[]'::jsonb, 'timeout event: nobody answered that round');
 
--- The timeout event names the round's answers (migration 20261128120000), so every screen shows the same "Also fit".
+-- The timeout event names the round's answers (migration 20261128140000), so every screen shows the same "Also fit".
 create temp table rs as select pg_temp.mkroom(array['Gary', 'Erika']) as id;
 create temp table ss as select pg_temp.at_seat((select id from rs), 0) as a, pg_temp.at_seat((select id from rs), 1) as b;
 select is((pg_temp.ans((select id from rs), (select a from ss), 10)->>'result'), 'passed', 'said: a passes');

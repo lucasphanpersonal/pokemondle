@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 // The controller module pulls in the room connection; only its pure mapping is tested here.
 vi.mock('./useParty.ts', () => ({ PARTY_UNREACHABLE: 'x', useParty: () => null }))
-const { toGameView, roundEndOf, toGameOverView } = await import('./usePartyController.ts')
+const { toGameView, toLobbyView, roundEndOf, toGameOverView } = await import('./usePartyController.ts')
 import { initialPartyState, type AnswerRow, type CategoryRow, type PartyState, type PlayerRow, type RoomRow } from './state.ts'
 
 const room: RoomRow = {
@@ -43,6 +43,14 @@ const answers: AnswerRow[] = [
   { id: 9, room_id: 'r', game_no: 1, round: 2, player_id: 'a', pokemon_id: 4, species: 4, created_at: '' },
   { id: 8, room_id: 'r', game_no: 1, round: 2, player_id: 'gone', pokemon_id: 37, species: 37, created_at: '' },
 ]
+
+describe('toLobbyView', () => {
+  const lobbyRoom: RoomRow = { ...room, status: 'lobby', lives: 3, start_tier: 'easy' }
+  it("shows the room's settings, or the host's unconfirmed tap over them", () => {
+    expect(toLobbyView('KPZW', lobbyRoom, [], 'a').settings).toEqual({ lives: 3, startTier: 'easy' })
+    expect(toLobbyView('KPZW', lobbyRoom, [], 'a', { lives: 5, start_tier: 'hard' }).settings).toEqual({ lives: 5, startTier: 'hard' })
+  })
+})
 
 describe('toGameView', () => {
   it('maps the rows to the game screen: seated players by seat, answers newest first', () => {

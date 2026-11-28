@@ -21,6 +21,19 @@ export interface RoomRow {
   turn_player_id: string | null
 }
 
+/** What checking an answer needs, read in one call (public.party_answer_context). */
+export interface AnswerContext {
+  status: RoomRow['status']
+  game_no: number
+  round: number
+  category_no: number | null
+  turn_player_id: string | null
+  /** The current category's parts; null when no category is being played. */
+  parts: Category | null
+  /** Species already said this round. */
+  used: number[]
+}
+
 export interface RpcResult {
   data: unknown
   error: { code?: string } | null
@@ -38,8 +51,8 @@ export interface PartyDeps {
   /** Calls a public.party_* SQL function with the service role. */
   rpc(fn: string, args: Record<string, unknown>): Promise<RpcResult>
   getRoom(roomId: string): Promise<RoomRow | null>
-  getCategory(roomId: string, gameNo: number, deckNo: number): Promise<Category | null>
-  getUsedSpecies(roomId: string, gameNo: number, round: number): Promise<number[]>
+  /** The room's turn, current category and used species in one read; null when the room doesn't exist. */
+  getAnswerContext(roomId: string): Promise<AnswerContext | null>
   /** Players of the room with `gone_at` null. */
   countPresent(roomId: string): Promise<number>
   /** Salted daily hash of the caller's IP, or null when the request carries none (then no cap applies). */
@@ -252,9 +265,10 @@ export async function handleParty(req: PartyRequest, deps: PartyDeps): Promise<P
         const who = await deps.rpc('party_rejoin', { p_player_id: v.player_id, p_token: v.token })
         if (who.error) return finish(who)
         if (!isRecord(who.data) || who.data.ok !== true || who.data.room_id !== v.room_id) return fail('bad_token')
-        const room = await deps.getRoom(v.room_id)
+        // The two reads don't depend on each other: one round trip, not two.
+        const [room, count] = await Promise.all([deps.getRoom(v.room_id), deps.countPresent(v.room_id)])
         if (!room) return fail('no_room')
-        const present = Math.min(PARTY_CONFIG.maxPlayers, Math.max(PARTY_CONFIG.minPlayers, await deps.countPresent(v.room_id)))
+        const present = Math.min(PARTY_CONFIG.maxPlayers, Math.max(PARTY_CONFIG.minPlayers, count))
         const tier = TIER_IDS.includes(room.start_tier) ? (room.start_tier as (typeof PARTY_TIERS)[number]['id']) : 'easy'
         const deck = dealDeck(deps.randomSeed(), present, deps.dataset, { startTier: tier }).map((e) => ({
           parts: e.category,
@@ -273,14 +287,15 @@ export async function handleParty(req: PartyRequest, deps: PartyDeps): Promise<P
         const v = f.value
         const pokemon = deps.dataset.find((p) => p.id === v.pokemon_id)
         if (!pokemon) return fail('bad_answer')
-        const room = await deps.getRoom(v.room_id)
-        if (!room) return fail('no_room')
-        if (room.status !== 'playing') return fail('not_playing')
+        // One read for the turn, the category and the used species (it used to be three in a row), then one write.
+        const ctx = await deps.getAnswerContext(v.room_id)
+        if (!ctx) return fail('no_room')
+        if (ctx.status !== 'playing') return fail('not_playing')
         // Not your turn: refuse without touching anything (SQL also checks the token and the turn).
-        if (room.turn_player_id !== v.player_id) return fail('not_your_turn')
-        const category = room.category_no === null ? null : await deps.getCategory(v.room_id, room.game_no, room.category_no)
+        if (ctx.turn_player_id !== v.player_id) return fail('not_your_turn')
+        const category = ctx.parts
         if (!category) return fail('not_playing')
-        const used = new Set(await deps.getUsedSpecies(v.room_id, room.game_no, room.round))
+        const used = new Set(ctx.used)
         const check = checkAnswer(category, pokemon, used)
         if (!check.ok) {
           // A wrong answer costs time, not a life: reply, write nothing.
