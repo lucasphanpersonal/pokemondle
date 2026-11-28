@@ -34,8 +34,24 @@
   overscroll-behavior-x: contain;
 }
 
+/* After time's up or a cleared round, the new category card slides in from the right, in four pixel steps. */
+@keyframes party-slide-in {
+  from {
+    transform: translateX(48px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.party-slide-in {
+  animation: party-slide-in 240ms steps(4, end) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .party-shake {
+  .party-shake,
+  .party-slide-in {
     animation: none;
   }
 }

@@ -90,3 +90,99 @@ export function fuseGrid(cells: number, spark: boolean, frame: 0 | 1 = 0): strin
 /** SVG paths for the timer (see ballPaths): one per colour, in grid pixels of an ART_W x ART_H viewBox. */
 export const fusePaths = (cells: number, spark: boolean, frame: 0 | 1, flash: boolean) =>
   ballPaths(fuseGrid(cells, spark, frame), 0, ART_H, flash ? FLASH_PALETTE : FUSE_PALETTE)
+
+// ---------------------------------------------------------------------------------------------------------------
+// The burst: time's up. The bomb flashes (FLASH_PALETTE), then BURST_FRAMES frames of a pixel explosion drawn here in
+// code: a white-hot core, rings of yellow, orange and red with a ragged eight-point edge and an ink outline, then
+// debris and grey smoke that thins out. All of it is generated from a few numbers, so there is nothing to ship.
+
+export const BURST_W = 24
+export const BURST_H = 24
+export const BURST_FRAMES = 6
+
+export const BURST_PALETTE: Record<string, string> = {
+  k: '#202830', // outline
+  W: '#f8f8f8', // white-hot core
+  S: '#f8d030', // yellow
+  O: '#f87830', // orange
+  R: '#d83820', // red
+  M: '#8890a0', // smoke
+  m: '#c8ccd4', // thin smoke
+}
+
+/**
+ * One frame (0 to BURST_FRAMES - 1) of the burst, BURST_W x BURST_H, in the BURST_PALETTE letters.
+ * Frames 0 to 2 grow the fireball, 3 breaks it into a ring with flying debris, 4 and 5 are six puffs of smoke drifting
+ * out (5, the lighter one, is also what stays once the burst is spent).
+ */
+export function burstGrid(frame: number): string[] {
+  const cx = (BURST_W - 1) / 2
+  const cy = (BURST_H - 1) / 2
+  const f = Math.max(0, Math.min(BURST_FRAMES - 1, Math.floor(frame)))
+  // Radii of each colour band per frame (a pixel within r of the centre, the edge pushed out on eight points).
+  const bands: [string, number][][] = [
+    [['W', 3.5], ['S', 5.5]],
+    [['W', 3], ['S', 5.5], ['O', 7.5]],
+    [['W', 2], ['S', 4.5], ['O', 7], ['R', 8.8]],
+    [['S', 3], ['O', 6], ['R', 8.5]],
+    [],
+    [],
+  ]
+  const hole = f === 3 ? 1.5 : f === 4 ? 4 : f === 5 ? 6.5 : -1
+  const rows = Array.from({ length: BURST_H }, () => '.'.repeat(BURST_W).split(''))
+  for (let y = 0; y < BURST_H; y++) {
+    for (let x = 0; x < BURST_W; x++) {
+      const dx = x - cx
+      const dy = y - cy
+      const d = Math.hypot(dx, dy)
+      const spike = 1 + 0.22 * Math.cos(8 * Math.atan2(dy, dx) + f * 0.6)
+      const r = d / spike
+      if (r <= hole) continue
+      const band = bands[f].find(([, br]) => r <= br)
+      if (!band) continue
+      rows[y][x] = band[0]
+    }
+  }
+  // Smoke: six round puffs around the centre, grey with a light top-left, drifting out and shrinking.
+  if (f >= 4) {
+    const [reach, size, body] = f === 4 ? [6, 3.3, 'M'] : [8, 2.6, 'm']
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + Math.PI / 6
+      const px = cx + Math.cos(a) * reach
+      const py = cy + Math.sin(a) * reach
+      for (let y = 0; y < BURST_H; y++) {
+        for (let x = 0; x < BURST_W; x++) {
+          const dx = x - px
+          const dy = y - py
+          if (Math.hypot(dx, dy) > size) continue
+          rows[y][x] = body === 'M' && dx + dy < -size * 0.6 ? 'm' : body
+        }
+      }
+    }
+  }
+  // An ink outline around every frame, so the burst reads on the white box like the rest of the pixel art.
+  {
+    const filled = rows.map((r) => r.map((c) => c !== '.' && c !== 'k'))
+    for (let y = 0; y < BURST_H; y++) {
+      for (let x = 0; x < BURST_W; x++) {
+        if (filled[y][x]) continue
+        const near = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([ox, oy]) => filled[y + oy]?.[x + ox])
+        if (near) rows[y][x] = 'k'
+      }
+    }
+  }
+  // Debris: single bright pixels thrown past the edge.
+  if (f >= 2 && f <= 4) {
+    const reach = [0, 0, 10.5, 11.5, 11.5][f]
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + 0.4
+      const x = Math.round(cx + Math.cos(a) * reach)
+      const y = Math.round(cy + Math.sin(a) * reach)
+      if (x >= 0 && y >= 0 && x < BURST_W && y < BURST_H) rows[y][x] = f === 4 ? 'O' : 'S'
+    }
+  }
+  return rows.map((r) => r.join(''))
+}
+
+/** SVG paths for a burst frame, in grid pixels of a BURST_W x BURST_H viewBox. */
+export const burstPaths = (frame: number) => ballPaths(burstGrid(frame), 0, BURST_H, BURST_PALETTE)

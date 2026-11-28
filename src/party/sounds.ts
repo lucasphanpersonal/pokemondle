@@ -5,7 +5,7 @@ import { playNotes, type Note } from '../lib/sound.ts'
  * and played at the player's volume setting. They live here so Daily and Endless don't carry them.
  */
 
-export type PartySound = 'tick' | 'tock' | 'chime' | 'buzz'
+export type PartySound = 'tick' | 'tock' | 'chime' | 'buzz' | 'pop' | 'fanfare'
 
 const hz = (semitonesFromA4: number) => 440 * 2 ** (semitonesFromA4 / 12)
 const n = (semi: number, at: number, dur: number, wave: OscillatorType = 'square', vol = 0.1): Note => ({ f: hz(semi), at, dur, wave, vol })
@@ -25,6 +25,17 @@ export function partyNotes(name: PartySound): Note[] {
     case 'buzz':
       // A wrong answer: a low, rough double buzz.
       return [n(-22, 0, 0.1, 'square', 0.1), n(-23, 0.12, 0.16, 'square', 0.1)]
+    case 'pop':
+      // Time's up: the bomb bursts. A sharp high crack falling fast into a low thump.
+      return [
+        n(10, 0, 0.03, 'square', 0.12),
+        n(-2, 0.02, 0.04, 'square', 0.12),
+        n(-14, 0.05, 0.06, 'square', 0.12),
+        n(-26, 0.09, 0.22, 'triangle', 0.2),
+      ]
+    case 'fanfare':
+      // Round cleared: a quick rising arpeggio that lands on a held note.
+      return [n(3, 0, 0.08), n(7, 0.08, 0.08), n(10, 0.16, 0.08), n(15, 0.24, 0.32, 'triangle', 0.16), n(10, 0.24, 0.32, 'square', 0.05)]
   }
 }
 

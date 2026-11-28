@@ -121,6 +121,83 @@ export interface GameView {
   startLives: number
   /** This round's valid answers (party_answers of the current game_no and round), newest first. */
   answers: GameAnswer[]
+  /**
+   * How the last round ended (party_rooms.last_event), for the time's up and round cleared moments, or null when the
+   * last event wasn't the end of a round (the game's start, an answer, a player leaving).
+   */
+  roundEnd: RoundEnd | null
+}
+
+/**
+ * The end of a round, as every screen in the room shows it. Mapped from party_rooms.last_event by toRoundEnd (moments.ts).
+ * `key` names the round (game and round number), so the moment plays once however often or late the event arrives.
+ */
+export type RoundEnd = TimeoutEnd | ClearedEnd
+
+/** A player's time ran out (or they left on their turn): they lost a life, or are out. */
+export interface TimeoutEnd {
+  kind: 'timeout'
+  key: string
+  /** The round that ended. */
+  round: number
+  playerId: string
+  nickname: string
+  /** Lives left after the loss (0 when out). */
+  lives: number
+  out: boolean
+  /** The failed round's category (party_categories.parts of the event's deck_no), or null if it hasn't arrived. */
+  category: Category | null
+  /** Dataset ids said in the failed round, so "Also fit" never shows one of them. */
+  saidIds: number[]
+  /** The "Also fit" seed: the same on every screen (room id, game and round), so everyone sees the same three. */
+  seed: string
+}
+
+/** Every living player answered (or the answers ran out): no life lost, the next category is one step harder. */
+export interface ClearedEnd {
+  kind: 'cleared'
+  key: string
+  round: number
+  /** The pool ran out before the lap ended. */
+  exhausted: boolean
+  /** The cleared round's tier and the new round's: "Now: Hard" shows when they differ. */
+  fromTier: TierId | null
+  toTier: TierId
+}
+
+/** One row of the game over table. */
+export interface ResultPlayer {
+  id: string
+  nickname: string
+  icon: number
+  /** party_players.answers_given: valid answers in the whole game. */
+  answers: number
+  /** Lives lost in the game (party_rooms.lives minus party_players.lives). */
+  livesLost: number
+  lives: number
+  out: boolean
+  /** Left, removed or dropped during the game (party_players.gone_at). */
+  gone: boolean
+  isWinner: boolean
+  isMe: boolean
+}
+
+/** Everything the game over screen shows (party_rooms.status 'over'). */
+export interface GameOverView {
+  code: string
+  meId: string
+  /** This browser is the host: Play again is theirs. */
+  isHost: boolean
+  /** party_rooms.winner_id's player, or null when nobody was left. */
+  winner: Pick<ResultPlayer, 'id' | 'nickname' | 'icon'> | null
+  /** The seated players: the winner first, then by lives left, then answers given. */
+  players: ResultPlayer[]
+  /** The hardest category anyone cleared (highest tier, then the latest round), or null when no round was cleared. */
+  hardest: { category: Category; tier: TierId } | null
+  /** Rounds played (party_rooms.round). */
+  rounds: number
+  /** The time's up that ended the game, shown once more at the top of the screen, or null. */
+  finalTimeout: TimeoutEnd | null
 }
 
 /** The reply to an answer: accepted, or refused with a reason in words ("Too late!", "Vulpix was already said"). */
@@ -162,4 +239,11 @@ export interface PartyController {
    * moves on screen when `game.turnPlayerId` changes.
    */
   answer(pokemonId: number): Promise<AnswerResult>
+  /**
+   * The finished game (party_rooms.status 'over') for a player who was in it, or null. While it is set, the game over
+   * screen shows.
+   */
+  over: GameOverView | null
+  /** Host only, on the game over screen: back to the lobby with the same room and players (then Start deals a new game). */
+  playAgain(): void
 }
