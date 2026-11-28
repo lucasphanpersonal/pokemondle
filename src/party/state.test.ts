@@ -319,3 +319,111 @@ describe("snapshot vs newer events", () => {
     expect(s.room?.turn_no).toBe(6)
   })
 })
+
+describe('rows from a server reply (ahead of Realtime)', () => {
+  // One answer transaction: the turn passes (UPDATE 1), then last_event is set (UPDATE 2). Realtime sends both;
+  // the reply carries only the end state.
+  const before = playingRoom({ turn_no: 5, last_activity: '2026-11-27T10:00:00.000Z' })
+  const step1 = playingRoom({ turn_no: 6, turn_player_id: 'p2', last_activity: '2026-11-27T10:00:03.000Z' })
+  const final = playingRoom({
+    turn_no: 6,
+    turn_player_id: 'p2',
+    last_activity: '2026-11-27T10:00:03.000Z',
+    last_event: { kind: 'answer', round: 1, player_id: 'p1', pokemon_id: 4 },
+  })
+  // The same row with the timestamps formatted differently (Realtime vs Postgres' to_jsonb in the reply).
+  const finalRealtime = { ...final, last_activity: '2026-11-27T10:00:03+00:00', deadline: '2026-11-27T10:00:20+00:00' }
+  const reply = (o: Partial<Extract<PartyAction, { type: 'reply' }>> = {}): PartyAction => ({ type: 'reply', room: final, ...o })
+
+  it('applies the reply room at once', () => {
+    const s = run(initialPartyState(ROOM), snap({ room: before }), reply())
+    expect(s.room).toEqual(final)
+    expect(s.replyRoom).toEqual(final)
+  })
+
+  it('ignores the in-between Realtime version of the same transaction, then settles on the Realtime copy', () => {
+    let s = run(initialPartyState(ROOM), snap({ room: before }), reply())
+    s = run(s, change('party_rooms', 'UPDATE', step1))
+    expect(s.room).toEqual(final)
+    s = run(s, change('party_rooms', 'UPDATE', finalRealtime))
+    expect(s.room?.turn_player_id).toBe('p2')
+    expect(s.room?.last_event).toEqual(final.last_event)
+    expect(s.replyRoom).toBeNull()
+  })
+
+  it('after settling, later room changes apply as usual (a tie included)', () => {
+    let s = run(initialPartyState(ROOM), snap({ room: before }), reply(), change('party_rooms', 'UPDATE', final))
+    expect(s.replyRoom).toBeNull()
+    s = run(s, change('party_rooms', 'UPDATE', { ...final, host_id: 'p2' }))
+    expect(s.room?.host_id).toBe('p2')
+  })
+
+  it('a reply older than what Realtime already brought is dropped', () => {
+    const later = playingRoom({ turn_no: 7, turn_player_id: 'p1', last_activity: '2026-11-27T10:00:05.000Z' })
+    const s = run(initialPartyState(ROOM), snap({ room: before }), change('party_rooms', 'UPDATE', later), reply())
+    expect(s.room).toEqual(later)
+    expect(s.replyRoom).toBeNull()
+  })
+
+  it('a reply whose row Realtime already brought changes nothing', () => {
+    const s0 = run(initialPartyState(ROOM), snap({ room: before }), change('party_rooms', 'UPDATE', step1), change('party_rooms', 'UPDATE', final))
+    expect(run(s0, reply())).toBe(s0)
+  })
+
+  it('a reply replaces an in-between version Realtime brought first', () => {
+    let s = run(initialPartyState(ROOM), snap({ room: before }), change('party_rooms', 'UPDATE', step1), reply())
+    expect(s.room).toEqual(final)
+    s = run(s, change('party_rooms', 'UPDATE', final))
+    expect(s.room).toEqual(final)
+    expect(s.replyRoom).toBeNull()
+  })
+
+  it('a newer Realtime row replaces a held reply row', () => {
+    const later = playingRoom({ turn_no: 7, turn_player_id: 'p1', last_activity: '2026-11-27T10:00:05.000Z' })
+    const s = run(initialPartyState(ROOM), snap({ room: before }), reply(), change('party_rooms', 'UPDATE', later))
+    expect(s.room).toEqual(later)
+    expect(s.replyRoom).toBeNull()
+  })
+
+  it('adds the reply answer once, however often Realtime repeats it', () => {
+    const mine = ans(3, { player_id: 'p1' })
+    let s = run(initialPartyState(ROOM), snap({ room: before }), reply({ answers: [mine] }))
+    expect(selectAnswersThisRound(s).map((a) => a.id)).toEqual([3, 2, 1])
+    s = run(s, change('party_answers', 'INSERT', mine), change('party_answers', 'INSERT', mine))
+    expect(selectAnswersThisRound(s).map((a) => a.id)).toEqual([3, 2, 1])
+  })
+
+  it('ignores junk and rows of another room', () => {
+    const s0 = run(initialPartyState(ROOM), snap({ room: before }))
+    expect(run(s0, { type: 'reply', room: { id: ROOM } })).toBe(s0)
+    expect(run(s0, { type: 'reply', room: null, answers: [null, 'x'] })).toBe(s0)
+    expect(run(s0, { type: 'reply', room: { ...final, id: 'other' } })).toBe(s0)
+    expect(run(s0, { type: 'reply', answers: [ans(9, { room_id: 'other' })] })).toBe(s0)
+  })
+
+  it('a cleared round: the reply shows the new round and its event, and the in-between version never takes it away', () => {
+    const cleared = playingRoom({
+      round: 2,
+      category_no: 2,
+      turn_no: 6,
+      turn_player_id: 'p2',
+      last_activity: '2026-11-27T10:00:03.000Z',
+      last_event: { kind: 'cleared', round: 1, player_id: 'p1', deck_no: 1, exhausted: false },
+    })
+    const between = { ...cleared, last_event: before.last_event }
+    let s = run(initialPartyState(ROOM), snap({ room: before }), { type: 'reply', room: cleared })
+    const events: unknown[] = [s.room?.last_event]
+    s = run(s, change('party_rooms', 'UPDATE', between))
+    events.push(s.room?.last_event)
+    s = run(s, change('party_rooms', 'UPDATE', cleared))
+    events.push(s.room?.last_event)
+    expect(events).toEqual([cleared.last_event, cleared.last_event, cleared.last_event])
+  })
+
+  it('a snapshot settles a held reply row', () => {
+    let s = run(initialPartyState(ROOM), snap({ room: before }), reply())
+    s = run(s, snap({ room: final }))
+    expect(s.replyRoom).toBeNull()
+    expect(s.room).toEqual(final)
+  })
+})

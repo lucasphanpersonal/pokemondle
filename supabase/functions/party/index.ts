@@ -9,7 +9,7 @@ import { clientIp, getDailySalt, sha256 } from '../_shared/network.ts'
 import dataset from '../_shared/party/pokemon.json' with { type: 'json' }
 import type { Pokemon } from '../_shared/party/pokemon.ts'
 import type { Category } from '../_shared/party/types.ts'
-import { handleParty, MAX_BODY_BYTES, type PartyDeps, type PartyResult } from './handler.ts'
+import { type AnswerContext, handleParty, MAX_BODY_BYTES, type PartyDeps, type PartyResult } from './handler.ts'
 
 const positive = (name: string, fallback: number) => Math.max(1, Math.floor(Number(Deno.env.get(name))) || fallback)
 
@@ -32,6 +32,8 @@ const supabase = createClient(
 // The JSON import widens evolutionStage to number, so it needs a cast.
 const pokemon = dataset as unknown as Pokemon[]
 
+let saltCache: { day: string; salt: string } | null = null
+
 function makeDeps(req: Request): PartyDeps {
   return {
     allowedOrigins,
@@ -49,26 +51,20 @@ function makeDeps(req: Request): PartyDeps {
       if (error) throw error
       return data
     },
-    getCategory: async (roomId, gameNo, deckNo) => {
-      const { data, error } = await supabase
-        .from('party_categories')
-        .select('parts')
-        .eq('room_id', roomId)
-        .eq('game_no', gameNo)
-        .eq('deck_no', deckNo)
-        .maybeSingle()
+    getAnswerContext: async (roomId) => {
+      const { data, error } = await supabase.rpc('party_answer_context', { p_room_id: roomId })
       if (error) throw error
-      return (data?.parts as Category | undefined) ?? null
-    },
-    getUsedSpecies: async (roomId, gameNo, round) => {
-      const { data, error } = await supabase
-        .from('party_answers')
-        .select('species')
-        .eq('room_id', roomId)
-        .eq('game_no', gameNo)
-        .eq('round', round)
-      if (error) throw error
-      return (data ?? []).map((r: { species: number }) => r.species)
+      if (!data || typeof data !== 'object') return null
+      const ctx = data as Record<string, unknown>
+      return {
+        status: ctx.status as AnswerContext['status'],
+        game_no: Number(ctx.game_no),
+        round: Number(ctx.round),
+        category_no: typeof ctx.category_no === 'number' ? ctx.category_no : null,
+        turn_player_id: typeof ctx.turn_player_id === 'string' ? ctx.turn_player_id : null,
+        parts: Array.isArray(ctx.parts) ? (ctx.parts as Category) : null,
+        used: Array.isArray(ctx.used) ? ctx.used.map(Number) : [],
+      }
     },
     countPresent: async (roomId) => {
       const { count, error } = await supabase
@@ -82,8 +78,15 @@ function makeDeps(req: Request): PartyDeps {
     networkHash: async () => {
       const ip = clientIp(req)
       if (!ip) return null // no IP: skip the cap rather than pooling everyone into one network
-      const salt = await getDailySalt(supabase, new Date().toISOString().slice(0, 10))
-      return sha256(`${salt}|ip|${ip}`)
+      const day = new Date().toISOString().slice(0, 10)
+      // A day's salt never changes once made, so a warm function keeps it (one database round trip fewer per
+      // create/join).
+      let cached = saltCache
+      if (!cached || cached.day !== day) {
+        cached = { day, salt: await getDailySalt(supabase, day) }
+        saltCache = cached
+      }
+      return sha256(`${cached.salt}|ip|${ip}`)
     },
     caps: {
       create: { limit: CREATES_PER_HOUR, window: '1 hour' },
