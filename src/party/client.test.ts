@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it } from 'vitest'
-import { fetchSnapshot, snapshotOf } from './client.ts'
+import { fetchSnapshot, snapshotOf, staleParts } from './client.ts'
 import type { AnswerRow, CategoryRow, PlayerRow, RoomRow } from './state.ts'
 
 const ROOM = 'r1'
@@ -55,5 +55,52 @@ describe('fetchSnapshot', () => {
     expect(s.room).toBe(room)
     expect(s.answers.map((a) => a.id)).toEqual([9, 8])
     expect(s.categories).toHaveLength(2)
+  })
+})
+
+describe('staleParts (the room row read newer than the deck or the answers)', () => {
+  const answerEvent = { kind: 'answer' as const, round: 3, player_id: 'p1', pokemon_id: 9 }
+  it('nothing stale when the rows match the room', () => {
+    expect(staleParts({ ...room, last_event: { ...answerEvent, pokemon_id: 9 } }, categories, [{ ...answers[0], pokemon_id: 9 }])).toEqual({
+      categories: false,
+      answers: false,
+    })
+    expect(staleParts({ ...room, status: 'lobby', game_no: 0 }, [], [])).toEqual({ categories: false, answers: false })
+  })
+  it("a running game without its deck, or the last answer missing, is stale", () => {
+    expect(staleParts({ ...room, game_no: 3 }, categories, answers).categories).toBe(true)
+    expect(staleParts({ ...room, last_event: answerEvent }, categories, []).answers).toBe(true)
+    // An answer event of an earlier round says nothing about this one.
+    expect(staleParts({ ...room, last_event: { ...answerEvent, round: 2 } }, categories, []).answers).toBe(false)
+  })
+})
+
+describe('fetchSnapshot refetch', () => {
+  it('reads the deck and the answers again for the room\'s game and round when they came back older', async () => {
+    const newRoom = { ...room, game_no: 3, round: 1, last_event: { kind: 'answer', round: 1, player_id: 'p1', pokemon_id: 5 } } as RoomRow
+    const filters: Record<string, [string, unknown][]> = {}
+    let calls = 0
+    const builder = (table: string) => {
+      const my: [string, unknown][] = []
+      const q: Record<string, unknown> = {}
+      for (const m of ['select', 'order', 'limit', 'maybeSingle']) q[m] = () => q
+      q.eq = (k: string, v: unknown) => (my.push([k, v]), q)
+      q.then = (resolve: (v: unknown) => void) => {
+        calls++
+        filters[`${table}#${calls}`] = my
+        const fresh = my.some(([k]) => k === 'game_no')
+        const data =
+          table === 'party_rooms' ? newRoom
+          : table === 'party_players' ? players
+          : table === 'party_categories' ? (fresh ? [{ room_id: ROOM, game_no: 3, deck_no: 1 }] : categories)
+          : fresh ? [{ id: 20, game_no: 3, round: 1, pokemon_id: 5 }] : answers
+        resolve({ data, error: null })
+      }
+      return q
+    }
+    const s = await fetchSnapshot({ from: builder } as unknown as SupabaseClient, ROOM)
+    expect(calls).toBe(6)
+    expect(s.categories.map((c) => c.game_no)).toEqual([3])
+    expect(s.answers.map((a) => a.id)).toEqual([20])
   })
 })

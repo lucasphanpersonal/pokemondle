@@ -127,7 +127,7 @@ supabase/functions/_shared/network.ts  salted daily IP hash helpers shared by tr
 supabase/functions/_shared/party/  generated server copy of the Party engine and pokemon.json (do not edit; run npm run party:sync)
 src/data/pokemon.json         generated dataset (committed, so the app needs no API at runtime)
 supabase/migrations/20261127200000_party.sql  Party rooms, players, deck, answers and the turn rules in SQL (see supabase/README.md, "Party database"); tested in supabase/tests/database/
-supabase/migrations/20261128120000_party_fast_replies.sql  Party: party_answer_context (one read to check an answer) and the rows party_settings / party_apply_answer return
+supabase/migrations/20261128130000_party_fast_replies.sql  Party: party_answer_context (one read to check an answer) and the rows party_settings / party_apply_answer return
 ```
 
 ## How the game plays

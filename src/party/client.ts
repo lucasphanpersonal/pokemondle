@@ -60,7 +60,42 @@ export async function fetchSnapshot(client: SupabaseClient, roomId: string): Pro
   ])
   const err = r.error ?? p.error ?? c.error ?? a.error
   if (err) throw new Error(err.message)
-  return snapshotOf((r.data as RoomRow | null) ?? null, (p.data ?? []) as PlayerRow[], (c.data ?? []) as CategoryRow[], (a.data ?? []) as AnswerRow[])
+  const room = (r.data as RoomRow | null) ?? null
+  let cats = (c.data ?? []) as CategoryRow[]
+  let ans = (a.data ?? []) as AnswerRow[]
+  // The reads ran side by side, so the room may be newer than the deck or the answers (a start or an answer landed in
+  // between). When the room says rows must exist that the other reads lack, read those again for this game/round.
+  if (room) {
+    const stale = staleParts(room, cats, ans)
+    const [c2, a2] = await Promise.all([
+      stale.categories
+        ? client.from('party_categories').select('*').eq('room_id', roomId).eq('game_no', room.game_no)
+        : null,
+      stale.answers
+        ? client.from('party_answers').select('*').eq('room_id', roomId).eq('game_no', room.game_no).eq('round', room.round)
+        : null,
+    ])
+    const err2 = c2?.error ?? a2?.error
+    if (err2) throw new Error(err2.message)
+    if (c2) cats = (c2.data ?? []) as CategoryRow[]
+    if (a2) ans = (a2.data ?? []) as AnswerRow[]
+  }
+  return snapshotOf(room, (p.data ?? []) as PlayerRow[], cats, ans)
+}
+
+/**
+ * Which of the side-by-side reads are older than the room row: a game is running (or over) but none of its deck came
+ * back, or the room's last event is an answer of this round that isn't among the answers.
+ */
+export function staleParts(room: RoomRow, categories: readonly CategoryRow[], answers: readonly AnswerRow[]) {
+  const ev = room.last_event
+  return {
+    categories: room.status !== 'lobby' && room.game_no > 0 && !categories.some((c) => c.game_no === room.game_no),
+    answers:
+      ev?.kind === 'answer' &&
+      ev.round === room.round &&
+      !answers.some((x) => x.game_no === room.game_no && x.round === room.round && x.pokemon_id === ev.pokemon_id),
+  }
 }
 
 /** Keeps the deck of the room's current game and the answers of its current round (all four empty-safe). */

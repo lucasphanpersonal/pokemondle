@@ -1,4 +1,4 @@
--- Party fast replies (migration 20261128120000_party_fast_replies.sql): party_answer_context, and the rows
+-- Party fast replies (migration 20261128130000_party_fast_replies.sql): party_answer_context, and the rows
 -- party_settings and party_apply_answer return. One transaction, rolled back at the end.
 begin;
 select no_plan();

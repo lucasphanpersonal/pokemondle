@@ -72,6 +72,8 @@ export function useParty(routeCode: string | null) {
   })
   /** The host's last lobby tap and the room it is for, shown pressed until the server confirms it (optimistic.ts). */
   const [settingsDraft, setSettingsDraft] = useState<{ roomId: string; draft: SettingsDraft; sending: boolean } | null>(null)
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => () => clearTimeout(draftTimer.current), [])
 
   const setSession = useCallback((next: PartySession | null) => {
     sessionRef.current = next
@@ -297,7 +299,8 @@ export function useParty(routeCode: string | null) {
       } else {
         // No row in the reply: keep showing the draft until Realtime brings the room (render drops it once they agree).
         setSettingsDraft((d) => (mine(d) ? { ...d!, sending: false } : d))
-        setTimeout(() => setSettingsDraft((d) => (mine(d) ? null : d)), DRAFT_KEEP_MS)
+        clearTimeout(draftTimer.current)
+        draftTimer.current = setTimeout(() => setSettingsDraft((d) => (mine(d) ? null : d)), DRAFT_KEEP_MS)
       }
       return res
     },

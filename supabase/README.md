@@ -174,8 +174,9 @@ pg_cron jobs are scheduled; `10_party.test.sql` covers the Party turn rules (bel
 
 ## Party database
 
-Migrations `20261127200000_party.sql` and `20261128120000_party_fast_replies.sql` (one-read answer context, rows in the
-settings and answer replies). The SQL functions own the turn rules (whose turn, deadline, lives, round cleared, next
+Migrations `20261127200000_party.sql` and `20261128130000_party_fast_replies.sql` (one-read answer context, rows in the
+settings and answer replies). The function needs the second migration (it calls `party_answer_context`), so the
+migration must land before the function: `supabase-deploy.yml` runs `supabase db push` before `supabase functions deploy`. The SQL functions own the turn rules (whose turn, deadline, lives, round cleared, next
 category, winner), so the Edge Function, the clients' timeout calls and the cron job can never disagree. Every change runs in one
 transaction that locks the room row (`select ... for update`).
 
