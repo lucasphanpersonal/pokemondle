@@ -1,0 +1,27 @@
+PLAYTEST 4p-1: finished, Ash won in 3.9 min, 12 rounds, 31 turns
+  Easy at round 1, 0 min
+  Medium at round 4, 1.3 min
+  Hard at round 7, 2.3 min
+  Expert at round 11, 3.4 min
+  easy    20s: 3 rounds (2 cleared, 0 exhausted), 10 turns, 10% timeouts, used median 7s p90 12.7s, avg round 27s
+  medium  17s: 3 rounds (3 cleared, 0 exhausted), 9 turns, 0% timeouts, used median 6.7s p90 8.4s, avg round 19.4s
+  hard    14s: 4 rounds (3 cleared, 0 exhausted), 9 turns, 11.1% timeouts, used median 5.8s p90 10.9s, avg round 16.7s
+  expert  12s: 2 rounds (1 cleared, 0 exhausted), 3 turns, 33.3% timeouts, used median 5.9s p90 5.9s, avg round 11.8s
+  rounds lost by their first player (0 answers): 1; loss streaks: none
+  laps ending with <=3 left: 0 of 9; deck looped: false; repeated categories: 0
+  expert pool < 2x alive: 0 rounds
+  wait between own turns: median 13.7s, p90 28.4s, max 32.8s
+  answer on other screens: median 1231 ms, p95 2158 ms; next box live: median 848 ms, p95 1821 ms
+  timer drift (shown - server, s): median 0.7, min 0, max 1 over 320 reads
+  screen checks: {"checks":80,"twoLive":0,"wrongLive":0,"notLive":0,"railDiff":0,"roundDiff":0,"leftDiff":0}; moments missed: 0; also-fit disagreements: 0
+  problems: 1; console errors/warnings: 0
+  Ash     strong  desktop lives 1, 11 answers in 11 turns, 0 wrong, 0 blank, 0 stumped, 0 too slow, 0 refused
+  Misty   average phone   lives 0 OUT, 10 answers in 11 turns, 2 wrong, 0 blank, 1 stumped, 0 too slow, 0 refused
+  Brock   weak    tablet  lives 0 OUT, 6 answers in 7 turns, 0 wrong, 1 blank, 0 stumped, 0 too slow, 0 refused
+  May     average phone   lives 0 OUT, 1 answers in 2 turns, 0 wrong, 1 blank, 0 stumped, 0 too slow, 0 refused
+
+PROBLEMS
+32s lobby-stale: Ash's lobby lists 1 of 4 players 30 s after the last join; reloading it
+
+CONSOLE
+

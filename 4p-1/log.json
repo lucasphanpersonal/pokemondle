@@ -1,0 +1,1879 @@
+{
+ "summary": {
+  "game": "4p-1",
+  "players": 4,
+  "lives": 1,
+  "seed": 1,
+  "finished": true,
+  "winner": "Ash",
+  "minutes": 3.9,
+  "rounds": 12,
+  "turns": 31,
+  "lastTier": "expert",
+  "tierStarts": [
+   "Easy at round 1, 0 min",
+   "Medium at round 4, 1.3 min",
+   "Hard at round 7, 2.3 min",
+   "Expert at round 11, 3.4 min"
+  ],
+  "perTier": [
+   {
+    "tier": "easy",
+    "seconds": 20,
+    "turns": 10,
+    "answered": 9,
+    "timeouts": 1,
+    "timeoutRate": 10,
+    "usedMedianS": 7,
+    "usedP90S": 12.7,
+    "rounds": 3,
+    "cleared": 2,
+    "exhausted": 0,
+    "avgRoundS": 27
+   },
+   {
+    "tier": "medium",
+    "seconds": 17,
+    "turns": 9,
+    "answered": 9,
+    "timeouts": 0,
+    "timeoutRate": 0,
+    "usedMedianS": 6.7,
+    "usedP90S": 8.4,
+    "rounds": 3,
+    "cleared": 3,
+    "exhausted": 0,
+    "avgRoundS": 19.4
+   },
+   {
+    "tier": "hard",
+    "seconds": 14,
+    "turns": 9,
+    "answered": 8,
+    "timeouts": 1,
+    "timeoutRate": 11.1,
+    "usedMedianS": 5.8,
+    "usedP90S": 10.9,
+    "rounds": 4,
+    "cleared": 3,
+    "exhausted": 0,
+    "avgRoundS": 16.7
+   },
+   {
+    "tier": "expert",
+    "seconds": 12,
+    "turns": 3,
+    "answered": 2,
+    "timeouts": 1,
+    "timeoutRate": 33.3,
+    "usedMedianS": 5.9,
+    "usedP90S": 5.9,
+    "rounds": 2,
+    "cleared": 1,
+    "exhausted": 0,
+    "avgRoundS": 11.8
+   }
+  ],
+  "deckLooped": false,
+  "repeatedCategories": 0,
+  "lapsEndingWith3OrFewerLeft": "0 of 9",
+  "lossStreaks": [],
+  "zeroAnswerRounds": 1,
+  "expertPoolUnder2xAlive": [],
+  "livesLostPerRound": [
+   0,
+   1,
+   0,
+   0,
+   0,
+   0,
+   1,
+   0,
+   0,
+   0,
+   0,
+   1
+  ],
+  "waitBetweenOwnTurnsS": {
+   "median": 13.7,
+   "p90": 28.4,
+   "max": 32.8
+  },
+  "answerSeenOnOtherScreensMs": {
+   "median": 1231,
+   "p95": 2158,
+   "n": 57
+  },
+  "nextBoxLiveAfterEnterMs": {
+   "median": 848,
+   "p95": 1821,
+   "n": 19
+  },
+  "timerDriftS": {
+   "median": 0.7,
+   "min": 0,
+   "max": 1,
+   "n": 320
+  },
+  "screenChecks": {
+   "checks": 80,
+   "twoLive": 0,
+   "wrongLive": 0,
+   "notLive": 0,
+   "railDiff": 0,
+   "roundDiff": 0,
+   "leftDiff": 0
+  },
+  "momentsMissed": 0,
+  "alsoFitDisagreements": 0,
+  "problems": 1,
+  "consoleErrors": 0,
+  "perPlayer": [
+   {
+    "name": "Ash",
+    "skill": "strong",
+    "device": "desktop",
+    "livesLeft": 1,
+    "out": false,
+    "answers": 11,
+    "turns": 11,
+    "wrongTries": 0,
+    "blanks": 0,
+    "stumped": 0,
+    "tooSlow": 0,
+    "refused": 0,
+    "seenAfterMsMedian": 511,
+    "errors": []
+   },
+   {
+    "name": "Misty",
+    "skill": "average",
+    "device": "phone",
+    "livesLeft": 0,
+    "out": true,
+    "answers": 10,
+    "turns": 11,
+    "wrongTries": 2,
+    "blanks": 0,
+    "stumped": 1,
+    "tooSlow": 0,
+    "refused": 0,
+    "seenAfterMsMedian": 404,
+    "errors": []
+   },
+   {
+    "name": "Brock",
+    "skill": "weak",
+    "device": "tablet",
+    "livesLeft": 0,
+    "out": true,
+    "answers": 6,
+    "turns": 7,
+    "wrongTries": 0,
+    "blanks": 1,
+    "stumped": 0,
+    "tooSlow": 0,
+    "refused": 0,
+    "seenAfterMsMedian": 602,
+    "errors": []
+   },
+   {
+    "name": "May",
+    "skill": "average",
+    "device": "phone",
+    "livesLeft": 0,
+    "out": true,
+    "answers": 1,
+    "turns": 2,
+    "wrongTries": 0,
+    "blanks": 1,
+    "stumped": 0,
+    "tooSlow": 0,
+    "refused": 0,
+    "seenAfterMsMedian": 745,
+    "errors": []
+   }
+  ]
+ },
+ "rounds": [
+  {
+   "round": 1,
+   "tier": "easy",
+   "category": "a Monster egg group Pokémon",
+   "key": "eggGroup:Monster",
+   "pool": 81,
+   "seconds": 20,
+   "alive": 4,
+   "startedAt": 1795858678918,
+   "endedAt": 1795858710190,
+   "end": "cleared",
+   "answers": 4,
+   "leftAtEnd": 77
+  },
+  {
+   "round": 2,
+   "tier": "easy",
+   "category": "a Stage 3 Pokémon",
+   "key": "stage:3",
+   "pool": 121,
+   "seconds": 20,
+   "alive": 4,
+   "startedAt": 1795858710104,
+   "endedAt": 1795858743046,
+   "end": "timeout",
+   "loser": "May",
+   "out": true,
+   "answers": 2,
+   "leftAtEnd": 119
+  },
+  {
+   "round": 3,
+   "tier": "easy",
+   "category": "a Blue Pokémon",
+   "key": "color:Blue",
+   "pool": 170,
+   "seconds": 20,
+   "alive": 3,
+   "startedAt": 1795858742992,
+   "endedAt": 1795858759737,
+   "end": "cleared",
+   "answers": 3,
+   "leftAtEnd": 167
+  },
+  {
+   "round": 4,
+   "tier": "medium",
+   "category": "a Brown, under 0.5 m Pokémon",
+   "key": "color:Brown|size:tiny",
+   "pool": 23,
+   "seconds": 17,
+   "alive": 3,
+   "startedAt": 1795858759483,
+   "endedAt": 1795858778192,
+   "end": "cleared",
+   "answers": 3,
+   "leftAtEnd": 20
+  },
+  {
+   "round": 5,
+   "tier": "medium",
+   "category": "a Regional Pokémon",
+   "key": "form:regional",
+   "pool": 54,
+   "seconds": 17,
+   "alive": 3,
+   "startedAt": 1795858777942,
+   "endedAt": 1795858796896,
+   "end": "cleared",
+   "answers": 3,
+   "leftAtEnd": 51
+  },
+  {
+   "round": 6,
+   "tier": "medium",
+   "category": "a pure Electric type",
+   "key": "pure:Electric",
+   "pool": 35,
+   "seconds": 17,
+   "alive": 3,
+   "startedAt": 1795858796846,
+   "endedAt": 1795858817365,
+   "end": "cleared",
+   "answers": 3,
+   "leftAtEnd": 32
+  },
+  {
+   "round": 7,
+   "tier": "hard",
+   "category": "a Gen 8, Brown Pokémon",
+   "key": "color:Brown|gen:8",
+   "pool": 17,
+   "seconds": 14,
+   "alive": 3,
+   "startedAt": 1795858817335,
+   "endedAt": 1795858846925,
+   "end": "timeout",
+   "loser": "Brock",
+   "out": true,
+   "answers": 2,
+   "leftAtEnd": 15
+  },
+  {
+   "round": 8,
+   "tier": "hard",
+   "category": "a Ghost type, Mineral egg group",
+   "key": "eggGroup:Mineral|type:Ghost",
+   "pool": 15,
+   "seconds": 14,
+   "alive": 2,
+   "startedAt": 1795858846809,
+   "endedAt": 1795858859062,
+   "end": "cleared",
+   "answers": 2,
+   "leftAtEnd": 13
+  },
+  {
+   "round": 9,
+   "tier": "hard",
+   "category": "a Normal type, over 2 m",
+   "key": "size:tall|type:Normal",
+   "pool": 13,
+   "seconds": 14,
+   "alive": 2,
+   "startedAt": 1795858858996,
+   "endedAt": 1795858869681,
+   "end": "cleared",
+   "answers": 2,
+   "leftAtEnd": 11
+  },
+  {
+   "round": 10,
+   "tier": "hard",
+   "category": "a Mega, Dragon egg group Pokémon",
+   "key": "eggGroup:Dragon|form:mega",
+   "pool": 11,
+   "seconds": 14,
+   "alive": 2,
+   "startedAt": 1795858869564,
+   "endedAt": 1795858883858,
+   "end": "cleared",
+   "answers": 2,
+   "leftAtEnd": 9
+  },
+  {
+   "round": 11,
+   "tier": "expert",
+   "category": "a Stage 3, G-Max, over 2 m Pokémon",
+   "key": "form:gmax|size:tall|stage:3",
+   "pool": 14,
+   "seconds": 12,
+   "alive": 2,
+   "startedAt": 1795858883789,
+   "endedAt": 1795858894976,
+   "end": "cleared",
+   "answers": 2,
+   "leftAtEnd": 12
+  },
+  {
+   "round": 12,
+   "tier": "expert",
+   "category": "a Fighting type, Stage 1, Ground egg group",
+   "key": "eggGroup:Ground|stage:1|type:Fighting",
+   "pool": 9,
+   "seconds": 12,
+   "alive": 2,
+   "startedAt": 1795858894899,
+   "endedAt": 1795858907353,
+   "end": "timeout",
+   "loser": "Misty",
+   "out": true,
+   "answers": 0,
+   "leftAtEnd": 9
+  }
+ ],
+ "turns": [
+  {
+   "turnNo": 1,
+   "round": 1,
+   "player": "Ash",
+   "seconds": 20,
+   "startedAt": 1795858678918,
+   "deadline": 1795858698918,
+   "endedAt": 1795858681899,
+   "outcome": "answered",
+   "usedS": 2.5
+  },
+  {
+   "turnNo": 2,
+   "round": 1,
+   "player": "Brock",
+   "seconds": 20,
+   "startedAt": 1795858681380,
+   "deadline": 1795858701380,
+   "endedAt": 1795858694281,
+   "outcome": "answered",
+   "usedS": 12.7
+  },
+  {
+   "turnNo": 3,
+   "round": 1,
+   "player": "May",
+   "seconds": 20,
+   "startedAt": 1795858694128,
+   "deadline": 1795858714128,
+   "endedAt": 1795858701354,
+   "outcome": "answered",
+   "usedS": 7
+  },
+  {
+   "turnNo": 4,
+   "round": 1,
+   "player": "Misty",
+   "seconds": 20,
+   "startedAt": 1795858701148,
+   "deadline": 1795858721148,
+   "endedAt": 1795858710189,
+   "outcome": "answered",
+   "usedS": 9
+  },
+  {
+   "turnNo": 5,
+   "round": 2,
+   "player": "Ash",
+   "seconds": 20,
+   "startedAt": 1795858710104,
+   "deadline": 1795858730104,
+   "endedAt": 1795858715011,
+   "outcome": "answered",
+   "usedS": 4.7
+  },
+  {
+   "turnNo": 6,
+   "round": 2,
+   "player": "Brock",
+   "seconds": 20,
+   "startedAt": 1795858714852,
+   "deadline": 1795858734852,
+   "endedAt": 1795858722842,
+   "outcome": "answered",
+   "usedS": 7.7
+  },
+  {
+   "turnNo": 7,
+   "round": 2,
+   "player": "May",
+   "seconds": 20,
+   "startedAt": 1795858722587,
+   "deadline": 1795858742587,
+   "endedAt": 1795858743046,
+   "outcome": "timeout",
+   "usedS": 20
+  },
+  {
+   "turnNo": 8,
+   "round": 3,
+   "player": "Misty",
+   "seconds": 20,
+   "startedAt": 1795858742992,
+   "deadline": 1795858762992,
+   "endedAt": 1795858747860,
+   "outcome": "answered",
+   "usedS": 4.8
+  },
+  {
+   "turnNo": 9,
+   "round": 3,
+   "player": "Ash",
+   "seconds": 20,
+   "startedAt": 1795858747821,
+   "deadline": 1795858767821,
+   "endedAt": 1795858751406,
+   "outcome": "answered",
+   "usedS": 3.4
+  },
+  {
+   "turnNo": 10,
+   "round": 3,
+   "player": "Brock",
+   "seconds": 20,
+   "startedAt": 1795858751217,
+   "deadline": 1795858771217,
+   "endedAt": 1795858759737,
+   "outcome": "answered",
+   "usedS": 8.3
+  },
+  {
+   "turnNo": 11,
+   "round": 4,
+   "player": "Misty",
+   "seconds": 17,
+   "startedAt": 1795858759483,
+   "deadline": 1795858776483,
+   "endedAt": 1795858765316,
+   "outcome": "answered",
+   "usedS": 5.6
+  },
+  {
+   "turnNo": 12,
+   "round": 4,
+   "player": "Ash",
+   "seconds": 17,
+   "startedAt": 1795858765089,
+   "deadline": 1795858782089,
+   "endedAt": 1795858769604,
+   "outcome": "answered",
+   "usedS": 4.4
+  },
+  {
+   "turnNo": 13,
+   "round": 4,
+   "player": "Brock",
+   "seconds": 17,
+   "startedAt": 1795858769529,
+   "deadline": 1795858786529,
+   "endedAt": 1795858778192,
+   "outcome": "answered",
+   "usedS": 8.4
+  },
+  {
+   "turnNo": 14,
+   "round": 5,
+   "player": "Misty",
+   "seconds": 17,
+   "startedAt": 1795858777942,
+   "deadline": 1795858794942,
+   "endedAt": 1795858785032,
+   "outcome": "answered",
+   "usedS": 7
+  },
+  {
+   "turnNo": 15,
+   "round": 5,
+   "player": "Ash",
+   "seconds": 17,
+   "startedAt": 1795858784915,
+   "deadline": 1795858801915,
+   "endedAt": 1795858789827,
+   "outcome": "answered",
+   "usedS": 4.7
+  },
+  {
+   "turnNo": 16,
+   "round": 5,
+   "player": "Brock",
+   "seconds": 17,
+   "startedAt": 1795858789664,
+   "deadline": 1795858806664,
+   "endedAt": 1795858796896,
+   "outcome": "answered",
+   "usedS": 7.2
+  },
+  {
+   "turnNo": 17,
+   "round": 6,
+   "player": "Misty",
+   "seconds": 17,
+   "startedAt": 1795858796846,
+   "deadline": 1795858813846,
+   "endedAt": 1795858804990,
+   "outcome": "answered",
+   "usedS": 8
+  },
+  {
+   "turnNo": 18,
+   "round": 6,
+   "player": "Ash",
+   "seconds": 17,
+   "startedAt": 1795858804805,
+   "deadline": 1795858821805,
+   "endedAt": 1795858810795,
+   "outcome": "answered",
+   "usedS": 5.9
+  },
+  {
+   "turnNo": 19,
+   "round": 6,
+   "player": "Brock",
+   "seconds": 17,
+   "startedAt": 1795858810666,
+   "deadline": 1795858827666,
+   "endedAt": 1795858817365,
+   "outcome": "answered",
+   "usedS": 6.7
+  },
+  {
+   "turnNo": 20,
+   "round": 7,
+   "player": "Misty",
+   "seconds": 14,
+   "startedAt": 1795858817335,
+   "deadline": 1795858831335,
+   "endedAt": 1795858828486,
+   "outcome": "answered",
+   "usedS": 10.9
+  },
+  {
+   "turnNo": 21,
+   "round": 7,
+   "player": "Ash",
+   "seconds": 14,
+   "startedAt": 1795858828243,
+   "deadline": 1795858842243,
+   "endedAt": 1795858832530,
+   "outcome": "answered",
+   "usedS": 4.2
+  },
+  {
+   "turnNo": 22,
+   "round": 7,
+   "player": "Brock",
+   "seconds": 14,
+   "startedAt": 1795858832405,
+   "deadline": 1795858846405,
+   "endedAt": 1795858846925,
+   "outcome": "timeout",
+   "usedS": 14
+  },
+  {
+   "turnNo": 23,
+   "round": 8,
+   "player": "Misty",
+   "seconds": 14,
+   "startedAt": 1795858846809,
+   "deadline": 1795858860809,
+   "endedAt": 1795858854516,
+   "outcome": "answered",
+   "usedS": 7.6
+  },
+  {
+   "turnNo": 24,
+   "round": 8,
+   "player": "Ash",
+   "seconds": 14,
+   "startedAt": 1795858854402,
+   "deadline": 1795858868402,
+   "endedAt": 1795858859062,
+   "outcome": "answered",
+   "usedS": 4.6
+  },
+  {
+   "turnNo": 25,
+   "round": 9,
+   "player": "Misty",
+   "seconds": 14,
+   "startedAt": 1795858858996,
+   "deadline": 1795858872996,
+   "endedAt": 1795858863870,
+   "outcome": "answered",
+   "usedS": 4.7
+  },
+  {
+   "turnNo": 26,
+   "round": 9,
+   "player": "Ash",
+   "seconds": 14,
+   "startedAt": 1795858863725,
+   "deadline": 1795858877725,
+   "endedAt": 1795858869681,
+   "outcome": "answered",
+   "usedS": 5.8
+  },
+  {
+   "turnNo": 27,
+   "round": 10,
+   "player": "Misty",
+   "seconds": 14,
+   "startedAt": 1795858869564,
+   "deadline": 1795858883564,
+   "endedAt": 1795858875008,
+   "outcome": "answered",
+   "usedS": 5.4
+  },
+  {
+   "turnNo": 28,
+   "round": 10,
+   "player": "Ash",
+   "seconds": 14,
+   "startedAt": 1795858874992,
+   "deadline": 1795858888992,
+   "endedAt": 1795858883858,
+   "outcome": "answered",
+   "usedS": 8.8
+  },
+  {
+   "turnNo": 29,
+   "round": 11,
+   "player": "Misty",
+   "seconds": 12,
+   "startedAt": 1795858883789,
+   "deadline": 1795858895789,
+   "endedAt": 1795858889929,
+   "outcome": "answered",
+   "usedS": 5.9
+  },
+  {
+   "turnNo": 30,
+   "round": 11,
+   "player": "Ash",
+   "seconds": 12,
+   "startedAt": 1795858889689,
+   "deadline": 1795858901689,
+   "endedAt": 1795858894976,
+   "outcome": "answered",
+   "usedS": 5.2
+  },
+  {
+   "turnNo": 31,
+   "round": 12,
+   "player": "Misty",
+   "seconds": 12,
+   "startedAt": 1795858894899,
+   "deadline": 1795858906899,
+   "endedAt": 1795858907353,
+   "outcome": "timeout",
+   "usedS": 12
+  }
+ ],
+ "botTurns": {
+  "Ash": [
+   {
+    "turnNo": 1,
+    "round": 1,
+    "tier": "easy",
+    "seenAfterMs": 444,
+    "plan": "answer",
+    "thinkMs": 2272,
+    "known": 70,
+    "left": 81,
+    "wrongTries": 0,
+    "sentAtMs": 2452,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 5,
+    "round": 2,
+    "tier": "easy",
+    "seenAfterMs": 722,
+    "plan": "answer",
+    "thinkMs": 4274,
+    "known": 144,
+    "left": 121,
+    "wrongTries": 0,
+    "sentAtMs": 4741,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 9,
+    "round": 3,
+    "tier": "easy",
+    "seenAfterMs": 467,
+    "plan": "answer",
+    "thinkMs": 3188,
+    "known": 171,
+    "left": 169,
+    "wrongTries": 0,
+    "sentAtMs": 3386,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 12,
+    "round": 4,
+    "tier": "medium",
+    "seenAfterMs": 568,
+    "plan": "answer",
+    "thinkMs": 4115,
+    "known": 25,
+    "left": 22,
+    "wrongTries": 0,
+    "sentAtMs": 4435,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 15,
+    "round": 5,
+    "tier": "medium",
+    "seenAfterMs": 551,
+    "plan": "answer",
+    "thinkMs": 4441,
+    "known": 39,
+    "left": 53,
+    "wrongTries": 0,
+    "sentAtMs": 4741,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 18,
+    "round": 6,
+    "tier": "medium",
+    "seenAfterMs": 196,
+    "plan": "answer",
+    "thinkMs": 5922,
+    "known": 38,
+    "left": 34,
+    "wrongTries": 0,
+    "sentAtMs": 5850,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 21,
+    "round": 7,
+    "tier": "hard",
+    "seenAfterMs": 576,
+    "plan": "answer",
+    "thinkMs": 3847,
+    "known": 11,
+    "left": 16,
+    "wrongTries": 0,
+    "sentAtMs": 4154,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 24,
+    "round": 8,
+    "tier": "hard",
+    "seenAfterMs": 440,
+    "plan": "answer",
+    "thinkMs": 4402,
+    "known": 7,
+    "left": 14,
+    "wrongTries": 0,
+    "sentAtMs": 4577,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 26,
+    "round": 9,
+    "tier": "hard",
+    "seenAfterMs": 703,
+    "plan": "answer",
+    "thinkMs": 5384,
+    "known": 13,
+    "left": 12,
+    "wrongTries": 0,
+    "sentAtMs": 5827,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 28,
+    "round": 10,
+    "tier": "hard",
+    "seenAfterMs": 511,
+    "plan": "answer",
+    "thinkMs": 8530,
+    "known": 7,
+    "left": 10,
+    "wrongTries": 0,
+    "sentAtMs": 8784,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 30,
+    "round": 11,
+    "tier": "expert",
+    "seenAfterMs": 253,
+    "plan": "answer",
+    "thinkMs": 5183,
+    "known": 6,
+    "left": 13,
+    "wrongTries": 0,
+    "sentAtMs": 5186,
+    "outcome": "answered"
+   }
+  ],
+  "Misty": [
+   {
+    "turnNo": 4,
+    "round": 1,
+    "tier": "easy",
+    "seenAfterMs": 727,
+    "plan": "answer",
+    "thinkMs": 8472,
+    "known": 26,
+    "left": 78,
+    "wrongTries": 0,
+    "sentAtMs": 8939,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 8,
+    "round": 3,
+    "tier": "easy",
+    "seenAfterMs": 1043,
+    "plan": "answer",
+    "thinkMs": 4015,
+    "known": 109,
+    "left": 170,
+    "wrongTries": 0,
+    "sentAtMs": 4817,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 11,
+    "round": 4,
+    "tier": "medium",
+    "seenAfterMs": 492,
+    "plan": "answer",
+    "thinkMs": 5374,
+    "known": 10,
+    "left": 23,
+    "wrongTries": 0,
+    "sentAtMs": 5597,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 14,
+    "round": 5,
+    "tier": "medium",
+    "seenAfterMs": 586,
+    "plan": "answer",
+    "thinkMs": 6623,
+    "known": 19,
+    "left": 54,
+    "wrongTries": 0,
+    "sentAtMs": 6964,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 17,
+    "round": 6,
+    "tier": "medium",
+    "seenAfterMs": 499,
+    "plan": "answer",
+    "thinkMs": 7718,
+    "known": 25,
+    "left": 35,
+    "wrongTries": 0,
+    "sentAtMs": 7947,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 20,
+    "round": 7,
+    "tier": "hard",
+    "seenAfterMs": 404,
+    "plan": "answer",
+    "thinkMs": 8360,
+    "known": 4,
+    "left": 17,
+    "wrongTries": 1,
+    "sentAtMs": 10712,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 23,
+    "round": 8,
+    "tier": "hard",
+    "seenAfterMs": 339,
+    "plan": "answer",
+    "thinkMs": 7506,
+    "known": 1,
+    "left": 15,
+    "wrongTries": 0,
+    "sentAtMs": 7574,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 25,
+    "round": 9,
+    "tier": "hard",
+    "seenAfterMs": 330,
+    "plan": "answer",
+    "thinkMs": 4649,
+    "known": 4,
+    "left": 13,
+    "wrongTries": 0,
+    "sentAtMs": 4712,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 27,
+    "round": 10,
+    "tier": "hard",
+    "seenAfterMs": 307,
+    "plan": "answer",
+    "thinkMs": 5371,
+    "known": 1,
+    "left": 11,
+    "wrongTries": 0,
+    "sentAtMs": 5419,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 29,
+    "round": 11,
+    "tier": "expert",
+    "seenAfterMs": 143,
+    "plan": "answer",
+    "thinkMs": 5993,
+    "known": 3,
+    "left": 14,
+    "wrongTries": 0,
+    "sentAtMs": 5890,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 31,
+    "round": 12,
+    "tier": "expert",
+    "seenAfterMs": 229,
+    "plan": "stumped",
+    "thinkMs": 6268,
+    "known": 0,
+    "left": 9,
+    "wrongTries": 1,
+    "sentAtMs": null,
+    "outcome": "stumped"
+   }
+  ],
+  "Brock": [
+   {
+    "turnNo": 2,
+    "round": 1,
+    "tier": "easy",
+    "seenAfterMs": 583,
+    "plan": "answer",
+    "thinkMs": 12407,
+    "known": 6,
+    "left": 80,
+    "wrongTries": 0,
+    "sentAtMs": 12734,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 6,
+    "round": 2,
+    "tier": "easy",
+    "seenAfterMs": 428,
+    "plan": "answer",
+    "thinkMs": 7554,
+    "known": 58,
+    "left": 120,
+    "wrongTries": 0,
+    "sentAtMs": 7724,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 10,
+    "round": 3,
+    "tier": "easy",
+    "seenAfterMs": 314,
+    "plan": "answer",
+    "thinkMs": 8199,
+    "known": 51,
+    "left": 168,
+    "wrongTries": 0,
+    "sentAtMs": 8241,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 13,
+    "round": 4,
+    "tier": "medium",
+    "seenAfterMs": 873,
+    "plan": "answer",
+    "thinkMs": 7791,
+    "known": 3,
+    "left": 21,
+    "wrongTries": 0,
+    "sentAtMs": 8400,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 16,
+    "round": 5,
+    "tier": "medium",
+    "seenAfterMs": 602,
+    "plan": "answer",
+    "thinkMs": 6824,
+    "known": 7,
+    "left": 52,
+    "wrongTries": 0,
+    "sentAtMs": 7172,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 19,
+    "round": 6,
+    "tier": "medium",
+    "seenAfterMs": 614,
+    "plan": "answer",
+    "thinkMs": 6305,
+    "known": 17,
+    "left": 33,
+    "wrongTries": 0,
+    "sentAtMs": 6655,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 22,
+    "round": 7,
+    "tier": "hard",
+    "seenAfterMs": 859,
+    "plan": "blank",
+    "thinkMs": 22345,
+    "known": 2,
+    "left": 15,
+    "wrongTries": 0,
+    "sentAtMs": null,
+    "outcome": "blank"
+   }
+  ],
+  "May": [
+   {
+    "turnNo": 3,
+    "round": 1,
+    "tier": "easy",
+    "seenAfterMs": 745,
+    "plan": "answer",
+    "thinkMs": 6526,
+    "known": 27,
+    "left": 79,
+    "wrongTries": 0,
+    "sentAtMs": 7006,
+    "outcome": "answered"
+   },
+   {
+    "turnNo": 7,
+    "round": 2,
+    "tier": "easy",
+    "seenAfterMs": 488,
+    "plan": "blank",
+    "thinkMs": 4383,
+    "known": 91,
+    "left": 119,
+    "wrongTries": 0,
+    "sentAtMs": null,
+    "outcome": "blank"
+   }
+  ]
+ },
+ "problems": [
+  {
+   "at": 32,
+   "kind": "lobby-stale",
+   "detail": "Ash's lobby lists 1 of 4 players 30 s after the last join; reloading it"
+  }
+ ],
+ "consoleErrors": [],
+ "deck": [
+  {
+   "deck_no": 1,
+   "tier": "easy",
+   "pool": 81,
+   "seconds": 20,
+   "parts": [
+    {
+     "kind": "eggGroup",
+     "value": "Monster"
+    }
+   ]
+  },
+  {
+   "deck_no": 2,
+   "tier": "easy",
+   "pool": 121,
+   "seconds": 20,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 3
+    }
+   ]
+  },
+  {
+   "deck_no": 3,
+   "tier": "easy",
+   "pool": 170,
+   "seconds": 20,
+   "parts": [
+    {
+     "kind": "color",
+     "value": "Blue"
+    }
+   ]
+  },
+  {
+   "deck_no": 4,
+   "tier": "medium",
+   "pool": 23,
+   "seconds": 17,
+   "parts": [
+    {
+     "kind": "color",
+     "value": "Brown"
+    },
+    {
+     "kind": "size",
+     "value": "tiny"
+    }
+   ]
+  },
+  {
+   "deck_no": 5,
+   "tier": "medium",
+   "pool": 54,
+   "seconds": 17,
+   "parts": [
+    {
+     "kind": "form",
+     "value": "regional"
+    }
+   ]
+  },
+  {
+   "deck_no": 6,
+   "tier": "medium",
+   "pool": 35,
+   "seconds": 17,
+   "parts": [
+    {
+     "kind": "pure",
+     "value": "Electric"
+    }
+   ]
+  },
+  {
+   "deck_no": 7,
+   "tier": "hard",
+   "pool": 17,
+   "seconds": 14,
+   "parts": [
+    {
+     "kind": "gen",
+     "value": 8
+    },
+    {
+     "kind": "color",
+     "value": "Brown"
+    }
+   ]
+  },
+  {
+   "deck_no": 8,
+   "tier": "hard",
+   "pool": 15,
+   "seconds": 14,
+   "parts": [
+    {
+     "kind": "type",
+     "value": "Ghost"
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Mineral"
+    }
+   ]
+  },
+  {
+   "deck_no": 9,
+   "tier": "hard",
+   "pool": 13,
+   "seconds": 14,
+   "parts": [
+    {
+     "kind": "type",
+     "value": "Normal"
+    },
+    {
+     "kind": "size",
+     "value": "tall"
+    }
+   ]
+  },
+  {
+   "deck_no": 10,
+   "tier": "hard",
+   "pool": 11,
+   "seconds": 14,
+   "parts": [
+    {
+     "kind": "form",
+     "value": "mega"
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Dragon"
+    }
+   ]
+  },
+  {
+   "deck_no": 11,
+   "tier": "expert",
+   "pool": 14,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 3
+    },
+    {
+     "kind": "form",
+     "value": "gmax"
+    },
+    {
+     "kind": "size",
+     "value": "tall"
+    }
+   ]
+  },
+  {
+   "deck_no": 12,
+   "tier": "expert",
+   "pool": 9,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "type",
+     "value": "Fighting"
+    },
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Ground"
+    }
+   ]
+  },
+  {
+   "deck_no": 13,
+   "tier": "expert",
+   "pool": 7,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "type",
+     "value": "Psychic"
+    },
+    {
+     "kind": "stage",
+     "value": 2
+    },
+    {
+     "kind": "color",
+     "value": "Blue"
+    }
+   ]
+  },
+  {
+   "deck_no": 14,
+   "tier": "expert",
+   "pool": 9,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "color",
+     "value": "Brown"
+    },
+    {
+     "kind": "size",
+     "value": "heavy"
+    }
+   ]
+  },
+  {
+   "deck_no": 15,
+   "tier": "expert",
+   "pool": 8,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 2
+    },
+    {
+     "kind": "gen",
+     "value": 7
+    },
+    {
+     "kind": "size",
+     "value": "tall"
+    }
+   ]
+  },
+  {
+   "deck_no": 16,
+   "tier": "expert",
+   "pool": 6,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "type",
+     "value": "Bug"
+    },
+    {
+     "kind": "color",
+     "value": "Red"
+    },
+    {
+     "kind": "size",
+     "value": "heavy"
+    }
+   ]
+  },
+  {
+   "deck_no": 17,
+   "tier": "expert",
+   "pool": 10,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "gen",
+     "value": 4
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Ground"
+    }
+   ]
+  },
+  {
+   "deck_no": 18,
+   "tier": "expert",
+   "pool": 6,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "gen",
+     "value": 8
+    },
+    {
+     "kind": "color",
+     "value": "Yellow"
+    },
+    {
+     "kind": "form",
+     "value": "regional"
+    }
+   ]
+  },
+  {
+   "deck_no": 19,
+   "tier": "expert",
+   "pool": 11,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "form",
+     "value": "mega"
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Monster"
+    },
+    {
+     "kind": "size",
+     "value": "heavy"
+    }
+   ]
+  },
+  {
+   "deck_no": 20,
+   "tier": "expert",
+   "pool": 9,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 2
+    },
+    {
+     "kind": "gen",
+     "value": 6
+    },
+    {
+     "kind": "size",
+     "value": "tall"
+    }
+   ]
+  },
+  {
+   "deck_no": 21,
+   "tier": "expert",
+   "pool": 9,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "gen",
+     "value": 3
+    },
+    {
+     "kind": "size",
+     "value": "heavy"
+    }
+   ]
+  },
+  {
+   "deck_no": 22,
+   "tier": "expert",
+   "pool": 14,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 2
+    },
+    {
+     "kind": "gen",
+     "value": 6
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Ground"
+    }
+   ]
+  },
+  {
+   "deck_no": 23,
+   "tier": "expert",
+   "pool": 10,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "form",
+     "value": "mega"
+    },
+    {
+     "kind": "size",
+     "value": "heavy"
+    }
+   ]
+  },
+  {
+   "deck_no": 24,
+   "tier": "expert",
+   "pool": 13,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "pure",
+     "value": "Grass"
+    },
+    {
+     "kind": "color",
+     "value": "Green"
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Ground"
+    }
+   ]
+  },
+  {
+   "deck_no": 25,
+   "tier": "expert",
+   "pool": 9,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "gen",
+     "value": 3
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Water 1"
+    }
+   ]
+  },
+  {
+   "deck_no": 26,
+   "tier": "expert",
+   "pool": 9,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 2
+    },
+    {
+     "kind": "color",
+     "value": "Green"
+    },
+    {
+     "kind": "size",
+     "value": "tall"
+    }
+   ]
+  },
+  {
+   "deck_no": 27,
+   "tier": "expert",
+   "pool": 6,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "type",
+     "value": "Psychic"
+    },
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "gen",
+     "value": 2
+    }
+   ]
+  },
+  {
+   "deck_no": 28,
+   "tier": "expert",
+   "pool": 7,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "pair",
+     "value": [
+      "Fighting",
+      "Fire"
+     ]
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Ground"
+    }
+   ]
+  },
+  {
+   "deck_no": 29,
+   "tier": "expert",
+   "pool": 6,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "gen",
+     "value": 5
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Undiscovered"
+    },
+    {
+     "kind": "size",
+     "value": "heavy"
+    }
+   ]
+  },
+  {
+   "deck_no": 30,
+   "tier": "expert",
+   "pool": 7,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "gen",
+     "value": 7
+    },
+    {
+     "kind": "color",
+     "value": "White"
+    }
+   ]
+  },
+  {
+   "deck_no": 31,
+   "tier": "expert",
+   "pool": 6,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "color",
+     "value": "Black"
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Undiscovered"
+    },
+    {
+     "kind": "size",
+     "value": "heavy"
+    }
+   ]
+  },
+  {
+   "deck_no": 32,
+   "tier": "expert",
+   "pool": 8,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "form",
+     "value": "gmax"
+    },
+    {
+     "kind": "eggGroup",
+     "value": "Ground"
+    },
+    {
+     "kind": "size",
+     "value": "tall"
+    }
+   ]
+  },
+  {
+   "deck_no": 33,
+   "tier": "expert",
+   "pool": 6,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "form",
+     "value": "regional"
+    },
+    {
+     "kind": "size",
+     "value": "tiny"
+    }
+   ]
+  },
+  {
+   "deck_no": 34,
+   "tier": "expert",
+   "pool": 8,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "type",
+     "value": "Steel"
+    },
+    {
+     "kind": "stage",
+     "value": 3
+    },
+    {
+     "kind": "size",
+     "value": "heavy"
+    }
+   ]
+  },
+  {
+   "deck_no": 35,
+   "tier": "expert",
+   "pool": 15,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "gen",
+     "value": 6
+    },
+    {
+     "kind": "form",
+     "value": "mega"
+    }
+   ]
+  },
+  {
+   "deck_no": 36,
+   "tier": "expert",
+   "pool": 10,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "type",
+     "value": "Fire"
+    },
+    {
+     "kind": "stage",
+     "value": 2
+    },
+    {
+     "kind": "ability",
+     "value": "Blaze"
+    }
+   ]
+  },
+  {
+   "deck_no": 37,
+   "tier": "expert",
+   "pool": 8,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "type",
+     "value": "Flying"
+    },
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "color",
+     "value": "Red"
+    }
+   ]
+  },
+  {
+   "deck_no": 38,
+   "tier": "expert",
+   "pool": 15,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "stage",
+     "value": 2
+    },
+    {
+     "kind": "form",
+     "value": "mega"
+    },
+    {
+     "kind": "size",
+     "value": "tall"
+    }
+   ]
+  },
+  {
+   "deck_no": 39,
+   "tier": "expert",
+   "pool": 9,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "pure",
+     "value": "Electric"
+    },
+    {
+     "kind": "stage",
+     "value": 1
+    },
+    {
+     "kind": "size",
+     "value": "tiny"
+    }
+   ]
+  },
+  {
+   "deck_no": 40,
+   "tier": "expert",
+   "pool": 6,
+   "seconds": 12,
+   "parts": [
+    {
+     "kind": "color",
+     "value": "Brown"
+    },
+    {
+     "kind": "form",
+     "value": "mega"
+    },
+    {
+     "kind": "size",
+     "value": "tall"
+    }
+   ]
+  }
+ ]
+}
