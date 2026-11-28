@@ -10,7 +10,7 @@ import {
   type PartyRpc,
   type SettingsReply,
 } from './api.ts'
-import { asRpcClient, fetchLobby, fetchSnapshot, loadClient, subscribeToRoom, type Subscription } from './client.ts'
+import { asRpcClient, fetchDeck, fetchLobby, fetchSnapshot, loadClient, subscribeToRoom, type Subscription } from './client.ts'
 import { ServerClock } from './clock.ts'
 import { createResync, type Resync } from './resync.ts'
 import { draftSettled, latestOnly, type SettingsDraft } from './optimistic.ts'
@@ -183,7 +183,7 @@ export function useParty(routeCode: string | null) {
       let changes = 0
       // Read the room as it is now. Events that arrive during the read might be missing from it, so read again
       // (up to 3 reads); events after that are applied live.
-      const refresh = async () => {
+      const readSnapshot = async () => {
         for (let i = 0; i < 3; i++) {
           const seen = changes
           const snap = await fetchSnapshot(client, roomId)
@@ -193,6 +193,45 @@ export function useParty(routeCode: string | null) {
             return
           }
         }
+      }
+      // One snapshot read at a time: a call while one is out queues one more read after it (shared by every caller
+      // meanwhile), so SUBSCRIBED, the ready message and the settle read never stack up.
+      let reading: Promise<void> | null = null
+      let queued: Promise<void> | null = null
+      const refresh = (): Promise<void> => {
+        if (!reading) {
+          reading = readSnapshot().finally(() => {
+            reading = null
+          })
+          return reading
+        }
+        queued ??= reading
+          .catch(() => {})
+          .then(() => {
+            queued = null
+            return refresh()
+          })
+        return queued
+      }
+      // The deck isn't in Realtime (a 60-row deck is one message per row per player). When the room shows a running
+      // game whose deck this page lacks (a Start, a Play again's next Start), read it with one select, once per game.
+      let deckFor: number | null = null
+      const ensureDeck = (row: Record<string, unknown>) => {
+        const game = row.game_no
+        if (typeof game !== 'number' || game < 1 || row.status === 'lobby' || row.status === undefined) return
+        if (deckFor === game) return
+        deckFor = game
+        if (Object.values(stateRef.current.categories).some((c) => c.game_no === game)) return
+        fetchDeck(client, roomId, game).then(
+          (rows) => {
+            if (cancelled) return
+            if (rows.length) dispatch({ type: 'deck', roomId, categories: rows })
+            else if (deckFor === game) deckFor = null // not there yet: the next room change asks again
+          },
+          () => {
+            if (deckFor === game) deckFor = null
+          },
+        )
       }
       // In the lobby: the room row and players only. A change during the read means Realtime is delivering; the next
       // poll checks again. A room that has left the lobby (a start Realtime missed) gets a full snapshot.
@@ -217,6 +256,7 @@ export function useParty(routeCode: string | null) {
         (table, event, row) => {
           changes++
           dispatch({ type: 'change', table, event, row })
+          if (table === 'party_rooms' && event !== 'DELETE') ensureDeck(row)
         },
         (s) => {
           if (cancelled) return

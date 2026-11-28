@@ -6,9 +6,10 @@
  * neither the first snapshot nor the live stream, so the host's lobby would miss them until a reload. Realtime stays
  * the main path; these reads only catch what it missed, and are cheap on the free plan:
  *
- * - one snapshot read SETTLE_REFRESH_MS after each SUBSCRIBED (and one when the server says Postgres Changes are ready);
+ * - one snapshot read when the server says Postgres Changes are ready for the channel, or, if it hasn't said so by
+ *   then, SETTLE_REFRESH_MS after SUBSCRIBED (never both for one subscribe);
  * - while the room is in the lobby, the room row and its players (two small selects) every LOBBY_POLL_MS, skipped while
- *   the page is hidden. Nothing is polled during a game.
+ *   the page is hidden, and once at once when the page becomes visible again. Nothing is polled during a game.
  */
 
 export const SETTLE_REFRESH_MS = 1500
@@ -23,6 +24,8 @@ export interface ResyncDeps {
   inLobby: () => boolean
   /** True while the page is hidden (no polling then). Defaults to document.hidden. */
   hidden?: () => boolean
+  /** Calls `fn` whenever the page's visibility changes; returns the unsubscribe. Defaults to document's visibilitychange. */
+  onVisibility?: (fn: () => void) => () => void
 }
 
 export interface Resync {
@@ -33,27 +36,47 @@ export interface Resync {
   close: () => void
 }
 
+const documentHidden = () => typeof document !== 'undefined' && document.hidden
+function documentVisibility(fn: () => void): () => void {
+  if (typeof document === 'undefined') return () => {}
+  document.addEventListener('visibilitychange', fn)
+  return () => document.removeEventListener('visibilitychange', fn)
+}
+
 export function createResync(deps: ResyncDeps): Resync {
-  const hidden = deps.hidden ?? (() => typeof document !== 'undefined' && document.hidden)
+  const hidden = deps.hidden ?? documentHidden
   let settle: ReturnType<typeof setTimeout> | undefined
   let poll: ReturnType<typeof setInterval> | undefined
   let closed = false
+  /** changesReady came before this subscribe's SUBSCRIBED: that subscribe needs no settle read. */
+  let readyEarly = false
+  const stopVisibility = (deps.onVisibility ?? documentVisibility)(() => {
+    if (!closed && poll !== undefined && !hidden() && deps.inLobby()) deps.pollLobby()
+  })
   return {
     subscribed() {
       if (closed) return
       clearTimeout(settle)
-      settle = setTimeout(() => !closed && deps.refresh(), SETTLE_REFRESH_MS)
+      settle = undefined
+      if (readyEarly) readyEarly = false
+      else settle = setTimeout(() => !closed && deps.refresh(), SETTLE_REFRESH_MS)
       poll ??= setInterval(() => {
         if (!closed && deps.inLobby() && !hidden()) deps.pollLobby()
       }, LOBBY_POLL_MS)
     },
     changesReady() {
-      if (!closed) deps.refresh()
+      if (closed) return
+      // The settle read is only a fallback for this message: skip it.
+      if (settle !== undefined) clearTimeout(settle)
+      else readyEarly = true
+      settle = undefined
+      deps.refresh()
     },
     close() {
       closed = true
       clearTimeout(settle)
       clearInterval(poll)
+      stopVisibility()
     },
   }
 }

@@ -9,13 +9,22 @@ function setup(lobby = true, isHidden = false) {
   const calls = { refresh: 0, poll: 0 }
   let inLobby = lobby
   let hidden = isHidden
+  let visibility: (() => void) | null = null
   const r = createResync({
     refresh: () => calls.refresh++,
     pollLobby: () => calls.poll++,
     inLobby: () => inLobby,
     hidden: () => hidden,
+    onVisibility: (fn) => {
+      visibility = fn
+      return () => (visibility = null)
+    },
   })
-  return { r, calls, setLobby: (v: boolean) => (inLobby = v), setHidden: (v: boolean) => (hidden = v) }
+  const setHidden = (v: boolean) => {
+    hidden = v
+    visibility?.()
+  }
+  return { r, calls, setLobby: (v: boolean) => (inLobby = v), setHidden, listening: () => visibility !== null }
 }
 
 describe('createResync', () => {
@@ -39,10 +48,37 @@ describe('createResync', () => {
     expect(calls.refresh).toBe(1)
   })
 
-  it('reads again when the server says Postgres Changes are ready', () => {
+  it('reads again when the server says Postgres Changes are ready, and then skips the settle read', () => {
     const { r, calls } = setup(false)
+    r.subscribed()
+    vi.advanceTimersByTime(300)
     r.changesReady()
     expect(calls.refresh).toBe(1)
+    vi.advanceTimersByTime(SETTLE_REFRESH_MS * 2)
+    expect(calls.refresh).toBe(1)
+  })
+
+  it('a ready message before SUBSCRIBED also covers that subscribe; the next one gets its settle read again', () => {
+    const { r, calls } = setup(false)
+    r.changesReady()
+    r.subscribed()
+    vi.advanceTimersByTime(SETTLE_REFRESH_MS * 2)
+    expect(calls.refresh).toBe(1)
+    r.subscribed() // a reconnect with no ready message
+    vi.advanceTimersByTime(SETTLE_REFRESH_MS)
+    expect(calls.refresh).toBe(2)
+  })
+
+  it('polls at once when the page comes back into view in the lobby, not during a game', () => {
+    const { r, calls, setHidden, setLobby } = setup(true, true)
+    r.subscribed()
+    setHidden(false)
+    expect(calls.poll).toBe(1)
+    setHidden(true)
+    expect(calls.poll).toBe(1)
+    setLobby(false)
+    setHidden(false)
+    expect(calls.poll).toBe(1)
   })
 
   it('polls the players on a slow interval only while in the lobby and visible', () => {
@@ -53,8 +89,8 @@ describe('createResync', () => {
     setHidden(true)
     vi.advanceTimersByTime(LOBBY_POLL_MS * 2)
     expect(calls.poll).toBe(3)
-    setHidden(false)
     setLobby(false) // the game started: Realtime only
+    setHidden(false)
     vi.advanceTimersByTime(LOBBY_POLL_MS * 5)
     expect(calls.poll).toBe(3)
     // Resubscribing doesn't start a second interval.
@@ -65,9 +101,10 @@ describe('createResync', () => {
   })
 
   it('does nothing after close', () => {
-    const { r, calls } = setup(true)
+    const { r, calls, listening } = setup(true)
     r.subscribed()
     r.close()
+    expect(listening()).toBe(false)
     r.changesReady()
     vi.advanceTimersByTime(LOBBY_POLL_MS * 4)
     expect(calls).toEqual({ refresh: 0, poll: 0 })

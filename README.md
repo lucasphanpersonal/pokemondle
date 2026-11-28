@@ -86,11 +86,15 @@ everyone a white Leave; guests see "Waiting for the host…". No share button or
 play again) are `POST`s to the `party` Edge Function (`api.ts`). The room's state comes from Supabase Realtime: when a
 room opens, `@supabase/supabase-js` is loaded with a dynamic import (`client.ts`, its own chunk, so the game's bundle
 doesn't grow), the page reads the room's rows with four selects sent together (anon may select the four public tables),
-subscribes to Postgres Changes filtered by the room id, and reads the rows again on every (re)subscribe, so a dropped
-connection heals itself. SUBSCRIBED can come a moment before the server streams Postgres Changes, so a row written in
+subscribes to Postgres Changes on the room, players and answers filtered by the room id, and reads the rows again on
+every (re)subscribe, so a dropped connection heals itself. The dealt deck (`party_categories`) is not in Realtime (60 rows
+at Start would be one message per row per player): when a room change shows a running game whose deck the page lacks (a
+Start, the Start after Play again), it reads the deck with one select, and marks a category cleared or failed from the
+room's `last_event`; a rejoin mid-game gets the deck in its snapshot. Snapshot reads never overlap (one more is queued
+at most). SUBSCRIBED can come a moment before the server streams Postgres Changes, so a row written in
 that gap (a friend joining right after the room was made) would be missed: `resync.ts` reads the snapshot once more
-1.5 s after each SUBSCRIBED and when the server says Postgres Changes are ready, and while the room is in the lobby reads
-the room row and players (two small selects) every 5 s, skipped while the tab is hidden; nothing is polled during a game.
+when the server says Postgres Changes are ready (or 1.5 s after SUBSCRIBED if it hasn't said so), and while the room is in the lobby reads
+the room row and players (two small selects) every 5 s, skipped while the tab is hidden and done at once when it comes back; nothing is polled during a game.
 `state.ts` is a pure reducer over those rows (idempotent, tolerant of out-of-order events, ignores
 rows of other games) plus selectors. The player's own actions don't wait for Realtime: the `answer` and `settings` replies
 carry the rows they wrote (the room, and the answer), and the reducer applies them at once as one more copy of those rows
@@ -139,6 +143,7 @@ supabase/functions/_shared/party/  generated server copy of the Party engine and
 src/data/pokemon.json         generated dataset (committed, so the app needs no API at runtime)
 supabase/migrations/20261127200000_party.sql  Party rooms, players, deck, answers and the turn rules in SQL (see supabase/README.md, "Party database"); tested in supabase/tests/database/
 supabase/migrations/20261128130000_party_fast_replies.sql  Party: party_answer_context (one read to check an answer) and the rows party_settings / party_apply_answer return
+supabase/migrations/20261128160000_party_deck_off_realtime.sql  Party: the dealt deck (party_categories) leaves the Realtime publication (the page reads it with a select)
 ```
 
 ## How the game plays

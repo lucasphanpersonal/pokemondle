@@ -84,6 +84,16 @@ export async function fetchSnapshot(client: SupabaseClient, roomId: string): Pro
 }
 
 /**
+ * A game's dealt deck. party_categories is not in the Realtime publication (a 60-row deck would be one message per row
+ * per player at Start), so the page reads it with this one select when the room row shows a game whose deck it lacks.
+ */
+export async function fetchDeck(client: SupabaseClient, roomId: string, gameNo: number): Promise<CategoryRow[]> {
+  const res = await client.from('party_categories').select('*').eq('room_id', roomId).eq('game_no', gameNo)
+  if (res.error) throw new Error(res.error.message)
+  return (res.data ?? []) as CategoryRow[]
+}
+
+/**
  * The lobby re-read (resync.ts): just the room row and its players, two small selects side by side. Used while the room
  * is in the lobby to catch a join that Realtime missed; anything else (a game started) is a cue for a full snapshot.
  */
@@ -129,7 +139,7 @@ export interface Subscription {
 
 export type ChannelStatus = 'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED'
 
-/** Postgres Changes on the room's four tables, filtered by room id. supabase-js reconnects by itself and reports each
+/** Postgres Changes on the room's three live tables (not the deck: see fetchDeck), filtered by room id. supabase-js reconnects by itself and reports each
  * (re)subscription through onStatus; the caller refetches the snapshot on SUBSCRIBED. SUBSCRIBED can come before the
  * server streams Postgres Changes for the channel; the server's later "system" ok for postgres_changes calls
  * onChangesReady (when the server sends one), so the caller can read again (resync.ts). */
@@ -144,7 +154,6 @@ export function subscribeToRoom(
   const tables: [PartyTable, string][] = [
     ['party_rooms', `id=eq.${roomId}`],
     ['party_players', `room_id=eq.${roomId}`],
-    ['party_categories', `room_id=eq.${roomId}`],
     ['party_answers', `room_id=eq.${roomId}`],
   ]
   for (const [table, filter] of tables) {
